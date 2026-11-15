@@ -30,6 +30,13 @@ window.__ModuleLoader__.load({
         .dept-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .dept-title { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
         .dept-sub { color: var(--dsw-alias-label-tertiary, #8b98ad); font-size: 12px; }
+        .dept-block { border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 12px; padding: 10px 12px; background: var(--dsw-alias-bg-secondary, #10151f); display: flex; flex-direction: column; gap: 8px; }
+        .dept-block-title { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--dsw-alias-label-tertiary, #8b98ad); }
+        .dept-kv { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; border-bottom: 1px dashed #1f2a3d; padding-bottom: 3px; }
+        .dept-kv:last-child { border-bottom: none; }
+        .dept-kv span:first-child { color: var(--dsw-alias-label-tertiary, #8b98ad); }
+        .dept-form-row { display: flex; flex-direction: column; gap: 3px; }
+        .dept-form-row label { font-size: 11px; color: var(--dsw-alias-label-tertiary, #8b98ad); }
         .dept-input { border: 1px solid var(--dsw-alias-border-secondary, #2a3446); background: var(--dsw-alias-bg-secondary, #121826); color: inherit; border-radius: 8px; padding: 5px 8px; font-size: 12px; min-width: 120px; }
         .dept-btn { border: 1px solid var(--dsw-alias-border-secondary, #2a3446); background: var(--dsw-alias-bg-secondary, #121826); color: inherit; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
         .dept-btn:hover { border-color: var(--dsw-alias-border-primary, #3d4a63); }
@@ -525,6 +532,7 @@ window.__ModuleLoader__.load({
 
     function TaskDetail({ detail, onBack, onReload }) {
       const docs = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md', 'backlog.md']
+      const [tab, setTab] = useState('overview')
       const [name, setName] = useState(() => localStorage.getItem('dept-approver') || 'vladimir')
       const [budget, setBudget] = useState(detail.budget ?? null)
       const [drafts, setDrafts] = useState({})
@@ -561,111 +569,143 @@ window.__ModuleLoader__.load({
       const openQuestions = (detail.questions ?? []).filter((question) => question.status === 'open')
       const answeredQuestions = (detail.questions ?? []).filter((question) => question.status !== 'open')
       const usage = budget?.usage
+      const tokens = usage ? usage.inputTokens + usage.outputTokens : budget?.usedTokens ?? 0
       const costRub = budget?.costUSD && budget?.rateRUB ? budget.costUSD * budget.rateRUB : null
 
-      return h(
-        'div',
-        { className: 'dept-root' },
+      const kv = (label, value) => h('div', { className: 'dept-kv' }, h('span', null, label), h('span', null, String(value)))
+      const tabs = [
+        ['overview', 'Обзор'],
+        ['docs', 'Документы'],
+        ['questions', `Вопросы${openQuestions.length ? ' (' + openQuestions.length + ')' : ''}`],
+        ['audit', 'Аудит'],
+        ['events', 'События'],
+        ['git', 'Git'],
+      ]
+
+      const content = (() => {
+        if (tab === 'docs') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Документы задачи'),
+            h('div', { className: 'dept-grid' }, ...docs.map((file) =>
+              h('div', { key: file, className: `dept-doc ${detail.files?.[file] ? '' : 'missing'}` }, `${file}${detail.files?.[file] ? '' : ' — нет'}`))))
+        }
+        if (tab === 'questions') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Открытые вопросы'),
+            openQuestions.length === 0
+              ? h('div', { className: 'dept-sub' }, 'Открытых вопросов нет.')
+              : h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
+                  h('div', { key: question.id, className: 'dept-block', style: { gap: '6px' } },
+                    h('div', { className: 'dept-row' },
+                      h('span', { className: 'dept-badge wait' }, 'ждёт ответа'),
+                      h('span', { className: 'dept-sub' }, question.id)),
+                    h('div', null, question.text),
+                    question.recommended ? h('div', { className: 'dept-sub' }, `отдел выбрал: ${question.recommended}`) : null,
+                    h('div', { className: 'dept-row' },
+                      h('input', {
+                        className: 'dept-input',
+                        placeholder: question.options?.length ? question.options.join(' / ') : 'ответ',
+                        value: drafts[question.id] ?? '',
+                        onChange: (event) => setDrafts({ ...drafts, [question.id]: event.target.value }),
+                      }),
+                      h('button', {
+                        className: 'dept-btn',
+                        disabled: busy || !(drafts[question.id] ?? '').trim(),
+                        onClick: () => post(ROUTES.answer, { root: detail.root, taskId: detail.taskId, questionId: question.id, answer: (drafts[question.id] ?? '').trim() }),
+                      }, 'Ответить'))))),
+            answeredQuestions.length > 0
+              ? h('div', null,
+                  h('div', { className: 'dept-block-title' }, 'Отвеченные'),
+                  h('div', { className: 'dept-events' }, ...answeredQuestions.map((question) =>
+                    h('div', { key: question.id, className: 'dept-event' },
+                      h('span', { className: 'dept-badge ok' }, 'отвечен'),
+                      h('span', null, question.answer),
+                      h('span', { className: 'dept-sub' }, question.answeredBy)))))
+              : null)
+        }
+        if (tab === 'audit') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Аудит dept_verify'),
+            ...(detail.audit?.checks ?? []).map((check) =>
+              h('div', { key: check.id, className: 'dept-kv' },
+                h('span', null, check.id),
+                h('span', { className: check.ok ? 'dept-badge ok' : 'dept-badge fail' }, check.ok ? 'OK' : 'FAIL'))),
+            h('div', { className: 'dept-sub' }, detail.audit?.ok ? 'Итог: PASS' : 'Итог: FAIL'))
+        }
+        if (tab === 'events') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Журнал событий'),
+            h('div', { className: 'dept-events' }, ...(detail.events ?? []).map((event) =>
+              h('div', { key: event.id, className: 'dept-event' },
+                h('time', null, String(event.ts).replace('T', ' ').slice(0, 19)),
+                h('span', null, `${event.actor}: ${event.action}${event.detail ? ' — ' + event.detail : ''}`)))))
+        }
+        if (tab === 'git') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Коммиты'),
+            h('div', { className: 'dept-pre' }, (detail.recentCommits ?? []).join('\n') || 'нет коммитов'),
+            h('div', { className: 'dept-block-title' }, 'Теги'),
+            h('div', { className: 'dept-sub' }, (detail.tags ?? []).join(', ') || '—'),
+            h('div', { className: 'dept-block-title' }, 'Ветка'),
+            h('div', { className: 'dept-sub' }, detail.currentBranch ?? detail.branch))
+        }
+        return null
+      })()
+
+      return h('div', { className: 'dept-root' },
         h('div', { className: 'dept-head' },
           h('div', null,
             h('div', { className: 'dept-title' }, detail.title),
-            h('div', { className: 'dept-sub' }, `${detail.stage} · ${detail.progress}% · ветка ${detail.currentBranch ?? detail.branch}`),
-          ),
+            h('div', { className: 'dept-sub' }, `${detail.taskId} · ${detail.stage} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`)),
           h('div', { className: 'dept-row' },
-            h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: 'ваше имя', title: 'Имя для утверждений' }),
-            h('button', { className: 'dept-btn', onClick: onBack }, '← К доске')),
+            h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: 'ваше имя', title: 'Имя для подписи' }),
+            h('button', { className: 'dept-btn', onClick: onBack }, '← К доске'))),
+        h('div', { className: 'dept-tabs' }, ...tabs.map(([key, label]) =>
+          h('button', { key, className: 'dept-btn' + (tab === key ? ' active' : ''), onClick: () => setTab(key) }, label))),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '340px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+            h('div', { className: 'dept-block' },
+              h('div', { className: 'dept-block-title' }, 'Состояние'),
+              kv('Этап', detail.stage),
+              kv('Попытки (провалы)', detail.attempts),
+              kv('Тесты', detail.tests),
+              kv('Ревью', detail.review),
+              kv('Токены', `${tokens.toLocaleString('ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString('ru-RU')}`),
+              kv('Стоимость', `${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`),
+              kv('Вызовов модели', usage?.calls ?? 0),
+              h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } }))),
+            (detail.stage === 'concept' && !approved.has('concept')) || (detail.stage === 'spec' && !approved.has('spec'))
+              ? h('div', { className: 'dept-block' },
+                  h('div', { className: 'dept-block-title' }, 'Утверждение'),
+                  detail.stage === 'concept'
+                    ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, 'Утвердить концепцию')
+                    : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, 'Утвердить ТЗ'))
+              : null,
+            h('div', { className: 'dept-block' },
+              h('div', { className: 'dept-block-title' }, 'Поправка к документу'),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'Документ'),
+                h('select', { className: 'dept-input', value: amend.doc, onChange: (event) => setAmend({ ...amend, doc: event.target.value }) },
+                  h('option', { value: 'concept' }, 'Концепция'),
+                  h('option', { value: 'spec' }, 'ТЗ'),
+                  h('option', { value: 'plan' }, 'План'))),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'Что меняется'),
+                h('input', { className: 'dept-input', value: amend.summary, onChange: (event) => setAmend({ ...amend, summary: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'Почему'),
+                h('input', { className: 'dept-input', value: amend.reason, onChange: (event) => setAmend({ ...amend, reason: event.target.value }) })),
+              h('button', {
+                className: 'dept-btn',
+                disabled: busy || !amend.summary.trim(),
+                onClick: async () => {
+                  const result = await post(ROUTES.amend, { root: detail.root, taskId: detail.taskId, doc: amend.doc, summary: amend.summary.trim(), reason: amend.reason.trim() })
+                  if (result) setAmend({ ...amend, summary: '', reason: '' })
+                },
+              }, 'Подписать поправку'))),
+          content,
         ),
-        h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } })),
-        h('div', { className: 'dept-row' }, badge(`tests:${detail.tests}`), badge(`review:${detail.review}`),
-          h('span', { className: 'dept-sub' }, `провалы ${detail.attempts}`)),
-
-        h('div', { className: 'dept-title' }, 'Бюджет'),
-        h('div', { className: 'dept-events' },
-          h('div', { className: 'dept-event' },
-            h('span', null, `токены: ${(usage ? usage.inputTokens + usage.outputTokens : budget?.usedTokens ?? 0).toLocaleString('ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString('ru-RU')}`)),
-          h('div', { className: 'dept-event' }, h('span', null, `вызовов: ${usage?.calls ?? 0}`)),
-          h('div', { className: 'dept-event' },
-            h('span', null, `стоимость: ${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`))),
-
-        (detail.stage === 'concept' && !approved.has('concept'))
-          ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, 'Утвердить концепцию')
-          : null,
-        (detail.stage === 'spec' && !approved.has('spec'))
-          ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, 'Утвердить ТЗ')
-          : null,
-
-        h('div', { className: 'dept-title' }, 'Документы'),
-        h('div', { className: 'dept-grid' }, ...docs.map((file) =>
-          h('div', { key: file, className: `dept-doc ${detail.files?.[file] ? '' : 'missing'}` }, `${file}${detail.files?.[file] ? '' : ' — нет'}`))),
-
-        openQuestions.length > 0
-          ? h('div', null,
-              h('div', { className: 'dept-title' }, 'Вопросы к человеку'),
-              h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
-                h('div', { key: question.id, className: 'dept-doc' },
-                  h('div', { className: 'dept-row' },
-                    h('span', { className: 'dept-badge wait' }, 'ждёт ответа'),
-                    h('span', { className: 'dept-sub' }, question.id)),
-                  h('div', null, question.text),
-                  question.recommended ? h('div', { className: 'dept-sub' }, `отдел выбрал: ${question.recommended}`) : null,
-                  h('div', { className: 'dept-row' },
-                    h('input', {
-                      className: 'dept-input',
-                      placeholder: question.options?.length ? question.options.join(' / ') : 'ответ',
-                      value: drafts[question.id] ?? '',
-                      onChange: (event) => setDrafts({ ...drafts, [question.id]: event.target.value }),
-                    }),
-                    h('button', {
-                      className: 'dept-btn',
-                      disabled: busy || !(drafts[question.id] ?? '').trim(),
-                      onClick: () => post(ROUTES.answer, { root: detail.root, taskId: detail.taskId, questionId: question.id, answer: (drafts[question.id] ?? '').trim() }),
-                    }, 'Ответить'))))))
-          : null,
-
-        answeredQuestions.length > 0
-          ? h('div', null,
-              h('div', { className: 'dept-title' }, 'Отвеченные вопросы'),
-              h('div', { className: 'dept-events' }, ...answeredQuestions.map((question) =>
-                h('div', { key: question.id, className: 'dept-event' },
-                  h('span', { className: 'dept-badge ok' }, 'отвечен'),
-                  h('span', { className: 'dept-sub' }, `${question.answer} (${question.answeredBy})`)))))
-          : null,
-
-        h('div', { className: 'dept-title' }, 'Поправка к документу'),
-        h('div', { className: 'dept-events' },
-          h('div', { className: 'dept-row' },
-            h('select', { className: 'dept-input', value: amend.doc, onChange: (event) => setAmend({ ...amend, doc: event.target.value }) },
-              h('option', { value: 'concept' }, 'концепция'),
-              h('option', { value: 'spec' }, 'ТЗ'),
-              h('option', { value: 'plan' }, 'план')),
-            h('input', { className: 'dept-input', placeholder: 'что меняется', value: amend.summary, onChange: (event) => setAmend({ ...amend, summary: event.target.value }) }),
-            h('input', { className: 'dept-input', placeholder: 'почему', value: amend.reason, onChange: (event) => setAmend({ ...amend, reason: event.target.value }) }),
-            h('button', {
-              className: 'dept-btn',
-              disabled: busy || !amend.summary.trim(),
-              onClick: async () => {
-                const result = await post(ROUTES.amend, { root: detail.root, taskId: detail.taskId, doc: amend.doc, summary: amend.summary.trim(), reason: amend.reason.trim() })
-                if (result) setAmend({ ...amend, summary: '', reason: '' })
-              },
-            }, 'Подписать поправку'))),
-
         message ? h('div', { className: 'dept-sub' }, message) : null,
-
-        h('div', { className: 'dept-title' }, 'Аудит'),
-        h('div', { className: 'dept-events' }, ...(detail.audit?.checks ?? []).map((check) =>
-          h('div', { key: check.id, className: 'dept-event' },
-            h('span', { className: check.ok ? 'dept-badge ok' : 'dept-badge fail' }, check.ok ? 'OK' : 'FAIL'),
-            h('span', null, `${check.id}: ${check.detail}`)))),
-
-        h('div', { className: 'dept-title' }, 'События'),
-        h('div', { className: 'dept-events' }, ...(detail.events ?? []).map((event) =>
-          h('div', { key: event.id, className: 'dept-event' },
-            h('time', null, String(event.ts).replace('T', ' ').slice(0, 19)),
-            h('span', null, `${event.actor}: ${event.action} ${event.detail ? '— ' + event.detail : ''}`)))),
-
-        h('div', { className: 'dept-title' }, 'Git'),
-        h('div', { className: 'dept-pre' }, (detail.recentCommits ?? []).join('\n') || 'нет коммитов'),
-        h('div', { className: 'dept-sub' }, `теги: ${(detail.tags ?? []).join(', ') || '—'}`),
       )
     }
 
@@ -678,12 +718,15 @@ window.__ModuleLoader__.load({
       const [root, setRoot] = useState(roots[0] ?? null)
       const [blueprint, setBlueprint] = useState(null)
       const [error, setError] = useState(null)
-      const [selected, setSelected] = useState(null)
       const [loading, setLoading] = useState(false)
+      const [group, setGroup] = useState(null)
+      const [file, setFile] = useState(null)
 
       useEffect(() => {
         if (!root) return
         setLoading(true)
+        setGroup(null)
+        setFile(null)
         api(`${ROUTES.blueprint}?root=${encodeURIComponent(root)}`)
           .then((payload) => { setBlueprint(payload.blueprint); setError(null) })
           .catch((problem) => setError(problem.message))
@@ -694,16 +737,87 @@ window.__ModuleLoader__.load({
 
       const files = blueprint?.files ?? []
       const edges = blueprint?.edges ?? []
-      const center = { x: 320, y: 210 }
-      const radius = Math.min(170, 40 + files.length * 5)
-      const positions = new Map(files.map((file, index) => {
-        const angle = (index / Math.max(1, files.length)) * Math.PI * 2 - Math.PI / 2
-        return [file.path, { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }]
-      }))
-      const dirs = [...new Set(files.map((file) => file.dir))]
-      const colorOf = (dir) => BLUEPRINT_COLORS[Math.max(0, dirs.indexOf(dir)) % BLUEPRINT_COLORS.length]
-      const selectedFile = files.find((file) => file.path === selected) ?? null
-      const dependents = selectedFile ? edges.filter((edge) => edge.to === selectedFile.path).map((edge) => edge.from) : []
+      const groups = new Map()
+      for (const item of files) {
+        if (!groups.has(item.dir)) groups.set(item.dir, { dir: item.dir, files: [], loc: 0 })
+        const bucket = groups.get(item.dir)
+        bucket.files.push(item)
+        bucket.loc += item.loc
+      }
+      const groupList = [...groups.values()].sort((a, b) => b.files.length - a.files.length)
+      const groupName = (dir) => (dir === '.' ? '(корень)' : dir)
+      const colorOf = (dir) => BLUEPRINT_COLORS[Math.max(0, groupList.findIndex((item) => item.dir === dir)) % BLUEPRINT_COLORS.length]
+
+      // связи между группами
+      const groupEdges = new Map()
+      for (const edge of edges) {
+        const fromFile = files.find((item) => item.path === edge.from)
+        const toFile = files.find((item) => item.path === edge.to)
+        if (!fromFile || !toFile || fromFile.dir === toFile.dir) continue
+        const key = fromFile.dir + ' -> ' + toFile.dir
+        groupEdges.set(key, (groupEdges.get(key) ?? 0) + 1)
+      }
+
+      const groupsView = () => {
+        const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(groupList.length))))
+        const positions = new Map()
+        groupList.forEach((item, index) => {
+          const col = index % columns
+          const row = Math.floor(index / columns)
+          positions.set(item.dir, { x: 60 + col * 150, y: 60 + row * 100 })
+        })
+        return h('svg', { viewBox: '0 0 640 420' },
+          h('rect', { x: 0, y: 0, width: 640, height: 420, fill: '#141a28' }),
+          ...[...groupEdges.entries()].map(([key, count], index) => {
+            const [fromDir, toDir] = key.split(' -> ')
+            const from = positions.get(fromDir)
+            const to = positions.get(toDir)
+            if (!from || !to) return null
+            return h('g', { key: 'ge' + index },
+              h('line', { x1: from.x + 55, y1: from.y + 30, x2: to.x + 55, y2: to.y + 30, stroke: '#3a4a6a', strokeWidth: Math.min(4, 1 + count * 0.4), opacity: 0.7 }))
+          }),
+          ...groupList.map((item) => {
+            const position = positions.get(item.dir)
+            const color = colorOf(item.dir)
+            return h('g', { key: item.dir, style: { cursor: 'pointer' }, onClick: () => { setGroup(item.dir); setFile(null) } },
+              h('rect', { x: position.x, y: position.y, width: 110, height: 62, rx: 10, fill: '#1b2438', stroke: color, strokeWidth: 1.5 }),
+              h('text', { x: position.x + 8, y: position.y + 20, fill: '#e6edf7', fontSize: 9 }, groupName(item.dir).slice(0, 16)),
+              h('text', { x: position.x + 8, y: position.y + 36, fill: '#8b98ad', fontSize: 8 }, `файлов: ${item.files.length}`),
+              h('text', { x: position.x + 8, y: position.y + 50, fill: '#8b98ad', fontSize: 8 }, `строк: ${item.loc}`),
+              h('circle', { cx: position.x + 98, cy: position.y + 12, r: 4, fill: color }))
+          }))
+      }
+
+      const filesView = (dir) => {
+        const bucket = groups.get(dir)
+        const items = bucket.files
+        const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(items.length))))
+        const positions = new Map()
+        items.forEach((item, index) => {
+          positions.set(item.path, { x: 70 + (index % columns) * 140, y: 70 + Math.floor(index / columns) * 80 })
+        })
+        const inner = edges.filter((edge) => positions.has(edge.from) && positions.has(edge.to))
+        const outer = edges.filter((edge) => (positions.has(edge.from) && !positions.has(edge.to)) || (!positions.has(edge.from) && positions.has(edge.to)))
+        return h('svg', { viewBox: '0 0 640 420' },
+          h('rect', { x: 0, y: 0, width: 640, height: 420, fill: '#141a28' }),
+          ...inner.map((edge, index) => {
+            const from = positions.get(edge.from)
+            const to = positions.get(edge.to)
+            const active = file && (edge.from === file || edge.to === file)
+            return h('line', { key: 'ie' + index, x1: from.x, y1: from.y, x2: to.x, y2: to.y, stroke: active ? '#7fdc9a' : '#3a4a6a', strokeWidth: active ? 1.6 : 1, opacity: 0.8 })
+          }),
+          ...items.map((item) => {
+            const position = positions.get(item.path)
+            const isSelected = file === item.path
+            return h('g', { key: item.path, style: { cursor: 'pointer' }, onClick: () => setFile(item.path) },
+              h('circle', { cx: position.x, cy: position.y, r: isSelected ? 8 : 6, fill: colorOf(dir), stroke: isSelected ? '#fff' : '#0b1220', strokeWidth: 1 }),
+              h('text', { x: position.x + 10, y: position.y + 3, fill: '#c9d6ea', fontSize: 8 }, item.path.split('/').pop().slice(0, 18)))
+          }),
+          h('text', { x: 20, y: 400, fill: '#8b98ad', fontSize: 9 }, `внутри группы связей: ${inner.length} · наружу: ${outer.length}`))
+      }
+
+      const selectedFile = file ? files.find((item) => item.path === file) : null
+      const segment = group ? filesView(group) : groupsView()
 
       return h('div', { className: 'dept-root' },
         h('div', { className: 'dept-head' },
@@ -714,45 +828,39 @@ window.__ModuleLoader__.load({
             roots.length > 1
               ? h('select', { className: 'dept-input', value: root, onChange: (event) => setRoot(event.target.value) },
                   ...roots.map((candidate) => h('option', { key: candidate, value: candidate }, candidate.split('/').pop())))
-              : null)),
+              : null,
+            group ? h('button', { className: 'dept-btn', onClick: () => { setGroup(null); setFile(null) } }, '← Все группы') : null)),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
-        h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start' } },
-          h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
-            h('svg', { viewBox: '0 0 640 420', style: { imageRendering: 'pixelated' } },
-              h('rect', { x: 0, y: 0, width: 640, height: 420, fill: '#141a28' }),
-              ...edges.map((edge, index) => {
-                const from = positions.get(edge.from)
-                const to = positions.get(edge.to)
-                if (!from || !to) return null
-                const active = selectedFile && (edge.from === selectedFile.path || edge.to === selectedFile.path)
-                return h('line', { key: 'e' + index, x1: from.x, y1: from.y, x2: to.x, y2: to.y, stroke: active ? '#7fdc9a' : '#3a4a6a', strokeWidth: active ? 1.6 : 1, opacity: active ? 0.9 : 0.5 })
-              }),
-              ...files.map((file) => {
-                const position = positions.get(file.path)
-                const isSelected = selected === file.path
-                return h('g', { key: file.path, style: { cursor: 'pointer' }, onClick: () => setSelected(file.path) },
-                  h('circle', { cx: position.x, cy: position.y, r: isSelected ? 8 : 6, fill: colorOf(file.dir), stroke: isSelected ? '#ffffff' : '#0b1220', strokeWidth: 1 }),
-                  h('title', null, `${file.path} · ${file.loc} строк`),
-                  (isSelected || file.loc > 200)
-                    ? h('text', { x: position.x + 9, y: position.y + 3, fill: '#c9d6ea', fontSize: 8 }, file.path.split('/').pop())
-                    : null)
-              }),
-            ),
-          ),
-          h('div', { className: 'dept-office-side', style: { flex: '0 0 320px', width: '320px' } },
+        h('div', { style: { display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr) 300px', gap: '12px', alignItems: 'start' } },
+          h('div', { className: 'dept-block', style: { maxHeight: '460px', overflow: 'auto' } },
+            h('div', { className: 'dept-block-title' }, 'Группы'),
+            ...groupList.map((item) =>
+              h('div', {
+                key: item.dir,
+                className: 'dept-kv',
+                style: { cursor: 'pointer', background: group === item.dir ? '#1b2438' : undefined },
+                onClick: () => { setGroup(item.dir); setFile(null) },
+              },
+                h('span', null, groupName(item.dir)),
+                h('span', { className: 'dept-sub' }, `${item.files.length}`)))),
+          h('div', { className: 'dept-block', style: { padding: 0, overflow: 'hidden' } }, segment),
+          h('div', { className: 'dept-block' },
             selectedFile
               ? [
-                  h('div', { className: 'dept-title' }, selectedFile.path.split('/').pop()),
+                  h('div', { className: 'dept-block-title' }, selectedFile.path.split('/').pop()),
                   h('div', { className: 'dept-sub' }, selectedFile.path),
-                  h('div', { className: 'dept-sub' }, `строк: ${selectedFile.loc} · папка: ${selectedFile.dir}`),
-                  h('div', { className: 'dept-sub' }, 'Импортирует'),
+                  h('div', { className: 'dept-kv' }, h('span', null, 'строк'), h('span', null, selectedFile.loc)),
+                  h('div', { className: 'dept-block-title' }, 'Импортирует'),
                   selectedFile.imports.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
                     ...selectedFile.imports.map((target) => h('div', { key: target, className: 'dept-event' }, h('span', null, target)))),
-                  h('div', { className: 'dept-sub' }, 'Используется в'),
-                  dependents.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
-                    ...dependents.map((source) => h('div', { key: source, className: 'dept-event' }, h('span', null, source)))),
+                  h('div', { className: 'dept-block-title' }, 'Используется в'),
+                  (() => {
+                    const dependents = edges.filter((edge) => edge.to === selectedFile.path).map((edge) => edge.from)
+                    return dependents.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
+                      ...dependents.map((source) => h('div', { key: source, className: 'dept-event' }, h('span', null, source))))
+                  })(),
                 ]
-              : h('div', { className: 'dept-sub' }, 'Клик по узлу — путь, размер, импорты и кто его использует.')),
+              : h('div', { className: 'dept-sub' }, 'Выбери группу слева, затем файл на схеме.')),
         ),
       )
     }
