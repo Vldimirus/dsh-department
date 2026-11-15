@@ -1,0 +1,5 @@
+# Бандл ИИ-отдела: одна строка на профиль.
+# Отключается в профиле строкой `- id: department, disabled: true`.
+- insert:
+    - id: department
+      name: 'dsh-department'

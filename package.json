@@ -1,0 +1,20 @@
+{
+  "name": "dsh-department",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ИИ-отдел разработки для DeepSeek Harness: задачи, стадии, гейты, git, бюджет",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
