@@ -127,6 +127,20 @@ export function createActivityTracker(ctx) {
      * @returns {object[]}
      */
     list(roots) {
+      // Сессии, которые ещё не прислали событий после загрузки плагина, всё
+      // равно должны быть видны как «простаивают».
+      try {
+        const agents = typeof ctx?.get === 'function' ? ctx.get('agents') : null;
+        if (agents && typeof agents.list === 'function') {
+          for (const agent of agents.list()) {
+            if (!agent?.session) continue;
+            const entry = entryFor(agent.session);
+            if (entry.lastAction === 'ожидание') entry.lastAction = 'простаивает';
+          }
+        }
+      } catch {
+        // сервис агентов необязателен
+      }
       const cutoff = Date.now() - STALE_MS;
       for (const [id, entry] of sessions) {
         if (entry.updatedAt < cutoff) sessions.delete(id);

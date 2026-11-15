@@ -13,7 +13,7 @@ import { createActivityTracker } from './src/activity.js';
 export const name = 'department';
 
 /** Сервисы, без которых плагин не работает. */
-export const inject = ['tools', 'commands', 'workspaceRegistry'];
+export const inject = ['tools', 'commands', 'workspaceRegistry', 'agents'];
 
 /**
  * Оборачивает список диспозеров в один Cordis-диспозер.
