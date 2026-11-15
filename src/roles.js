@@ -38,6 +38,27 @@ export const DEFAULT_ROLES = Object.freeze({
     tools: ['bash', 'read'],
     maxAttempts: 3,
   }),
+  instrumenter: Object.freeze({
+    title: 'Инструментатор',
+    model: null,
+    reasoning: 'low',
+    tools: ['read', 'write', 'edit', 'bash'],
+    maxAttempts: 2,
+  }),
+  'test-author': Object.freeze({
+    title: 'Автор тестов',
+    model: null,
+    reasoning: 'medium',
+    tools: ['read', 'grep', 'glob', 'write', 'bash'],
+    maxAttempts: 2,
+  }),
+  'peer-reviewer': Object.freeze({
+    title: 'Пир-ревьюер',
+    model: null,
+    reasoning: 'medium',
+    tools: ['read', 'grep', 'glob', 'bash'],
+    maxAttempts: 2,
+  }),
   reviewer: Object.freeze({
     title: 'Ревьюер',
     model: null,
@@ -73,7 +94,18 @@ export function resolveRole(name, overrides = {}) {
  * @returns {string[]}
  */
 export function roleOrder() {
-  return ['manager', 'analyst', 'architect', 'coder', 'tester', 'reviewer', 'archivist'];
+  return [
+    'manager',
+    'analyst',
+    'architect',
+    'coder',
+    'instrumenter',
+    'test-author',
+    'peer-reviewer',
+    'tester',
+    'reviewer',
+    'archivist',
+  ];
 }
 
 /**
