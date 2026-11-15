@@ -16,6 +16,7 @@ import {
   writeState,
 } from './store.js';
 import { currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
+import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
@@ -191,6 +192,9 @@ function approveTool() {
       const by = requireString(args, 'by');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      if (!isHumanApprover(by)) {
+        throw new Error('approval must name the human approver, not a department role');
+      }
       const docFile = doc === 'concept' ? 'concept.md' : 'spec.md';
       try {
         await access(join(taskDir(root, taskId), docFile));

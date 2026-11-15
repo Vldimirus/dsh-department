@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEFAULT_ROLES, resolveRole, roleOrder } from '../src/roles.js';
+import { DEFAULT_ROLES, isHumanApprover, resolveRole, roleOrder } from '../src/roles.js';
 
 test('DEFAULT_ROLES: все роли конвейера определены', () => {
   for (const name of roleOrder()) {
@@ -23,4 +23,12 @@ test('roleOrder: руководитель первый, архивариус п�
   const order = roleOrder();
   assert.equal(order[0], 'manager');
   assert.equal(order.at(-1), 'archivist');
+});
+
+test('isHumanApprover: роль отдела не может подписать утверждение', () => {
+  assert.equal(isHumanApprover('manager'), false);
+  assert.equal(isHumanApprover('reviewer'), false);
+  assert.equal(isHumanApprover(''), false);
+  assert.equal(isHumanApprover('vladimir'), true);
+  assert.equal(isHumanApprover('Владимир'), true);
 });

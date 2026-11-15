@@ -75,3 +75,15 @@ export function resolveRole(name, overrides = {}) {
 export function roleOrder() {
   return ['manager', 'analyst', 'architect', 'coder', 'tester', 'reviewer', 'archivist'];
 }
+
+/**
+ * Проверяет, что утверждение подписано человеком, а не ролью отдела.
+ *
+ * @param {string} name Имя утверждающего.
+ * @returns {boolean}
+ */
+export function isHumanApprover(name) {
+  const normalized = String(name ?? '').trim().toLowerCase();
+  if (normalized === '') return false;
+  return !Object.prototype.hasOwnProperty.call(DEFAULT_ROLES, normalized);
+}
