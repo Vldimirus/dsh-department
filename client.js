@@ -397,7 +397,7 @@ window.__ModuleLoader__.load({
           const moved = current.mode !== target.kind || Math.hypot(current.x - target.spot.x, current.y - target.spot.y) > 2
           if (moved) {
             const points = routeTo({ x: current.x, y: current.y }, target.spot)
-            const duration = Math.min(22000, Math.max(6000, routeLength({ x: current.x, y: current.y }, points) * 95))
+            const duration = Math.min(11000, Math.max(3000, routeLength({ x: current.x, y: current.y }, points) * 48))
             plans.current.set(id, { from: { x: current.x, y: current.y }, points, start: time, duration, target })
             actors.push({ entry, mode: 'walk', spot: current, index: current.index, desk })
           } else {
