@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  amendDocument,
   approveDocument,
   createState,
   readState,
@@ -80,4 +81,12 @@ test('summarize: содержит стадию и бюджет', () => {
   const text = summarize(createState({ root: '/tmp/x', taskId: 't6' }));
   assert.match(text, /stage: analysis/);
   assert.match(text, /budget: 0\/60000/);
+});
+
+test('amendDocument: поправка пишется в состояние и событие', async () => {
+  const state = createState({ root: '/tmp/x', taskId: 'a1' });
+  const amended = amendDocument(state, { doc: 'spec', summary: 'заменить требование к рёбрам', by: 'vladimir', reason: 'ревью 3000 seed' });
+  assert.equal(amended.amendments.length, 1);
+  assert.equal(amended.amendments[0].by, 'vladimir');
+  assert.equal(amended.events.at(-1).action, 'amended_document');
 });

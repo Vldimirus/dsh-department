@@ -288,3 +288,33 @@ export function advanceStage(state, target, reason = '') {
   }
   return appendEvent({ ...state, stage: target }, { actor: 'manager', action: `stage_${target}`, detail: reason });
 }
+
+/**
+ * Фиксирует изменение утверждённого документа (поправку к ТЗ/концепции/плану).
+ * Требует подписи человека: правку утверждённого документа не может
+ * санкционировать роль отдела.
+ *
+ * @param {object} state Состояние.
+ * @param {{ doc: string, summary: string, by: string, reason?: string }} input Поправка.
+ * @returns {object} Новое состояние.
+ */
+export function amendDocument(state, input) {
+  const now = new Date().toISOString();
+  const amendment = {
+    doc: input.doc,
+    summary: input.summary,
+    reason: input.reason ?? '',
+    by: input.by,
+    ts: now,
+  };
+  const next = {
+    ...state,
+    amendments: [...(state.amendments ?? []), amendment],
+    updatedAt: now,
+  };
+  return appendEvent(next, {
+    actor: input.by,
+    action: 'amended_document',
+    detail: `${input.doc}: ${input.summary}`,
+  });
+}

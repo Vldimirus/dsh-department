@@ -5,6 +5,7 @@ import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   advanceStage,
+  amendDocument,
   appendEvent,
   approveDocument,
   createState,
@@ -65,6 +66,7 @@ export function registerTools(ctx) {
   disposers.push(ctx.tools.register(gateTool()));
   disposers.push(ctx.tools.register(stageTool()));
   disposers.push(ctx.tools.register(verifyTool()));
+  disposers.push(ctx.tools.register(amendTool()));
   disposers.push(ctx.tools.register(commitTool()));
   return disposers;
 }
@@ -399,6 +401,51 @@ function verifyTool() {
       const branch = await currentBranch(root);
       const report = verifyChecklist({ state, files, currentBranch: branch });
       return { ok: report.ok, summary: formatReport(report), checks: report.checks };
+    },
+  };
+}
+
+function amendTool() {
+  return {
+    name: 'dept_amend',
+    description: 'Зафиксировать поправку к утверждённому документу (концепция/ТЗ/план) с подписью человека. Используй, когда требование противоречит фактам и его нужно заменить; решает человек.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        doc: { type: 'string', enum: ['concept', 'spec', 'plan'], description: 'Какой документ меняется.' },
+        summary: { type: 'string', description: 'Что именно меняется, одной строкой.' },
+        reason: { type: 'string', description: 'Почему: данные ревью или измерение.' },
+        by: { type: 'string', description: 'Кто из людей утвердил поправку.' },
+      },
+      required: ['root', 'taskId', 'doc', 'summary', 'by'],
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } },
+        required: ['stage', 'summary', 'state'],
+      },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const by = requireString(args, 'by');
+      if (!isHumanApprover(by)) {
+        throw new Error('amendment must be signed by the human, not a department role');
+      }
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, amendDocument(state, {
+        doc: requireString(args, 'doc'),
+        summary: requireString(args, 'summary'),
+        reason: args?.reason ?? '',
+        by,
+      }));
+      return summaryOutput(next);
     },
   };
 }
