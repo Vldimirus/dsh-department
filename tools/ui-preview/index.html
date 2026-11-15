@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #0b0f18; color: #e6edf7; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  #root { width: 1280px; margin: 0 auto; padding: 12px; }
+  section { border: 1px solid #1f2a3d; border-radius: 14px; margin: 10px 0; overflow: hidden; }
+  section > h2 { margin: 0; padding: 6px 12px; background: #141a28; font-size: 12px; color: #8b98ad; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="react.js"></script>
+<script src="react-dom.js"></script>
+<script>
+window.__ModuleLoader__ = { load: (spec) => { window.__spec = spec; } };
+</script>
+<script src="client.js"></script>
+<script>
+const tasks = [{
+  taskId: 'game-01', title: 'Космические приключения', root: '/home/agent/work/projects/space-game',
+  branch: 'dept/game', currentBranch: 'dept/game', stage: 'executing', progress: 71,
+  tests: 'pass', review: 'pass', attempts: '0/4', approvals: ['concept', 'spec'], openQuestions: 1,
+}];
+const detail = {
+  taskId: 'game-01', title: 'Космические приключения', root: tasks[0].root, stage: 'executing',
+  branch: 'dept/game', currentBranch: 'dept/game', progress: 71, tests: 'pass', review: 'pass', attempts: '0/4',
+  approvals: ['concept', 'spec'], files: { 'task.md': true, 'analysis.md': true, 'concept.md': true, 'spec.md': true, 'plan.md': true, 'backlog.md': false },
+  budget: { limitTokens: 60000, usedTokens: 41200, prices: {}, rateRUB: 90 },
+  questions: [
+    { id: 'q2-mwi', status: 'open', text: 'Теги не пушатся в pilot — пересоздать origin?', options: ['да', 'нет'], recommended: 'не пересоздавать', answer: null, answeredBy: null },
+    { id: 'q1-mwhy', status: 'answered', text: 'Добавить регрессионный тест?', answer: 'тест добавлен', answeredBy: 'vladimir' },
+  ],
+  audit: { ok: true, checks: [ { id: 'artifact:spec.md', ok: true, detail: 'present' }, { id: 'gate:tests', ok: true, detail: 'status=pass' }, { id: 'gate:review', ok: true, detail: 'status=pass' } ] },
+  events: [
+    { id: 1, ts: '2026-11-15T18:38:13Z', actor: 'archivist', action: 'commit_pushed', detail: 'stage committed' },
+    { id: 2, ts: '2026-11-15T18:38:09Z', actor: 'reviewer', action: 'review_passed', detail: 'PASS 158/158' },
+    { id: 3, ts: '2026-11-15T18:38:07Z', actor: 'tester', action: 'tests_passed', detail: '158 pass' },
+  ],
+  recentCommits: ['0b85d18 dept(game-01): этап 4 — экономика', '2de3972 docs(game-01): итоги этапа 3'],
+  tags: ['stage-1', 'stage-2', 'stage-3', 'stage-4', 'stage-5', 'stage-6'],
+};
+const activity = { activity: [
+  { sessionId: 's1', cwd: '/home/agent/work/projects/space-game', kind: 'менеджер', busy: false, lastAction: 'думает (шаг модели)', tool: 'subagent', args: '{"description":"Кодер этапа 5"}', elapsedMs: 4200, usage: { inputTokens: 21000, outputTokens: 3200, calls: 14 }, recent: [{ ts: Date.now() - 60000, text: 'прочитал plan.md' }, { ts: Date.now() - 30000, text: 'запустил кодера' }] },
+  { sessionId: 's2', cwd: '/home/agent/work/projects/space-game', kind: 'субагент', busy: true, lastAction: 'вызывает write', tool: 'write', args: '{"file_path":"src/contracts.js"}', elapsedMs: 512000, usage: { inputTokens: 38000, outputTokens: 9100, calls: 22 }, recent: [{ ts: Date.now() - 90000, text: 'write src/contracts.js' }, { ts: Date.now() - 30000, text: 'read src/economy.js' }] },
+]};
+const blueprint = { blueprint: {
+  root: '/home/agent/work/projects/space-game',
+  files: [
+    { path: 'src/main.js', dir: 'src', loc: 513, imports: ['src/loop.js'] },
+    { path: 'src/loop.js', dir: 'src', loc: 72, imports: [] },
+    { path: 'src/world.js', dir: 'src', loc: 401, imports: ['src/rng.js'] },
+    { path: 'src/economy.js', dir: 'src', loc: 485, imports: ['src/rng.js'] },
+    { path: 'src/flight.js', dir: 'src', loc: 276, imports: ['src/rng.js'] },
+    { path: 'src/render.js', dir: 'src', loc: 318, imports: ['src/state.js'] },
+    { path: 'src/state.js', dir: 'src', loc: 96, imports: [] },
+    { path: 'src/ui/map.js', dir: 'src/ui', loc: 240, imports: ['src/world.js'] },
+    { path: 'src/ui/station.js', dir: 'src/ui', loc: 210, imports: ['src/economy.js'] },
+    { path: 'test/world.test.js', dir: 'test', loc: 180, imports: ['src/world.js'] },
+    { path: 'test/economy.test.js', dir: 'test', loc: 160, imports: ['src/economy.js'] },
+  ],
+  edges: [
+    { from: 'src/main.js', to: 'src/loop.js' }, { from: 'src/main.js', to: 'src/world.js' },
+    { from: 'src/main.js', to: 'src/economy.js' }, { from: 'src/main.js', to: 'src/render.js' },
+    { from: 'src/world.js', to: 'src/rng.js' }, { from: 'src/economy.js', to: 'src/rng.js' },
+    { from: 'src/ui/map.js', to: 'src/world.js' }, { from: 'src/ui/station.js', to: 'src/economy.js' },
+    { from: 'test/world.test.js', to: 'src/world.js' }, { from: 'test/economy.test.js', to: 'src/economy.js' },
+  ],
+  stats: { files: 11, loc: 2881, dirs: [] },
+}};
+const budget = { budget: { limitTokens: 60000, usedTokens: 41200, usage: { inputTokens: 59000, outputTokens: 12300, cacheReadTokens: 21000, cacheWriteTokens: 0, calls: 36 }, costUSD: 0.031, rateRUB: 90 } };
+
+window.fetch = async (url) => {
+  const path = String(url);
+  const json = (data) => ({ ok: true, status: 200, json: async () => data, text: async () => JSON.stringify(data) });
+  if (path.includes('/tasks')) return json({ roots: [tasks[0].root], tasks });
+  if (path.includes('/task?')) return json(detail);
+  if (path.includes('/activity')) return json(activity);
+  if (path.includes('/budget')) return json(budget);
+  if (path.includes('/blueprint')) return json(blueprint);
+  return json({});
+};
+
+const mod = window.__spec.factory((name) => (name === 'react' ? React : {}));
+mod.styleOnce();
+const ReactDOM = window.ReactDOM;
+function Frame({ title, children }) {
+  return React.createElement('section', null, React.createElement('h2', null, title), children);
+}
+function App() {
+  const [tab, setTab] = React.useState('overview');
+  return React.createElement('div', null,
+    React.createElement(Frame, { title: 'КАРТОЧКА ЗАДАЧИ' }, React.createElement(mod.TaskDetail, { detail, onBack: () => {}, onReload: () => {} })),
+    React.createElement(Frame, { title: 'СХЕМА ПРОЕКТА' }, React.createElement(mod.BlueprintView, { tasks })),
+    React.createElement(Frame, { title: 'ОФИС' }, React.createElement(mod.OfficeView, { items: activity.activity, selected: 's2', onSelect: () => {}, tasks, onOpenTask: () => {} })),
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>

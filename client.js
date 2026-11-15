@@ -649,7 +649,23 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-block-title' }, 'Ветка'),
             h('div', { className: 'dept-sub' }, detail.currentBranch ?? detail.branch))
         }
-        return null
+        return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+          h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Открытые вопросы'),
+            openQuestions.length === 0
+              ? h('div', { className: 'dept-sub' }, 'нет')
+              : h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
+                  h('div', { key: question.id, className: 'dept-event' }, h('span', null, question.text))))),
+          h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Документы'),
+            h('div', { className: 'dept-row' }, ...docs.map((file) =>
+              h('span', { key: file, className: 'dept-badge ' + (detail.files?.[file] ? 'ok' : 'wait') }, file)))),
+          h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Последние события'),
+            h('div', { className: 'dept-events' }, ...(detail.events ?? []).slice(0, 8).map((event) =>
+              h('div', { key: event.id, className: 'dept-event' },
+                h('time', null, String(event.ts).replace('T', ' ').slice(5, 19)),
+                h('span', null, event.actor + ': ' + event.action))))))
       })()
 
       return h('div', { className: 'dept-root' },
@@ -760,11 +776,16 @@ window.__ModuleLoader__.load({
 
       const groupsView = () => {
         const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(groupList.length))))
+        const rows = Math.ceil(groupList.length / columns)
+        const cellW = 150
+        const cellH = 100
+        const offsetX = Math.max(20, (640 - columns * cellW) / 2)
+        const offsetY = Math.max(20, (420 - rows * cellH) / 2)
         const positions = new Map()
         groupList.forEach((item, index) => {
           const col = index % columns
           const row = Math.floor(index / columns)
-          positions.set(item.dir, { x: 60 + col * 150, y: 60 + row * 100 })
+          positions.set(item.dir, { x: offsetX + col * cellW, y: offsetY + row * cellH })
         })
         return h('svg', { viewBox: '0 0 640 420' },
           h('rect', { x: 0, y: 0, width: 640, height: 420, fill: '#141a28' }),
@@ -792,9 +813,14 @@ window.__ModuleLoader__.load({
         const bucket = groups.get(dir)
         const items = bucket.files
         const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(items.length))))
+        const rows = Math.ceil(items.length / columns)
+        const cellW = 140
+        const cellH = 84
+        const offsetX = Math.max(40, (640 - columns * cellW) / 2)
+        const offsetY = Math.max(40, (400 - rows * cellH) / 2)
         const positions = new Map()
         items.forEach((item, index) => {
-          positions.set(item.path, { x: 70 + (index % columns) * 140, y: 70 + Math.floor(index / columns) * 80 })
+          positions.set(item.path, { x: offsetX + (index % columns) * cellW, y: offsetY + Math.floor(index / columns) * cellH })
         })
         const inner = edges.filter((edge) => positions.has(edge.from) && positions.has(edge.to))
         const outer = edges.filter((edge) => (positions.has(edge.from) && !positions.has(edge.to)) || (!positions.has(edge.from) && positions.has(edge.to)))
@@ -978,6 +1004,6 @@ window.__ModuleLoader__.load({
       ))
     }
 
-    return { PANEL_ID, apply, inject }
+    return { PANEL_ID, apply, inject, styleOnce, DepartmentPanel, TaskDetail, BlueprintView, OfficeView }
   },
 })
