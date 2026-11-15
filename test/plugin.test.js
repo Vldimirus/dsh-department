@@ -17,8 +17,16 @@ function fakeContext() {
         return () => {};
       },
     },
+    connection: { fetch: { register: () => () => {} } },
+    workspaceRegistry: { list: () => [] },
     get(service) {
-      return service === 'commands' ? ctx.commands : undefined;
+      if (service === 'commands') return ctx.commands;
+      if (service === 'connection') return ctx.connection;
+      if (service === 'workspaceRegistry') return ctx.workspaceRegistry;
+      return undefined;
+    },
+    inject(_services, callback) {
+      return callback(ctx);
     },
     effect(callback) {
       const disposer = callback();
@@ -43,7 +51,7 @@ test('apply: регистрирует семь инструментов и ко�
 
 test('plugin: имя и обязательный сервис', () => {
   assert.equal(name, 'department');
-  assert.deepEqual(inject, ['tools', 'commands']);
+  assert.deepEqual(inject, ['tools', 'commands', 'workspaceRegistry']);
 });
 
 test('инструменты: схемы параметров валидны по форме', () => {
