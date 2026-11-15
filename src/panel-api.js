@@ -154,3 +154,22 @@ export function resolveRoots(ctx, explicit) {
   }
   return roots;
 }
+
+/**
+ * Оставляет только корни, где есть задачи отдела.
+ *
+ * @param {string[]} roots Корни.
+ * @returns {Promise<string[]>}
+ */
+export async function rootsWithTasks(roots) {
+  const result = [];
+  for (const root of roots) {
+    try {
+      const entries = await readdir(join(root, DEPARTMENT_DIR), { withFileTypes: true });
+      if (entries.some((entry) => entry.isDirectory())) result.push(root);
+    } catch {
+      // нет каталога — нет задач
+    }
+  }
+  return result;
+}

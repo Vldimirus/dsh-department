@@ -59,6 +59,49 @@ window.__ModuleLoader__.load({
       return h('span', { className: `dept-badge ${cls}` }, status)
     }
 
+    function formatElapsed(ms) {
+      const total = Math.max(0, Math.floor(ms / 1000))
+      const minutes = Math.floor(total / 60)
+      const seconds = total % 60
+      return minutes > 0 ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${seconds}с`
+    }
+
+    function ActivityBlock() {
+      const [items, setItems] = useState([])
+      const [error, setError] = useState(null)
+
+      async function load() {
+        try {
+          const payload = await api('/api/department/activity')
+          setItems(payload.activity ?? [])
+          setError(null)
+        } catch (problem) {
+          setError(problem.message)
+        }
+      }
+
+      useEffect(() => {
+        load()
+        const timer = setInterval(load, 3000)
+        return () => clearInterval(timer)
+      }, [])
+
+      return h(
+        'div',
+        null,
+        h('div', { className: 'dept-title' }, 'Сейчас работают'),
+        error ? h('div', { className: 'dept-sub' }, error) : null,
+        items.length === 0
+          ? h('div', { className: 'dept-sub' }, 'активности нет')
+          : h('div', { className: 'dept-events' }, ...items.map((entry) =>
+              h('div', { key: entry.sessionId, className: 'dept-event' },
+                h('span', { className: entry.busy ? 'dept-badge ok' : 'dept-badge wait' }, entry.busy ? '●' : '○'),
+                h('span', null, `${entry.kind}: ${entry.lastAction}${entry.tool ? ' · ' + entry.tool : ''}`),
+                h('span', { className: 'dept-sub' }, formatElapsed(entry.elapsedMs)),
+              ))),
+      )
+    }
+
     function TaskCard({ task, onOpen }) {
       return h(
         'div',
@@ -155,6 +198,7 @@ window.__ModuleLoader__.load({
           ),
           h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить'),
         ),
+        h(ActivityBlock, null),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         tasks.length === 0 && !loading
           ? h('div', { className: 'dept-empty' }, 'Задач пока нет. Создай задачу через dept_start.')

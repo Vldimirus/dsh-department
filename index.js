@@ -7,6 +7,7 @@
 import { registerCommands } from './src/commands.js';
 import { registerTools } from './src/tools.js';
 import { registerDepartmentRoutes } from './src/routes.js';
+import { createActivityTracker } from './src/activity.js';
 
 /** Имя плагина в композиции. */
 export const name = 'department';
@@ -36,13 +37,15 @@ function combine(disposers) {
  */
 export function apply(ctx, config) {
   void config;
+  const activity = createActivityTracker(ctx);
+  ctx.effect(() => () => activity.dispose(), 'department: activity tracker');
   ctx.effect(() => combine(registerTools(ctx)), 'department: model tools');
   ctx.effect(() => combine(registerCommands(ctx)), 'department: slash command');
 
   // Панель: маршруты появляются, когда поднимается сервис соединений.
   ctx.inject(['connection'], (connectionCtx) => {
     ctx.effect(() => {
-      const { dispose } = registerDepartmentRoutes(connectionCtx);
+      const { dispose } = registerDepartmentRoutes(connectionCtx, activity);
       return dispose;
     }, 'department: panel routes');
   });

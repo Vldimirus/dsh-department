@@ -2,12 +2,13 @@
  * HTTP-маршруты Web-панели отдела на общем канале `/api`.
  * Только чтение: доска и карточка задачи.
  */
-import { listTasks, resolveRoots, taskPayload } from './panel-api.js';
+import { listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
 
 /** Точные маршруты панели. */
 export const DEPARTMENT_ROUTES = {
   tasks: '/api/department/tasks',
   task: '/api/department/task',
+  activity: '/api/department/activity',
 };
 
 /**
@@ -16,7 +17,7 @@ export const DEPARTMENT_ROUTES = {
  * @param {object} ctx Контекст плагина.
  * @returns {{ registered: string[], dispose: () => void }}
  */
-export function registerDepartmentRoutes(ctx) {
+export function registerDepartmentRoutes(ctx, activity) {
   const registered = [];
   const disposers = [];
   const connection = ctx.get('connection');
@@ -55,6 +56,19 @@ export function registerDepartmentRoutes(ctx) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.activity,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const roots = resolveRoots(ctx, url.searchParams.get('root'));
+      const active = await rootsWithTasks(roots);
+      const scope = active.length > 0 ? active : roots;
+      return Response.json({ roots: scope, activity: activity ? activity.list(scope) : [] });
     },
   });
 
