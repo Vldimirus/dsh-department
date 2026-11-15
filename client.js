@@ -63,6 +63,9 @@ window.__ModuleLoader__.load({
         @keyframes dept-key { 0%, 100% { fill: #1a2436; } 50% { fill: #6fb2ff; } }
         @keyframes dept-steam { 0% { opacity: 0; transform: translateY(0); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
         @keyframes dept-read { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+        .dept-legs rect { animation: dept-walk .34s steps(2) infinite; }
+        .dept-legs rect:last-child { animation-delay: .17s; }
+        @keyframes dept-walk { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
         .dept-avatar { cursor: pointer; transition: transform .9s cubic-bezier(.2,.8,.2,1); }
         .dept-avatar .dept-body { animation: dept-bob 2.6s ease-in-out infinite; transform-origin: center; }
         .dept-avatar.busy .dept-pulse { animation: dept-pulse 1.4s ease-in-out infinite; }
@@ -158,13 +161,52 @@ window.__ModuleLoader__.load({
       return 'coder'
     }
 
+    function zoneOfPoint(point) {
+      return point.x < 404 ? 'open' : 'break'
+    }
+
+    function routeTo(from, to) {
+      const door = [{ x: 436, y: 159 }, { x: 404, y: 159 }, { x: 372, y: 159 }]
+      if (zoneOfPoint(from) === zoneOfPoint(to)) return [to]
+      const pass = zoneOfPoint(from) === 'break' ? door : [...door].reverse()
+      return [...pass, to]
+    }
+
+    function routeLength(from, points) {
+      let total = 0
+      let previous = from
+      for (const point of points) {
+        total += Math.hypot(point.x - previous.x, point.y - previous.y)
+        previous = point
+      }
+      return total
+    }
+
+    function pointAlong(from, points, ratio) {
+      const total = routeLength(from, points)
+      let covered = total * ratio
+      let previous = from
+      for (const point of points) {
+        const length = Math.hypot(point.x - previous.x, point.y - previous.y)
+        if (covered <= length || point === points[points.length - 1]) {
+          const local = length === 0 ? 0 : Math.min(1, covered / length)
+          return { x: previous.x + (point.x - previous.x) * local, y: previous.y + (point.y - previous.y) * local }
+        }
+        covered -= length
+        previous = point
+      }
+      return points[points.length - 1] ?? from
+    }
+
     function OfficeView({ items, selected, onSelect }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
-      const [walkTick, setWalkTick] = React.useState(0)
-      const [positions, setPositions] = React.useState({})
+      const settled = React.useRef(new Map())
+      if (!settled.current) settled.current = new Map()
+      const plans = React.useRef(new Map())
+      const [, setFrame] = React.useState(0)
       React.useEffect(() => {
-        const timer = setInterval(() => setWalkTick((value) => value + 1), 16000)
+        const timer = setInterval(() => setFrame((value) => value + 1), 250)
         return () => clearInterval(timer)
       }, [])
 
@@ -186,10 +228,10 @@ window.__ModuleLoader__.load({
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
       const chairSeats = [{ x: 446, y: 152 }, { x: 520, y: 152 }, { x: 594, y: 152 }, { x: 520, y: 198 }]
-      const coolerSpot = { x: 596, y: 250 }
+      const coolerSpot = { x: 570, y: 252 }
       const windowSpot = { x: 466, y: 66 }
-
-      const idle = [...byRole.entries()].filter(([, entry]) => !entry.busy).map(([role, entry]) => ({ role, entry }))
+      const loungeTargets = [...chairSeats.map((seat, index) => ({ kind: 'seat', spot: seat, index })), { kind: 'cooler', spot: coolerSpot }, { kind: 'window', spot: windowSpot }]
+      const time = Date.now()
 
       const box = (x, y, width, height, fill, extra) => h('rect', Object.assign({ x, y, width, height, fill }, extra ?? {}))
       const wall = (x, y, width, height) => h('g', null,
@@ -198,35 +240,29 @@ window.__ModuleLoader__.load({
       const door = (x, y, width, height) => h('g', null,
         box(x, y, width, height, '#6b5a3a'),
         box(x + 2, y + 2, width - 4, height - 4, '#8a7450'))
-
       const monitorOn = (x, y) => h('g', null,
         box(x - 11, y, 22, 15, '#0b1220'),
         box(x - 10, y + 1, 20, 13, '#2d6cff'),
         box(x - 8, y + 3, 7, 2, '#cfe6ff'),
         box(x - 8, y + 6, 11, 2, '#cfe6ff'),
         box(x - 2, y + 15, 4, 3, '#1a2436'))
-
       const plant = (x, y) => h('g', null,
         box(x - 7, y, 14, 10, '#8a5a2b'),
         box(x - 7, y, 14, 3, '#a8713a'),
         box(x - 9, y - 14, 18, 14, '#3f8a4f'),
         box(x - 6, y - 18, 12, 6, '#4fa05e'),
         box(x - 3, y - 21, 6, 5, '#5cb06c'))
-
       const cooler = (x, y) => h('g', null,
         box(x - 8, y - 10, 16, 22, '#dfe6ee'),
         box(x - 8, y - 10, 16, 3, '#f2f6fa'),
         box(x - 6, y - 24, 12, 14, '#7fc4ff'),
         box(x - 6, y - 24, 12, 3, '#a8d8ff'),
-        box(x - 2, y - 4, 4, 3, '#9aa7b8'),
-        box(x - 12, y + 10, 4, 2, '#c8d4e6'))
-
+        box(x - 2, y - 4, 4, 3, '#9aa7b8'))
       const chair = (x, y) => h('g', null,
         box(x - 9, y - 4, 18, 6, '#4a3a26'),
         box(x - 9, y - 4, 18, 2, '#5d4a30'),
         box(x - 9, y - 16, 18, 4, '#4a3a26'),
         box(x + 7, y - 16, 3, 12, '#3a2d1d'))
-
       const deskSprite = (desk) => h('g', { key: 'desk-' + desk.key },
         box(desk.x - 34, desk.y - 6, 68, 16, '#8a5a2b'),
         box(desk.x - 34, desk.y - 6, 68, 4, '#a8713a'),
@@ -234,9 +270,7 @@ window.__ModuleLoader__.load({
         box(desk.x + 26, desk.y + 10, 4, 14, '#6b4420'),
         box(desk.x + 16, desk.y - 14, 5, 5, '#efe9d6'),
         box(desk.x + 16, desk.y - 14, 5, 2, '#c25a4a'),
-        box(desk.x - 26, desk.y - 13, 9, 6, '#efe9d6'),
-        box(desk.x - 25, desk.y - 12, 7, 1, '#b9b29a'),
-        box(desk.x - 25, desk.y - 10, 5, 1, '#b9b29a'))
+        box(desk.x - 26, desk.y - 13, 9, 6, '#efe9d6'))
 
       const personAtDesk = (entry, desk) => {
         const isSelected = selected === entry.sessionId
@@ -261,26 +295,24 @@ window.__ModuleLoader__.load({
           h('rect', { className: 'dept-keyboard', x: -14, y: -15, width: 28, height: 4, fill: '#1a2436' }))
       }
 
-      const seatedPerson = (entry, chair, index) => {
+      const seatedPerson = (entry, desk, index) => {
         const isSelected = selected === entry.sessionId
         const reading = (index % 2) === 0
         return h('g', {
-          key: entry.sessionId,
+          key: 'seat-' + entry.sessionId,
           className: 'dept-avatar idle',
-          transform: 'translate(' + chair.x + ',' + chair.y + ')',
+          transform: 'translate(' + desk.x + ',' + desk.y + ')',
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
           box(-9, -28, 18, 17, '#c25a4a'),
           box(-6, -38, 12, 12, '#f0c9a0'),
           box(-7, -40, 14, 4, '#5a3a22'),
-          reading
-            ? h('g', { className: 'dept-reading' },
-                box(-9, -24, 18, 12, '#ece6d0'),
-                box(-7, -23, 6, 1, '#8e8873'),
-                box(-7, -21, 14, 1, '#8e8873'),
-                box(-7, -19, 11, 1, '#8e8873'),
-                box(-7, -17, 9, 1, '#8e8873'))
+          reading ? h('g', { className: 'dept-reading' },
+              box(-9, -24, 18, 12, '#ece6d0'),
+              box(-7, -23, 6, 1, '#8e8873'),
+              box(-7, -21, 14, 1, '#8e8873'),
+              box(-7, -19, 11, 1, '#8e8873'))
             : h('g', { className: 'dept-coffee' },
                 box(6, -24, 6, 9, '#f2f2f2'),
                 box(7, -23, 4, 2, '#7a4a24'),
@@ -294,11 +326,11 @@ window.__ModuleLoader__.load({
       const standingPerson = (entry, spot, looking) => {
         const isSelected = selected === entry.sessionId
         return h('g', {
-          key: entry.sessionId,
-          className: 'dept-avatar walker',
+          key: 'stand-' + entry.sessionId,
+          className: 'dept-avatar',
           style: {
             transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
-            transition: 'transform 1.5s ease-in-out',
+            transition: 'transform 1.2s linear',
             filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
           },
           onClick: () => onSelect(entry.sessionId),
@@ -309,27 +341,70 @@ window.__ModuleLoader__.load({
           box(-7, -47, 14, 4, '#5a3a22'),
           box(-8, -16, 6, 15, '#2a3448'),
           box(2, -16, 6, 15, '#2a3448'),
-          looking === 'window'
-            ? h('g', { className: 'dept-reading' },
-                box(-9, -40, 18, 8, '#cfe6ff'),
-                box(-8, -39, 16, 6, '#8fd3ff'))
+          looking === 'window' ? h('g', { className: 'dept-reading' }, box(-9, -40, 18, 8, '#cfe6ff'), box(-8, -39, 16, 6, '#8fd3ff'))
             : h('g', { className: 'dept-coffee' },
                 box(8, -30, 6, 8, '#f2f2f2'),
                 box(9, -29, 4, 2, '#7a4a24'),
                 h('rect', { className: 'dept-steam s1', x: 10, y: -34, width: 2, height: 3, fill: '#d8e6ff' })))
       }
 
-      React.useEffect(() => {
-        const next = {}
-        idle.forEach((item, index) => {
-          const id = item.entry.sessionId
-          const choice = (id.length + walkTick) % 3
-          if (choice === 0) next[id] = { kind: 'seat', spot: chairSeats[index % chairSeats.length], index }
-          else if (choice === 1) next[id] = { kind: 'cooler', spot: coolerSpot }
-          else next[id] = { kind: 'window', spot: windowSpot }
-        })
-        setPositions(next)
-      }, [walkTick, items.length])
+      const walkingPerson = (entry, spot) => {
+        const isSelected = selected === entry.sessionId
+        return h('g', {
+          key: 'walk-' + entry.sessionId,
+          className: 'dept-avatar walking',
+          style: {
+            transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
+            transition: 'transform .34s linear',
+            filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
+          },
+          onClick: () => onSelect(entry.sessionId),
+        },
+          h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
+          box(-8, -34, 16, 18, '#c25a4a'),
+          box(-6, -45, 12, 12, '#f0c9a0'),
+          box(-7, -47, 14, 4, '#5a3a22'),
+          h('g', { className: 'dept-legs' },
+            box(-8, -16, 6, 15, '#2a3448'),
+            box(2, -16, 6, 15, '#2a3448')))
+      }
+
+      const actors = []
+      for (const [role, entry] of byRole.entries()) {
+        const id = entry.sessionId
+        const desk = DESKS.find((candidate) => candidate.key === role)
+        const target = entry.busy
+          ? { kind: 'desk', spot: { x: desk.x, y: desk.y } }
+          : (() => {
+              const index = [...byRole.keys()].indexOf(role)
+              const pick = loungeTargets[(id.length + Math.floor(time / 14000) + index) % loungeTargets.length]
+              return { kind: pick.kind, spot: pick.spot, index: pick.index ?? index }
+            })()
+        if (!settled.current.has(id)) settled.current.set(id, { x: chairSeats[actors.length % chairSeats.length].x, y: chairSeats[actors.length % chairSeats.length].y, mode: 'seat', index: actors.length })
+        const current = settled.current.get(id)
+        const plan = plans.current.get(id)
+        if (plan) {
+          const ratio = Math.min(1, (time - plan.start) / plan.duration)
+          const position = pointAlong(plan.from, plan.points, ratio)
+          if (ratio >= 1) {
+            plans.current.delete(id)
+            settled.current.set(id, { x: plan.target.spot.x, y: plan.target.spot.y, mode: plan.target.kind, index: plan.target.index ?? current.index })
+            actors.push({ entry, mode: plan.target.kind, spot: plan.target.spot, index: plan.target.index ?? current.index, desk })
+          } else {
+            actors.push({ entry, mode: 'walk', spot: position, index: current.index, desk })
+          }
+        } else {
+          const moved = current.mode !== target.kind || Math.hypot(current.x - target.spot.x, current.y - target.spot.y) > 2
+          if (moved) {
+            const points = routeTo({ x: current.x, y: current.y }, target.spot)
+            const duration = Math.min(22000, Math.max(6000, routeLength({ x: current.x, y: current.y }, points) * 95))
+            plans.current.set(id, { from: { x: current.x, y: current.y }, points, start: time, duration, target })
+            actors.push({ entry, mode: 'walk', spot: current, index: current.index, desk })
+          } else {
+            actors.push({ entry, mode: current.mode, spot: { x: current.x, y: current.y }, index: current.index, desk })
+          }
+        }
+      }
 
       return h(
         'div',
@@ -347,47 +422,38 @@ window.__ModuleLoader__.load({
                   box(8, 8, 8, 8, '#d3bf97'))),
               box(0, 0, 640, 400, '#2a3350'),
               box(12, 12, 616, 376, 'url(#dept-floor)'),
-              wall(12, 4, 616, 10),
-              wall(12, 386, 616, 10),
-              wall(4, 4, 10, 392),
-              wall(626, 4, 10, 392),
+              wall(12, 4, 616, 10), wall(12, 386, 616, 10), wall(4, 4, 10, 392), wall(626, 4, 10, 392),
               ...Array.from({ length: 5 }, (_, index) => box(40 + index * 110, 6, 44, 7, '#8fd3ff')),
-              wall(404, 14, 8, 128),
-              door(404, 142, 8, 34),
-              wall(404, 176, 8, 116),
-              wall(412, 292, 216, 8),
-              wall(12, 292, 172, 8),
-              door(184, 292, 40, 8),
-              door(470, 292, 40, 8),
-              wall(510, 292, 118, 8),
+              wall(404, 14, 8, 128), door(404, 142, 8, 34), wall(404, 176, 8, 116),
+              wall(412, 292, 216, 8), wall(12, 292, 172, 8), door(184, 292, 40, 8), door(470, 292, 40, 8), wall(510, 292, 118, 8),
               h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
               h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
               plant(26, 268), plant(386, 24), plant(26, 24), plant(618, 276),
               cooler(366, 58),
-              box(470, 112, 100, 28, '#8a5a2b'),
-              box(470, 112, 100, 4, '#a8713a'),
-              box(474, 140, 4, 12, '#6b4420'),
-              box(562, 140, 4, 12, '#6b4420'),
+              box(470, 112, 100, 28, '#8a5a2b'), box(470, 112, 100, 4, '#a8713a'),
+              box(474, 140, 4, 12, '#6b4420'), box(562, 140, 4, 12, '#6b4420'),
               box(444, 76, 10, 26, '#6f5a3a'),
               cooler(596, 250),
               chair(446, 152), chair(520, 152), chair(594, 152), chair(520, 198),
               ...DESKS.map((desk) => deskSprite(desk)),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
-                return entry && entry.busy ? personAtDesk(entry, desk) : monitorOn(desk.x, desk.y - 20)
+                if (!entry) return monitorOn(desk.x, desk.y - 20)
+                const actor = actors.find((item) => item.entry.sessionId === entry.sessionId)
+                return actor && actor.mode === 'desk' ? personAtDesk(entry, desk) : null
               }),
-              ...idle.map((item) => {
-                const target = positions[item.entry.sessionId]
-                if (!target) return null
-                return target.kind === 'seat'
-                  ? seatedPerson(item.entry, target.spot, target.index)
-                  : standingPerson(item.entry, target.spot, target.kind)
+              ...actors.map((actor) => {
+                if (actor.mode === 'desk') return null
+                if (actor.mode === 'walk') return walkingPerson(actor.entry, actor.spot)
+                return actor.mode === 'seat' ? seatedPerson(actor.entry, actor.spot, actor.index) : standingPerson(actor.entry, actor.spot, actor.mode)
               }),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
+                const actor = entry ? actors.find((item) => item.entry.sessionId === entry.sessionId) : null
                 const busy = Boolean(entry?.busy)
-                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: busy ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
-                  desk.label + (entry ? (busy ? ' · работает' : ' · перерыв') : ' · свободно'))
+                const atDesk = actor?.mode === 'desk'
+                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
+                  desk.label + (entry ? (atDesk ? ' · работает' : busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
               }),
             ),
           ),
@@ -401,8 +467,7 @@ window.__ModuleLoader__.load({
                   h('div', { className: 'dept-sub' }, 'Сейчас'),
                   h('div', { className: 'dept-pre' }, `${selectedEntry.lastAction}${selectedEntry.tool ? '\n' + selectedEntry.tool : ''}${selectedEntry.args ? '\n' + selectedEntry.args : ''}`),
                   h('div', { className: 'dept-sub' }, 'Последние действия'),
-                  (selectedEntry.recent ?? []).length === 0
-                    ? h('div', { className: 'dept-sub' }, 'пока нет')
+                  (selectedEntry.recent ?? []).length === 0 ? h('div', { className: 'dept-sub' }, 'пока нет')
                     : h('div', { className: 'dept-events' }, ...selectedEntry.recent.map((event, index) =>
                         h('div', { key: index, className: 'dept-event' },
                           h('time', null, String(new Date(event.ts).toLocaleTimeString('ru-RU'))),
