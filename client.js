@@ -22,10 +22,7 @@ window.__ModuleLoader__.load({
     }
 
     function styleOnce() {
-      if (document.getElementById('department-styles')) return
-      const style = document.createElement('style')
-      style.id = 'department-styles'
-      style.textContent = `
+      const css = `
         .dept-root { display: flex; flex-direction: column; gap: 12px; padding: 16px; height: 100%; overflow: auto; color: var(--dsw-alias-label-primary, #e6edf7); font-size: 13px; }
         .dept-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .dept-title { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
@@ -90,7 +87,14 @@ window.__ModuleLoader__.load({
         @keyframes dept-typing { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
         .dept-office-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--dsw-alias-label-tertiary, #8b98ad); padding: 6px 4px 0; }
       `
-      document.head.append(style)
+      let style = document.getElementById('department-styles')
+      if (!style) {
+        style = document.createElement('style')
+        style.id = 'department-styles'
+        document.head.append(style)
+      }
+      // Перезаписываем всегда: иначе после обновления плагина остаётся старый CSS.
+      if (style.textContent !== css) style.textContent = css
     }
 
     async function api(path) {
