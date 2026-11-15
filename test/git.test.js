@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { commitAll, currentBranch, ensureBranch, isRepo, runGit, tag } from '../src/git.js';
+import { amendCommit, commitAll, currentBranch, ensureBranch, isRepo, runGit, tag } from '../src/git.js';
 
 async function tempRepo(t) {
   const root = await mkdtemp(join(tmpdir(), 'dept-git-'));
@@ -47,4 +47,17 @@ test('commitAll: повторный коммит без изменений не 
   await commitAll(root, 'first');
   const second = await commitAll(root, 'second');
   assert.equal(second.ok, true);
+});
+
+test('amendCommit: незакоммиченное изменение входит в последний коммит', async (t) => {
+  const root = await tempRepo(t);
+  await commitAll(root, 'first');
+  await writeFile(join(root, 'state.json'), '{"a":1}\n', 'utf8');
+  const amended = await amendCommit(root);
+  assert.equal(amended.ok, true);
+  assert.equal(amended.amended, true);
+  const status = await runGit(root, ['status', '--porcelain']);
+  assert.equal(status.stdout.trim(), '');
+  const files = await runGit(root, ['show', '--name-only', '--pretty=format:', 'HEAD']);
+  assert.match(files.stdout, /state.json/);
 });

@@ -15,7 +15,7 @@ import {
   taskDir,
   writeState,
 } from './store.js';
-import { currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
+import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
 import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
@@ -286,26 +286,31 @@ function commitTool() {
 
       const committed = await commitAll(root, requireString(args, 'message'));
       if (!committed.ok) throw new Error(`commit failed: ${committed.error ?? ''}`);
+      // Событие о коммите должно войти в тот же коммит, иначе дерево остаётся грязным.
+      const nextState = await writeState(
+        root,
+        appendEvent(state, {
+          actor: 'archivist',
+          action: 'commit_pushed',
+          detail: 'stage committed, state amended',
+        }),
+      );
+      const amended = await amendCommit(root);
+      const finalCommit = await runGit(root, ['rev-parse', '--short', 'HEAD']);
+      const commitHash = finalCommit.code === 0 ? finalCommit.stdout.trim() : committed.commit;
+
       let tagResult = { ok: true };
       if (typeof args?.tagName === 'string' && args.tagName.trim() !== '') {
         tagResult = await tag(root, args.tagName.trim());
       }
       const remote = args?.remote ?? state.origin ?? 'origin';
       const pushed = await push(root, remote, state.branch);
-      const next = await writeState(
-        root,
-        appendEvent(state, {
-          actor: 'archivist',
-          action: 'commit_pushed',
-          detail: `${committed.commit ?? '?'} ${pushed.ok ? 'pushed' : 'push-failed'}`,
-        }),
-      );
 
       return {
-        commit: committed.commit ?? '',
+        commit: commitHash ?? '',
         tag: tagResult.ok ? String(args?.tagName ?? '') : '',
         pushed: pushed.ok,
-        summary: `${summarize(next)} · commit=${committed.commit ?? '?'} push=${pushed.ok ? 'ok' : 'failed'}`,
+        summary: `${summarize(nextState)} · commit=${commitHash ?? '?'} push=${pushed.ok ? 'ok' : 'failed'} amend=${amended.amended}`,
       };
     },
   };

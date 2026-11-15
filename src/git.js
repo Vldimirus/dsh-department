@@ -121,3 +121,21 @@ export async function push(root, remote, branch) {
   const result = await runGit(root, ['push', remote, branch, '--follow-tags']);
   return { ok: result.code === 0, error: result.code === 0 ? undefined : result.stderr };
 }
+
+/**
+ * Включает незакоммиченные изменения в последний коммит.
+ * Нужно, чтобы событие о коммите попало в тот же коммит и дерево осталось чистым.
+ *
+ * @param {string} root Рабочий каталог.
+ * @returns {Promise<{ ok: boolean, amended: boolean, error?: string }>}
+ */
+export async function amendCommit(root) {
+  const status = await runGit(root, ['status', '--porcelain']);
+  if (status.code !== 0) return { ok: false, amended: false, error: status.stderr };
+  if (status.stdout.trim() === '') return { ok: true, amended: false };
+  const add = await runGit(root, ['add', '-A']);
+  if (add.code !== 0) return { ok: false, amended: false, error: add.stderr };
+  const amend = await runGit(root, ['commit', '--amend', '--no-edit']);
+  if (amend.code !== 0) return { ok: false, amended: false, error: amend.stderr };
+  return { ok: true, amended: true };
+}
