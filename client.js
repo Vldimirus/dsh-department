@@ -171,12 +171,19 @@ window.__ModuleLoader__.load({
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
       const idleSeats = [
-        { x: 120, y: 372 },
-        { x: 260, y: 372 },
-        { x: 400, y: 372 },
-        { x: 540, y: 372 },
+        { x: 100, y: 372 },
+        { x: 190, y: 372 },
+        { x: 280, y: 372 },
+        { x: 370, y: 372 },
+        { x: 460, y: 372 },
+        { x: 550, y: 372 },
       ]
-      const idle = [...byRole.entries()].filter(([, entry]) => !entry.busy)
+      // В комнате отдыха: простаивающие сессии + роли, которых ещё не вызывали.
+      const idle = [...byRole.entries()].filter(([, entry]) => !entry.busy).map(([role, entry]) => ({ role, entry, ghost: false }))
+      for (const desk of DESKS) {
+        if (desk.key === 'manager') continue
+        if (!byRole.has(desk.key)) idle.push({ role: desk.key, entry: null, ghost: true })
+      }
 
       const drawAvatar = (entry, x, y, dim) => {
         const busy = Boolean(entry.busy)
@@ -234,10 +241,18 @@ window.__ModuleLoader__.load({
               }),
               h('rect', { x: 24, y: 300, width: 592, height: 80, rx: 14, fill: '#0a1018', stroke: '#1a2537', strokeDasharray: '5 5' }),
               h('text', { x: 36, y: 318, fill: '#4c5f7f', fontSize: 10 }, 'Комната отдыха · перерыв'),
-              ...idle.slice(0, idleSeats.length).map(([, entry], index) => drawAvatar(entry, idleSeats[index].x, idleSeats[index].y, true)),
-              idle.length > idleSeats.length
-                ? h('text', { x: 600, y: 318, fill: '#4c5f7f', fontSize: 9, textAnchor: 'end' }, `+${idle.length - idleSeats.length}`)
-                : null,
+              ...idle.slice(0, idleSeats.length).map((item, index) => {
+                const seat = idleSeats[index]
+                if (item.ghost) {
+                  const desk = DESKS.find((candidate) => candidate.key === item.role)
+                  return h('g', { key: `ghost-${item.role}`, opacity: 0.28 },
+                    h('circle', { cx: seat.x, cy: seat.y - 44, r: 6, fill: '#2c3a52' }),
+                    h('rect', { x: seat.x - 6, y: seat.y - 34, width: 12, height: 16, rx: 5, fill: '#25324a' }),
+                    h('text', { x: seat.x, y: seat.y + 2, fill: '#4c5f7f', fontSize: 8, textAnchor: 'middle' }, desk?.label ?? item.role),
+                    h('text', { x: seat.x, y: seat.y + 13, fill: '#3d4c66', fontSize: 8, textAnchor: 'middle' }, 'не занят'))
+                }
+                return drawAvatar(item.entry, seat.x, seat.y, true)
+              }),
             ),
           ),
           h('div', { className: 'dept-office-side', style: { flex: '0 0 340px', width: '340px' } },
