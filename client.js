@@ -1,5 +1,5 @@
 /**
- * Браузерная половина плагина «ИИ-отдел»: доска задач и карточка задачи.
+ * Браузерная половина плагина «ИИ-отдел»: доска задач, карточка задачи и офис.
  * Классический скрипт: без import/export, React берётся из таблицы модулей.
  */
 window.__ModuleLoader__.load({
@@ -13,6 +13,7 @@ window.__ModuleLoader__.load({
     const ROUTES = {
       tasks: '/api/department/tasks',
       task: '/api/department/task',
+      activity: '/api/department/activity',
     }
 
     function styleOnce() {
@@ -26,6 +27,8 @@ window.__ModuleLoader__.load({
         .dept-sub { color: var(--dsw-alias-label-tertiary, #8b98ad); font-size: 12px; }
         .dept-btn { border: 1px solid var(--dsw-alias-border-secondary, #2a3446); background: var(--dsw-alias-bg-secondary, #121826); color: inherit; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
         .dept-btn:hover { border-color: var(--dsw-alias-border-primary, #3d4a63); }
+        .dept-btn.active { border-color: #4b8bff; color: #cfe3ff; }
+        .dept-tabs { display: flex; gap: 6px; }
         .dept-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
         .dept-card { border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 12px; padding: 12px; background: var(--dsw-alias-bg-secondary, #10151f); cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
         .dept-card:hover { border-color: var(--dsw-alias-border-primary, #3d4a63); }
@@ -40,10 +43,16 @@ window.__ModuleLoader__.load({
         .dept-doc { border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
         .dept-doc.missing { opacity: .5; border-style: dashed; }
         .dept-events { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
-        .dept-event { display: flex; gap: 8px; }
+        .dept-event { display: flex; gap: 8px; flex-wrap: wrap; }
         .dept-event time { color: var(--dsw-alias-label-tertiary, #8b98ad); min-width: 92px; }
         .dept-pre { white-space: pre-wrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--dsw-alias-label-secondary, #b8c4d6); }
         .dept-empty { padding: 24px; text-align: center; color: var(--dsw-alias-label-tertiary, #8b98ad); }
+        .dept-office { border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 16px; background: radial-gradient(circle at 50% 0%, #121a2b 0%, #0a0f18 70%); padding: 8px; }
+        .dept-office svg { width: 100%; height: auto; display: block; }
+        .dept-avatar { cursor: pointer; transition: transform .9s cubic-bezier(.2,.8,.2,1); }
+        .dept-avatar.busy .dept-pulse { animation: dept-pulse 1.4s ease-in-out infinite; }
+        @keyframes dept-pulse { 0%,100% { opacity: .25; r: 18; } 50% { opacity: .8; r: 24; } }
+        .dept-office-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--dsw-alias-label-tertiary, #8b98ad); padding: 6px 4px 0; }
       `
       document.head.append(style)
     }
@@ -66,26 +75,29 @@ window.__ModuleLoader__.load({
       return minutes > 0 ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${seconds}с`
     }
 
-    function ActivityBlock() {
+    function useActivity() {
       const [items, setItems] = useState([])
       const [error, setError] = useState(null)
-
-      async function load() {
-        try {
-          const payload = await api('/api/department/activity')
-          setItems(payload.activity ?? [])
-          setError(null)
-        } catch (problem) {
-          setError(problem.message)
-        }
-      }
-
       useEffect(() => {
+        let alive = true
+        async function load() {
+          try {
+            const payload = await api(ROUTES.activity)
+            if (!alive) return
+            setItems(payload.activity ?? [])
+            setError(null)
+          } catch (problem) {
+            if (alive) setError(problem.message)
+          }
+        }
         load()
         const timer = setInterval(load, 3000)
-        return () => clearInterval(timer)
+        return () => { alive = false; clearInterval(timer) }
       }, [])
+      return { items, error }
+    }
 
+    function ActivityBlock({ items, error }) {
       return h(
         'div',
         null,
@@ -101,6 +113,87 @@ window.__ModuleLoader__.load({
               ))),
       )
     }
+
+    /* ---------------- Офис ---------------- */
+
+    const DESKS = [
+      { key: 'manager', x: 320, y: 118, label: 'Руководитель' },
+      { key: 'coder', x: 132, y: 214, label: 'Кодер' },
+      { key: 'reviewer', x: 508, y: 214, label: 'Ревьюер' },
+      { key: 'tester', x: 320, y: 268, label: 'Тестер' },
+      { key: 'analyst', x: 196, y: 282, label: 'Аналитик' },
+      { key: 'archivist', x: 444, y: 282, label: 'Архивариус' },
+    ]
+
+    function inferRole(entry) {
+      if (entry.kind === 'менеджер') return 'manager'
+      const tool = String(entry.tool || '')
+      const args = String(entry.args || '').toLowerCase()
+      if (tool === 'write' || tool === 'edit') return 'coder'
+      if (tool === 'bash' && /test|check|node --test/.test(args)) return 'tester'
+      if (tool === 'read' || tool === 'grep' || tool === 'glob') return 'reviewer'
+      if (tool === 'dept_commit') return 'archivist'
+      if (tool === 'dept_start' || tool === 'dept_stage' || tool === 'dept_amend') return 'manager'
+      return 'coder'
+    }
+
+    function OfficeView({ items, selected, onSelect }) {
+      const taken = new Map()
+      const avatars = items.map((entry) => {
+        let role = inferRole(entry)
+        if (taken.has(role) && role !== 'manager') {
+          const free = DESKS.find((desk) => !taken.has(desk.key) && desk.key !== 'manager')
+          if (free) role = free.key
+        }
+        taken.set(role, entry)
+        const desk = DESKS.find((candidate) => candidate.key === role) ?? DESKS[1]
+        return { entry, role, desk }
+      })
+
+      return h(
+        'div',
+        { className: 'dept-root' },
+        h('div', { className: 'dept-row' },
+          h('div', { className: 'dept-title' }, 'Офис отдела'),
+          h('div', { className: 'dept-sub' }, items.length ? `сотрудников: ${items.length}` : 'никого нет')),
+        h('div', { className: 'dept-office' },
+          h('svg', { viewBox: '0 0 640 340', role: 'img', 'aria-label': 'Офис ИИ-отдела' },
+            h('rect', { x: 20, y: 40, width: 600, height: 280, rx: 18, fill: '#0c1320', stroke: '#1c2740' }),
+            h('rect', { x: 20, y: 40, width: 600, height: 24, rx: 12, fill: '#101a2b' }),
+            h('text', { x: 36, y: 57, fill: '#5f7392', fontSize: 11 }, 'AI DEPARTMENT · FLOOR 1'),
+            ...DESKS.map((desk) =>
+              h('g', { key: `desk-${desk.key}` },
+                h('rect', { x: desk.x - 46, y: desk.y - 6, width: 92, height: 18, rx: 6, fill: '#141d2e', stroke: '#22304a' }),
+                h('text', { x: desk.x, y: desk.y + 6, fill: '#41577a', fontSize: 9, textAnchor: 'middle' }, desk.label))),
+            ...avatars.map(({ entry, role, desk }) => {
+              const busy = Boolean(entry.busy)
+              const isSelected = selected === entry.sessionId
+              return h('g', {
+                key: entry.sessionId,
+                className: `dept-avatar ${busy ? 'busy' : ''}`,
+                transform: `translate(${desk.x}, ${desk.y - 52})`,
+                onClick: () => onSelect(entry.sessionId),
+                style: isSelected ? { filter: 'drop-shadow(0 0 6px #4b8bff)' } : undefined,
+              },
+                h('circle', { className: 'dept-pulse', cx: 0, cy: 10, r: 18, fill: busy ? '#2d6cff33' : '#2a344a22' }),
+                h('circle', { cx: 0, cy: 2, r: 7, fill: busy ? '#8fc2ff' : '#6c7a92' }),
+                h('rect', { x: -8, y: 10, width: 16, height: 20, rx: 6, fill: busy ? '#3d7bff' : '#3a4560' }),
+                h('text', { x: 0, y: 44, fill: '#7f93b3', fontSize: 9, textAnchor: 'middle' },
+                  entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((d) => d.key === role)?.label ?? 'агент')),
+              )
+            }),
+          ),
+          h('div', { className: 'dept-office-legend' },
+            h('span', null, '● занят'), h('span', null, '○ простаивает'), h('span', null, 'клик по человечку — что делает')),
+        ),
+        selected ? h('div', { className: 'dept-events' }, (items.find((entry) => entry.sessionId === selected)?.recent ?? []).map((event, index) =>
+          h('div', { key: index, className: 'dept-event' },
+            h('time', null, String(new Date(event.ts).toLocaleTimeString('ru-RU'))),
+            h('span', null, event.text)))) : null,
+      )
+    }
+
+    /* ---------------- Доска ---------------- */
 
     function TaskCard({ task, onOpen }) {
       return h(
@@ -148,13 +241,18 @@ window.__ModuleLoader__.load({
       )
     }
 
+    /* ---------------- Панель ---------------- */
+
     function DepartmentPanel() {
       styleOnce()
+      const [view, setView] = useState('board')
       const [tasks, setTasks] = useState([])
       const [selected, setSelected] = useState(null)
       const [detail, setDetail] = useState(null)
       const [error, setError] = useState(null)
       const [loading, setLoading] = useState(true)
+      const [selectedSession, setSelectedSession] = useState(null)
+      const activity = useActivity()
 
       async function loadTasks() {
         setLoading(true)
@@ -172,6 +270,7 @@ window.__ModuleLoader__.load({
       async function openTask(task) {
         setSelected(task)
         setDetail(null)
+        setView('board')
         try {
           const payload = await api(`${ROUTES.task}?root=${encodeURIComponent(task.root)}&taskId=${encodeURIComponent(task.taskId)}`)
           setDetail(payload)
@@ -188,6 +287,17 @@ window.__ModuleLoader__.load({
           : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Загрузка задачи…'))
       }
 
+      if (view === 'office') {
+        return h('div', { className: 'dept-root' },
+          h('div', { className: 'dept-head' },
+            h('div', { className: 'dept-tabs' },
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
+              h('button', { className: 'dept-btn active', onClick: () => setView('office') }, 'Офис')),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession }),
+        )
+      }
+
       return h(
         'div',
         { className: 'dept-root' },
@@ -196,9 +306,12 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-title' }, 'ИИ-отдел разработки'),
             h('div', { className: 'dept-sub' }, `задач: ${tasks.length}${loading ? ' · обновление…' : ''}`),
           ),
-          h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить'),
+          h('div', { className: 'dept-tabs' },
+            h('button', { className: 'dept-btn active', onClick: () => setView('board') }, 'Доска'),
+            h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
         ),
-        h(ActivityBlock, null),
+        h(ActivityBlock, { items: activity.items, error: activity.error }),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         tasks.length === 0 && !loading
           ? h('div', { className: 'dept-empty' }, 'Задач пока нет. Создай задачу через dept_start.')
