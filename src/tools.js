@@ -17,7 +17,21 @@ import {
 } from './store.js';
 import { currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
 import { runTestGate } from './gates.js';
-import { formatReport, verifyChecklist } from './verify.js';
+import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
+
+async function collectArtifacts(root, taskId) {
+  const names = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md'];
+  const files = {};
+  for (const name of names) {
+    try {
+      await access(join(taskDir(root, taskId), name));
+      files[name] = true;
+    } catch {
+      files[name] = false;
+    }
+  }
+  return files;
+}
 
 function requireString(args, key) {
   const value = args?.[key];
@@ -322,6 +336,14 @@ function stageTool() {
       const target = requireString(args, 'stage');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+
+      // Переход разрешён только когда артефакты целевой стадии на месте.
+      const files = await collectArtifacts(root, taskId);
+      const missing = missingArtifacts(target, files);
+      if (missing.length > 0) {
+        throw new Error(`cannot move to ${target}: missing artifacts: ${missing.join(', ')}`);
+      }
+
       const next = await writeState(root, advanceStage(state, target, args?.reason ?? ''));
       return summaryOutput(next);
     },

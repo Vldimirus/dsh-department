@@ -62,3 +62,24 @@ export function formatReport(report) {
   const lines = report.checks.map((item) => `${item.ok ? 'OK  ' : 'FAIL'} ${item.id}: ${item.detail}`);
   return [`Аудит: ${report.ok ? 'PASS' : 'FAIL'}`, ...lines].join('\n');
 }
+
+/**
+ * Обязательные артефакты для стадии.
+ *
+ * @param {string} stage Стадия.
+ * @returns {string[]}
+ */
+export function requiredArtifacts(stage) {
+  return REQUIRED_ARTIFACTS[stage] ?? [];
+}
+
+/**
+ * Каких артефактов не хватает для стадии.
+ *
+ * @param {string} stage Стадия.
+ * @param {Record<string, boolean>} files Наличие файлов.
+ * @returns {string[]}
+ */
+export function missingArtifacts(stage, files) {
+  return requiredArtifacts(stage).filter((name) => files[name] !== true);
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatReport, verifyChecklist } from '../src/verify.js';
+import { formatReport, missingArtifacts, requiredArtifacts, verifyChecklist } from '../src/verify.js';
 import { createState } from '../src/store.js';
 
 function stateAt(stage, extra = {}) {
@@ -47,4 +47,15 @@ test('formatReport: содержит PASS/FAIL и проверки', () => {
   const text = formatReport({ ok: true, checks: [{ id: 'x', ok: true, detail: 'd' }] });
   assert.match(text, /PASS/);
   assert.match(text, /OK   x/);
+});
+
+test('requiredArtifacts: стадии требуют свои документы', () => {
+  assert.deepEqual(requiredArtifacts('concept'), ['task.md', 'analysis.md']);
+  assert.deepEqual(requiredArtifacts('concept_review'), ['task.md', 'analysis.md', 'concept.md']);
+  assert.deepEqual(requiredArtifacts('executing'), ['task.md', 'concept.md', 'spec.md', 'plan.md']);
+});
+
+test('missingArtifacts: перехват отсутствующего analysis.md', () => {
+  assert.deepEqual(missingArtifacts('concept', { 'task.md': true }), ['analysis.md']);
+  assert.deepEqual(missingArtifacts('concept', { 'task.md': true, 'analysis.md': true }), []);
 });
