@@ -68,6 +68,7 @@ export function createState(input) {
     origin: input.origin ?? null,
     testCommand: input.testCommand ?? null,
     stage: 'analysis',
+    stageIndex: 0,
     attempts: { current: 0, max: Number(input.maxAttempts ?? 4) },
     gates: {
       tests: { status: 'pending', last: null },
@@ -317,4 +318,23 @@ export function amendDocument(state, input) {
     action: 'amended_document',
     detail: `${input.doc}: ${input.summary}`,
   });
+}
+
+/**
+ * Сбрасывает гейты перед следующим этапом и увеличивает счётчик этапов.
+ * Без этого pass-ревью предыдущего этапа «переезжает» на следующий.
+ *
+ * @param {object} state Состояние.
+ * @returns {object} Новое состояние.
+ */
+export function resetGatesForNextStage(state) {
+  return {
+    ...state,
+    stageIndex: (state.stageIndex ?? 0) + 1,
+    gates: {
+      ...state.gates,
+      tests: { status: 'pending', last: null },
+      review: { status: 'pending' },
+    },
+  };
 }

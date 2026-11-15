@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   amendDocument,
+  resetGatesForNextStage,
   approveDocument,
   createState,
   readState,
@@ -89,4 +90,13 @@ test('amendDocument: поправка пишется в состояние и с
   assert.equal(amended.amendments.length, 1);
   assert.equal(amended.amendments[0].by, 'vladimir');
   assert.equal(amended.events.at(-1).action, 'amended_document');
+});
+
+test('resetGatesForNextStage: гейты не переезжают на следующий этап', () => {
+  const state = createState({ root: '/tmp/x', taskId: 'g1' });
+  const passed = recordTestGate(recordReview(state, { pass: true, summary: 'ok' }), { ok: true, exitCode: 0 });
+  const next = resetGatesForNextStage(passed);
+  assert.equal(next.gates.tests.status, 'pending');
+  assert.equal(next.gates.review.status, 'pending');
+  assert.equal(next.stageIndex, 1);
 });

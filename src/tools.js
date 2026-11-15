@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   advanceStage,
   amendDocument,
+  resetGatesForNextStage,
   appendEvent,
   approveDocument,
   createState,
@@ -291,11 +292,13 @@ function commitTool() {
       // Событие о коммите должно войти в тот же коммит, иначе дерево остаётся грязным.
       const nextState = await writeState(
         root,
-        appendEvent(state, {
-          actor: 'archivist',
-          action: 'commit_pushed',
-          detail: 'stage committed, state amended',
-        }),
+        resetGatesForNextStage(
+          appendEvent(state, {
+            actor: 'archivist',
+            action: 'commit_pushed',
+            detail: 'stage committed, state amended',
+          }),
+        ),
       );
       const amended = await amendCommit(root);
       const finalCommit = await runGit(root, ['rev-parse', '--short', 'HEAD']);
