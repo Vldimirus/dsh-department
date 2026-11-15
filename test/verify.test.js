@@ -28,10 +28,18 @@ test('verify: concept_review без concept.md — FAIL', () => {
 });
 
 test('verify: executing требует approvals и pass-гейт', () => {
-  const state = stateAt('executing', {
+  const base = stateAt('executing');
+  const state = {
+    ...base,
     approvals: [{ doc: 'concept', by: 'h' }, { doc: 'spec', by: 'h' }],
-    gates: { ...stateAt('executing').gates, tests: { status: 'pass', last: { ok: true, exitCode: 0 } } },
-  });
+    gates: { ...base.gates, tests: { status: 'pass', last: { ok: true, exitCode: 0 } }, review: { status: 'pass' } },
+    events: [
+      { action: 'task_created', ts: '2026-11-15T10:00:00.000Z' },
+      { action: 'commit_pushed', ts: '2026-11-15T10:05:00.000Z' },
+      { action: 'tests_passed', ts: '2026-11-15T10:06:00.000Z' },
+      { action: 'review_passed', ts: '2026-11-15T10:07:00.000Z' },
+    ],
+  };
   const files = { 'task.md': true, 'concept.md': true, 'spec.md': true, 'plan.md': true };
   assert.equal(verifyChecklist({ state, files, currentBranch: 'dept/v1' }).ok, true);
   const noTests = { ...state, gates: { ...state.gates, tests: { status: 'pending' } } };

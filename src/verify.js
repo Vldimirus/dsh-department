@@ -47,6 +47,14 @@ export function verifyChecklist({ state, files, currentBranch }) {
 
   if (state.stage === 'executing') {
     check('gate:tests', state.gates?.tests?.status === 'pass', `status=${state.gates?.tests?.status ?? 'pending'}`);
+
+    // Гейты должны быть получены после последнего коммита этапа, иначе pass
+    // предыдущего этапа «переезжает» на текущий.
+    const lastCommit = lastEventTime(state, 'commit_pushed');
+    const lastTests = lastEventTime(state, 'tests_passed');
+    const lastReview = lastEventTime(state, 'review_passed');
+    check('gate:tests:fresh', lastTests !== null && (lastCommit === null || lastTests >= lastCommit), `tests=${lastTests ?? 'none'} commit=${lastCommit ?? 'none'}`);
+    check('gate:review:fresh', lastReview !== null && (lastCommit === null || lastReview >= lastCommit), `review=${lastReview ?? 'none'} commit=${lastCommit ?? 'none'}`);
   }
 
   return { ok: checks.every((item) => item.ok), checks };
@@ -82,4 +90,22 @@ export function requiredArtifacts(stage) {
  */
 export function missingArtifacts(stage, files) {
   return requiredArtifacts(stage).filter((name) => files[name] !== true);
+}
+
+/**
+ * Время последнего события с указанным действием.
+ *
+ * @param {object} state Состояние.
+ * @param {string} action Действие.
+ * @returns {number|null} Метка времени в мс.
+ */
+function lastEventTime(state, action) {
+  const events = state.events ?? [];
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    if (events[index]?.action === action) {
+      const time = Date.parse(events[index].ts);
+      return Number.isFinite(time) ? time : null;
+    }
+  }
+  return null;
 }
