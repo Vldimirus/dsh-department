@@ -77,7 +77,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(askTool()));
   disposers.push(ctx.tools.register(answerTool()));
   disposers.push(ctx.tools.register(reportTool(activity)));
-  disposers.push(ctx.tools.register(commitTool()));
+  disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
 
@@ -287,7 +287,7 @@ function gateTool() {
   };
 }
 
-function commitTool() {
+function commitTool(activity) {
   return {
     name: 'dept_commit',
     description: 'Зафиксировать этап: git add -A, коммит, необязательный тег и push ветки задачи.',
@@ -322,11 +322,32 @@ function commitTool() {
 
       const committed = await commitAll(root, requireString(args, 'message'));
       if (!committed.ok) throw new Error(`commit failed: ${committed.error ?? ''}`);
+      const agents = activity ? activity.list([root]) : [];
+      const usage = agents.reduce((sum, agent) => ({
+        inputTokens: sum.inputTokens + (agent.usage?.inputTokens ?? 0),
+        outputTokens: sum.outputTokens + (agent.usage?.outputTokens ?? 0),
+        cacheReadTokens: sum.cacheReadTokens + (agent.usage?.cacheReadTokens ?? 0),
+        cacheWriteTokens: sum.cacheWriteTokens + (agent.usage?.cacheWriteTokens ?? 0),
+        calls: sum.calls + (agent.usage?.calls ?? 0),
+      }), { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, calls: 0 });
+      const budget = state.gates?.budget ?? {};
+      const prices = budget.prices ?? { inputTokens: 0.27, outputTokens: 1.1, cacheReadTokens: 0.07, cacheWriteTokens: 0.27 };
+      const costUSD = (usage.inputTokens / 1e6) * prices.inputTokens
+        + (usage.outputTokens / 1e6) * prices.outputTokens
+        + (usage.cacheReadTokens / 1e6) * prices.cacheReadTokens
+        + (usage.cacheWriteTokens / 1e6) * prices.cacheWriteTokens;
+      const withBudget = {
+        ...state,
+        gates: {
+          ...state.gates,
+          budget: { ...budget, usedTokens: usage.inputTokens + usage.outputTokens, usage, costUSD, updatedAt: new Date().toISOString() },
+        },
+      };
       // Событие о коммите должно войти в тот же коммит, иначе дерево остаётся грязным.
       const nextState = await writeState(
         root,
         resetGatesForNextStage(
-          appendEvent(state, {
+          appendEvent(withBudget, {
             actor: 'archivist',
             action: 'commit_pushed',
             detail: 'stage committed, state amended',

@@ -6,6 +6,8 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
+import { amendDocument, answerQuestion, approveDocument, readState, writeState } from './store.js';
+import { isHumanApprover } from './roles.js';
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 
@@ -15,6 +17,10 @@ export const DEPARTMENT_ROUTES = {
   task: '/api/department/task',
   activity: '/api/department/activity',
   asset: '/api/department/asset',
+  approve: '/api/department/approve',
+  answer: '/api/department/answer',
+  amend: '/api/department/amend',
+  budget: '/api/department/budget',
 };
 
 /**
@@ -62,6 +68,114 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.approve,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, doc, by } = body ?? {};
+      if (!root || !taskId || !doc || !by) return Response.json({ error: 'root, taskId, doc, by required' }, { status: 400 });
+      if (!isHumanApprover(by)) return Response.json({ error: 'approval must be signed by the human' }, { status: 403 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      try {
+        const next = await writeState(root, approveDocument(state, { doc, by }));
+        return Response.json({ stage: next.stage, summary: next.approvals });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.answer,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, questionId, answer, by } = body ?? {};
+      if (!root || !taskId || !questionId || !answer || !by) return Response.json({ error: 'root, taskId, questionId, answer, by required' }, { status: 400 });
+      if (!isHumanApprover(by)) return Response.json({ error: 'answer must be signed by the human' }, { status: 403 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      try {
+        const next = await writeState(root, answerQuestion(state, { id: questionId, answer, by }));
+        return Response.json({ questions: next.questions.length });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.amend,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, doc, summary, reason, by } = body ?? {};
+      if (!root || !taskId || !doc || !summary || !by) return Response.json({ error: 'root, taskId, doc, summary, by required' }, { status: 400 });
+      if (!isHumanApprover(by)) return Response.json({ error: 'amendment must be signed by the human' }, { status: 403 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      try {
+        const next = await writeState(root, amendDocument(state, { doc, summary, reason: reason ?? '', by }));
+        return Response.json({ amendments: next.amendments.length });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.budget,
+    methods: ['GET', 'POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      if (request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const { root, taskId, limitTokens, prices, rateRUB } = body ?? {};
+        if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+        const state = await readState(root, taskId);
+        if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+        const budget = state.gates?.budget ?? {};
+        const next = {
+          ...state,
+          gates: {
+            ...state.gates,
+            budget: {
+              ...budget,
+              ...(Number.isFinite(Number(limitTokens)) ? { limitTokens: Number(limitTokens) } : {}),
+              ...(prices && typeof prices === 'object' ? { prices } : {}),
+              ...(Number.isFinite(Number(rateRUB)) ? { rateRUB: Number(rateRUB) } : {}),
+            },
+          },
+        };
+        await writeState(root, next);
+        return Response.json({ budget: next.gates.budget });
+      }
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const agents = activity ? activity.list([root]) : [];
+      const usage = agents.reduce((sum, agent) => ({
+        inputTokens: sum.inputTokens + (agent.usage?.inputTokens ?? 0),
+        outputTokens: sum.outputTokens + (agent.usage?.outputTokens ?? 0),
+        cacheReadTokens: sum.cacheReadTokens + (agent.usage?.cacheReadTokens ?? 0),
+        cacheWriteTokens: sum.cacheWriteTokens + (agent.usage?.cacheWriteTokens ?? 0),
+        calls: sum.calls + (agent.usage?.calls ?? 0),
+      }), { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, calls: 0 });
+      const budget = state.gates?.budget ?? {};
+      const prices = budget.prices ?? { inputTokens: 0.27, outputTokens: 1.1, cacheReadTokens: 0.07, cacheWriteTokens: 0.27 };
+      const costUSD = (usage.inputTokens / 1e6) * prices.inputTokens + (usage.outputTokens / 1e6) * prices.outputTokens + (usage.cacheReadTokens / 1e6) * prices.cacheReadTokens + (usage.cacheWriteTokens / 1e6) * prices.cacheWriteTokens;
+      return Response.json({ budget: { ...budget, usage, costUSD, rateRUB: budget.rateRUB ?? 90 } });
     },
   });
 

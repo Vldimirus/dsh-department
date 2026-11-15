@@ -14,6 +14,10 @@ window.__ModuleLoader__.load({
       tasks: '/api/department/tasks',
       task: '/api/department/task',
       activity: '/api/department/activity',
+      approve: '/api/department/approve',
+      answer: '/api/department/answer',
+      amend: '/api/department/amend',
+      budget: '/api/department/budget',
     }
 
     function styleOnce() {
@@ -25,6 +29,7 @@ window.__ModuleLoader__.load({
         .dept-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .dept-title { font-size: 15px; font-weight: 600; letter-spacing: .01em; }
         .dept-sub { color: var(--dsw-alias-label-tertiary, #8b98ad); font-size: 12px; }
+        .dept-input { border: 1px solid var(--dsw-alias-border-secondary, #2a3446); background: var(--dsw-alias-bg-secondary, #121826); color: inherit; border-radius: 8px; padding: 5px 8px; font-size: 12px; min-width: 120px; }
         .dept-btn { border: 1px solid var(--dsw-alias-border-secondary, #2a3446); background: var(--dsw-alias-bg-secondary, #121826); color: inherit; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
         .dept-btn:hover { border-color: var(--dsw-alias-border-primary, #3d4a63); }
         .dept-btn.active { border-color: #4b8bff; color: #cfe3ff; }
@@ -506,8 +511,46 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function TaskDetail({ detail, onBack }) {
+    function TaskDetail({ detail, onBack, onReload }) {
       const docs = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md', 'backlog.md']
+      const [name, setName] = useState(() => localStorage.getItem('dept-approver') || 'vladimir')
+      const [budget, setBudget] = useState(detail.budget ?? null)
+      const [drafts, setDrafts] = useState({})
+      const [amend, setAmend] = useState({ doc: 'spec', summary: '', reason: '' })
+      const [busy, setBusy] = useState(false)
+      const [message, setMessage] = useState(null)
+
+      useEffect(() => { localStorage.setItem('dept-approver', name) }, [name])
+      useEffect(() => {
+        api(`${ROUTES.budget}?root=${encodeURIComponent(detail.root)}&taskId=${encodeURIComponent(detail.taskId)}`)
+          .then((payload) => setBudget(payload.budget))
+          .catch(() => {})
+      }, [detail.taskId, detail.events?.length])
+
+      async function post(path, body) {
+        setBusy(true)
+        setMessage(null)
+        try {
+          const response = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, by: name }) })
+          const data = await response.json().catch(() => ({}))
+          if (!response.ok) throw new Error(data.error || response.statusText)
+          setMessage('Готово')
+          if (onReload) onReload()
+          return data
+        } catch (problem) {
+          setMessage(problem.message)
+          return null
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      const approved = new Set(detail.approvals ?? [])
+      const openQuestions = (detail.questions ?? []).filter((question) => question.status === 'open')
+      const answeredQuestions = (detail.questions ?? []).filter((question) => question.status !== 'open')
+      const usage = budget?.usage
+      const costRub = budget?.costUSD && budget?.rateRUB ? budget.costUSD * budget.rateRUB : null
+
       return h(
         'div',
         { className: 'dept-root' },
@@ -516,41 +559,98 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-title' }, detail.title),
             h('div', { className: 'dept-sub' }, `${detail.stage} · ${detail.progress}% · ветка ${detail.currentBranch ?? detail.branch}`),
           ),
-          h('button', { className: 'dept-btn', onClick: onBack }, '← К доске'),
+          h('div', { className: 'dept-row' },
+            h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: 'ваше имя', title: 'Имя для утверждений' }),
+            h('button', { className: 'dept-btn', onClick: onBack }, '← К доске')),
         ),
         h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } })),
         h('div', { className: 'dept-row' }, badge(`tests:${detail.tests}`), badge(`review:${detail.review}`),
-          h('span', { className: 'dept-sub' }, `попытки ${detail.attempts} · бюджет ${detail.budget.usedTokens}/${detail.budget.limitTokens}`)),
+          h('span', { className: 'dept-sub' }, `провалы ${detail.attempts}`)),
+
+        h('div', { className: 'dept-title' }, 'Бюджет'),
+        h('div', { className: 'dept-events' },
+          h('div', { className: 'dept-event' },
+            h('span', null, `токены: ${(usage ? usage.inputTokens + usage.outputTokens : budget?.usedTokens ?? 0).toLocaleString('ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString('ru-RU')}`)),
+          h('div', { className: 'dept-event' }, h('span', null, `вызовов: ${usage?.calls ?? 0}`)),
+          h('div', { className: 'dept-event' },
+            h('span', null, `стоимость: ${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`))),
+
+        (detail.stage === 'concept' && !approved.has('concept'))
+          ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, 'Утвердить концепцию')
+          : null,
+        (detail.stage === 'spec' && !approved.has('spec'))
+          ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, 'Утвердить ТЗ')
+          : null,
+
         h('div', { className: 'dept-title' }, 'Документы'),
-        h('div', { className: 'dept-grid' }, ...docs.map((name) =>
-          h('div', { key: name, className: `dept-doc ${detail.files?.[name] ? '' : 'missing'}` }, `${name}${detail.files?.[name] ? '' : ' — нет'}`))),
-        (detail.questions ?? []).length > 0
+        h('div', { className: 'dept-grid' }, ...docs.map((file) =>
+          h('div', { key: file, className: `dept-doc ${detail.files?.[file] ? '' : 'missing'}` }, `${file}${detail.files?.[file] ? '' : ' — нет'}`))),
+
+        openQuestions.length > 0
           ? h('div', null,
               h('div', { className: 'dept-title' }, 'Вопросы к человеку'),
-              h('div', { className: 'dept-events' },
-                ...(detail.questions ?? []).map((question) =>
-                  h('div', { key: question.id, className: 'dept-doc' },
-                    h('div', { className: 'dept-row' },
-                      h('span', { className: question.status === 'open' ? 'dept-badge wait' : 'dept-badge ok' },
-                        question.status === 'open' ? 'ждёт ответа' : 'отвечен'),
-                      h('span', { className: 'dept-sub' }, question.id)),
-                    h('div', null, question.text),
-                    (question.options ?? []).length
-                      ? h('div', { className: 'dept-sub' }, `варианты: ${question.options.join(' / ')}`)
-                      : null,
-                    question.recommended ? h('div', { className: 'dept-sub' }, `отдел выбрал: ${question.recommended}`) : null,
-                    question.answer ? h('div', { className: 'dept-sub' }, `ответ: ${question.answer} (${question.answeredBy})`) : null)))) 
+              h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
+                h('div', { key: question.id, className: 'dept-doc' },
+                  h('div', { className: 'dept-row' },
+                    h('span', { className: 'dept-badge wait' }, 'ждёт ответа'),
+                    h('span', { className: 'dept-sub' }, question.id)),
+                  h('div', null, question.text),
+                  question.recommended ? h('div', { className: 'dept-sub' }, `отдел выбрал: ${question.recommended}`) : null,
+                  h('div', { className: 'dept-row' },
+                    h('input', {
+                      className: 'dept-input',
+                      placeholder: question.options?.length ? question.options.join(' / ') : 'ответ',
+                      value: drafts[question.id] ?? '',
+                      onChange: (event) => setDrafts({ ...drafts, [question.id]: event.target.value }),
+                    }),
+                    h('button', {
+                      className: 'dept-btn',
+                      disabled: busy || !(drafts[question.id] ?? '').trim(),
+                      onClick: () => post(ROUTES.answer, { root: detail.root, taskId: detail.taskId, questionId: question.id, answer: (drafts[question.id] ?? '').trim() }),
+                    }, 'Ответить'))))))
           : null,
+
+        answeredQuestions.length > 0
+          ? h('div', null,
+              h('div', { className: 'dept-title' }, 'Отвеченные вопросы'),
+              h('div', { className: 'dept-events' }, ...answeredQuestions.map((question) =>
+                h('div', { key: question.id, className: 'dept-event' },
+                  h('span', { className: 'dept-badge ok' }, 'отвечен'),
+                  h('span', { className: 'dept-sub' }, `${question.answer} (${question.answeredBy})`)))))
+          : null,
+
+        h('div', { className: 'dept-title' }, 'Поправка к документу'),
+        h('div', { className: 'dept-events' },
+          h('div', { className: 'dept-row' },
+            h('select', { className: 'dept-input', value: amend.doc, onChange: (event) => setAmend({ ...amend, doc: event.target.value }) },
+              h('option', { value: 'concept' }, 'концепция'),
+              h('option', { value: 'spec' }, 'ТЗ'),
+              h('option', { value: 'plan' }, 'план')),
+            h('input', { className: 'dept-input', placeholder: 'что меняется', value: amend.summary, onChange: (event) => setAmend({ ...amend, summary: event.target.value }) }),
+            h('input', { className: 'dept-input', placeholder: 'почему', value: amend.reason, onChange: (event) => setAmend({ ...amend, reason: event.target.value }) }),
+            h('button', {
+              className: 'dept-btn',
+              disabled: busy || !amend.summary.trim(),
+              onClick: async () => {
+                const result = await post(ROUTES.amend, { root: detail.root, taskId: detail.taskId, doc: amend.doc, summary: amend.summary.trim(), reason: amend.reason.trim() })
+                if (result) setAmend({ ...amend, summary: '', reason: '' })
+              },
+            }, 'Подписать поправку'))),
+
+        message ? h('div', { className: 'dept-sub' }, message) : null,
+
         h('div', { className: 'dept-title' }, 'Аудит'),
         h('div', { className: 'dept-events' }, ...(detail.audit?.checks ?? []).map((check) =>
           h('div', { key: check.id, className: 'dept-event' },
             h('span', { className: check.ok ? 'dept-badge ok' : 'dept-badge fail' }, check.ok ? 'OK' : 'FAIL'),
             h('span', null, `${check.id}: ${check.detail}`)))),
+
         h('div', { className: 'dept-title' }, 'События'),
         h('div', { className: 'dept-events' }, ...(detail.events ?? []).map((event) =>
           h('div', { key: event.id, className: 'dept-event' },
             h('time', null, String(event.ts).replace('T', ' ').slice(0, 19)),
             h('span', null, `${event.actor}: ${event.action} ${event.detail ? '— ' + event.detail : ''}`)))),
+
         h('div', { className: 'dept-title' }, 'Git'),
         h('div', { className: 'dept-pre' }, (detail.recentCommits ?? []).join('\n') || 'нет коммитов'),
         h('div', { className: 'dept-sub' }, `теги: ${(detail.tags ?? []).join(', ') || '—'}`),
@@ -599,7 +699,7 @@ window.__ModuleLoader__.load({
 
       if (selected) {
         return detail
-          ? h(TaskDetail, { detail, onBack: () => { setSelected(null); setDetail(null) } })
+          ? h(TaskDetail, { detail, onBack: () => { setSelected(null); setDetail(null) }, onReload: () => { if (selected) openTask(selected) } })
           : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Загрузка задачи…'))
       }
 

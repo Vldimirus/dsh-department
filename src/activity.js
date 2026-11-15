@@ -39,6 +39,7 @@ export function createActivityTracker(ctx) {
         since: Date.now(),
         updatedAt: Date.now(),
         recent: [],
+        usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, calls: 0 },
       };
       sessions.set(id, entry);
     }
@@ -84,6 +85,13 @@ export function createActivityTracker(ctx) {
       case 'assistant/message':
         entry.lastAction = 'ответил';
         entry.busy = false;
+        if (data.usage) {
+          entry.usage.inputTokens += Number(data.usage.inputTokens ?? 0);
+          entry.usage.outputTokens += Number(data.usage.outputTokens ?? 0);
+          entry.usage.cacheReadTokens += Number(data.usage.cacheReadTokens ?? 0);
+          entry.usage.cacheWriteTokens += Number(data.usage.cacheWriteTokens ?? 0);
+          entry.usage.calls += 1;
+        }
         push(entry, 'ответ ассистента', time);
         break;
       case 'error':
