@@ -122,6 +122,26 @@ export function normalizeState(state) {
     review: { current: 0, max, signatures: [] },
   };
   next.stats = state.stats ?? { testsRuns: 0, testsFails: 0, reviewRuns: 0, reviewFails: 0 };
+  // Старые состояния не имели статистики: восстанавливаем её из журнала событий.
+  if ((next.stats.testsRuns ?? 0) === 0 && (next.stats.reviewRuns ?? 0) === 0) {
+    const events = next.events ?? [];
+    const count = (action) => events.filter((event) => event.action === action).length;
+    next.stats = {
+      testsRuns: count('tests_passed') + count('tests_failed'),
+      testsFails: count('tests_failed'),
+      reviewRuns: count('review_passed') + count('review_failed'),
+      reviewFails: count('review_failed'),
+    };
+    next.attemptsByGate = next.attemptsByGate ?? {};
+    next.attemptsByGate.tests = {
+      ...(next.attemptsByGate.tests ?? { max }),
+      current: next.stats.testsFails,
+    };
+    next.attemptsByGate.review = {
+      ...(next.attemptsByGate.review ?? { max }),
+      current: next.stats.reviewFails,
+    };
+  }
   return next;
 }
 
@@ -310,7 +330,7 @@ export function summarize(state) {
     `branch: ${state.branch}`,
     `tests: ${tests?.status ?? 'pending'}${tests?.last ? ` (exit=${tests.last.exitCode})` : ''}`,
     `review: ${review?.status ?? 'pending'}`,
-    `attempts: ${state.attempts?.current ?? 0}/${state.attempts?.max ?? 0}`,
+    `провалы: ${state.attempts?.current ?? 0}/${state.attempts?.max ?? 0}`,
     `budget: ${state.gates?.budget?.usedTokens ?? 0}/${state.gates?.budget?.limitTokens ?? 0}`,
     `events: ${state.events?.length ?? 0}`,
     `stats: tests ${state.stats?.testsRuns ?? 0}/${state.stats?.testsFails ?? 0} fail, review ${state.stats?.reviewRuns ?? 0}/${state.stats?.reviewFails ?? 0} fail`,
