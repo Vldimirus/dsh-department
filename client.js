@@ -47,8 +47,9 @@ window.__ModuleLoader__.load({
         .dept-event time { color: var(--dsw-alias-label-tertiary, #8b98ad); min-width: 92px; }
         .dept-pre { white-space: pre-wrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--dsw-alias-label-secondary, #b8c4d6); }
         .dept-empty { padding: 24px; text-align: center; color: var(--dsw-alias-label-tertiary, #8b98ad); }
-        .dept-office-layout { display: flex; gap: 12px; align-items: flex-start; }
-        .dept-office-side { width: 300px; flex: none; border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 12px; padding: 10px; background: var(--dsw-alias-bg-secondary, #10151f); display: flex; flex-direction: column; gap: 6px; }
+        .dept-office-layout { display: flex; gap: 12px; align-items: flex-start; flex-wrap: nowrap; }
+        .dept-office { flex: 1 1 auto; min-width: 0; }
+        .dept-office-side { flex: 0 0 320px; width: 320px; border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 12px; padding: 10px; background: var(--dsw-alias-bg-secondary, #10151f); display: flex; flex-direction: column; gap: 6px; }
         .dept-office-side .dept-pre { max-height: 220px; overflow: auto; }
         .dept-office { border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 16px; background: radial-gradient(circle at 50% 0%, #121a2b 0%, #0a0f18 70%); padding: 8px; }
         .dept-office svg { width: 100%; height: auto; display: block; }
@@ -142,14 +143,23 @@ window.__ModuleLoader__.load({
     }
 
     function OfficeView({ items, selected, onSelect }) {
-      const taken = new Map()
+      // Роль и стол фиксируются за сессией один раз: смена инструмента не должна
+      // заставлять человечка «менять профессию» и бегать по офису.
+      const assignments = React.useRef(null)
+      if (!assignments.current) assignments.current = new Map()
+      const taken = new Set()
+      const seats = DESKS.filter((desk) => desk.key !== 'manager')
+
       const avatars = items.map((entry) => {
-        let role = inferRole(entry)
-        if (taken.has(role) && role !== 'manager') {
-          const free = DESKS.find((desk) => !taken.has(desk.key) && desk.key !== 'manager')
-          if (free) role = free.key
+        let role = entry.kind === 'менеджер' ? 'manager' : assignments.current.get(entry.sessionId)
+        if (entry.kind !== 'менеджер' && !role) {
+          const preferred = inferRole(entry)
+          const freeDesks = seats.filter((desk) => !taken.has(desk.key))
+          const chosen = freeDesks.find((desk) => desk.key === preferred) ?? freeDesks[0] ?? seats[0]
+          role = chosen.key
+          assignments.current.set(entry.sessionId, role)
         }
-        taken.set(role, entry)
+        if (role !== 'manager') taken.add(role)
         const desk = DESKS.find((candidate) => candidate.key === role) ?? DESKS[1]
         return { entry, role, desk }
       })
@@ -184,8 +194,10 @@ window.__ModuleLoader__.load({
                   h('circle', { className: 'dept-pulse', cx: 0, cy: 10, r: 18, fill: busy ? '#2d6cff33' : '#2a344a22' }),
                   h('circle', { cx: 0, cy: 2, r: 7, fill: busy ? '#8fc2ff' : '#6c7a92' }),
                   h('rect', { x: -8, y: 10, width: 16, height: 20, rx: 6, fill: busy ? '#3d7bff' : '#3a4560' }),
-                  h('text', { x: 0, y: 44, fill: '#7f93b3', fontSize: 9, textAnchor: 'middle' },
+                  h('text', { x: 0, y: 44, fill: busy ? '#9fd0ff' : '#6f7f98', fontSize: 9, textAnchor: 'middle' },
                     entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((d) => d.key === role)?.label ?? 'агент')),
+                  h('text', { x: 0, y: 56, fill: busy ? '#7fdc9a' : '#4c5a73', fontSize: 8, textAnchor: 'middle' },
+                    busy ? 'работает' : 'ждёт'),
                 )
               }),
             ),
