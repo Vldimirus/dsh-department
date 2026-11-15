@@ -117,8 +117,14 @@ export async function tag(root, name) {
  * @param {string} branch Имя ветки.
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
-export async function push(root, remote, branch) {
-  const result = await runGit(root, ['push', remote, branch, '--follow-tags']);
+export async function push(root, remote, branch, options = {}) {
+  // --follow-tags не отправляет легковесные теги, а у нас именно они.
+  const refspec = options.tags ? ['push', remote, branch, '--tags'] : ['push', remote, branch];
+  let result = await runGit(root, refspec);
+  if (result.code !== 0) {
+    // Сетевые/ФС-сбои бывают кратковременными: один повтор.
+    result = await runGit(root, refspec);
+  }
   return { ok: result.code === 0, error: result.code === 0 ? undefined : result.stderr };
 }
 

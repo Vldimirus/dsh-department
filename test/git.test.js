@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { amendCommit, commitAll, currentBranch, ensureBranch, isRepo, runGit, tag } from '../src/git.js';
+import { amendCommit, commitAll, currentBranch, ensureBranch, isRepo, push, runGit, tag } from '../src/git.js';
 
 async function tempRepo(t) {
   const root = await mkdtemp(join(tmpdir(), 'dept-git-'));
@@ -60,4 +60,29 @@ test('amendCommit: незакоммиченное изменение входи�
   assert.equal(status.stdout.trim(), '');
   const files = await runGit(root, ['show', '--name-only', '--pretty=format:', 'HEAD']);
   assert.match(files.stdout, /state.json/);
+});
+
+test('push: с tags отправляет легковесные теги в bare-репозиторий', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dept-push-'));
+  const bare = await mkdtemp(join(tmpdir(), 'dept-push-bare-'));
+  try {
+    await runGit(root, ['init', '-q']);
+    await runGit(root, ['config', 'user.name', 'Push Test']);
+    await runGit(root, ['config', 'user.email', 'push@test.local']);
+    await runGit(root, ['checkout', '-qb', 'dept/x']);
+    await writeFile(join(root, 'a.txt'), 'a', 'utf8');
+    await runGit(root, ['add', '-A']);
+    await runGit(root, ['commit', '-qm', 'first']);
+    await runGit(root, ['tag', 'stage-1']);
+    await runGit(bare, ['init', '--bare', '-q']);
+    const pushed = await push(root, bare, 'dept/x', { tags: true });
+    assert.equal(pushed.ok, true);
+    const tags = await runGit(bare, ['tag', '-l']);
+    assert.match(tags.stdout, /stage-1/);
+    const log = await runGit(bare, ['log', '--oneline', 'dept/x']);
+    assert.match(log.stdout, /first/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(bare, { recursive: true, force: true });
+  }
 });

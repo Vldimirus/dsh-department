@@ -342,7 +342,7 @@ function commitTool() {
         tagResult = await tag(root, args.tagName.trim());
       }
       const remote = args?.remote ?? state.origin ?? 'origin';
-      const pushed = await push(root, remote, state.branch);
+      const pushed = await push(root, remote, state.branch, { tags: Boolean(args?.tagName) });
 
       return {
         commit: commitHash ?? '',
