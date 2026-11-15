@@ -4,7 +4,7 @@
  */
 import { access, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { readState, summarize, DEPARTMENT_DIR } from './store.js';
+import { listQuestions, readState, summarize, DEPARTMENT_DIR } from './store.js';
 import { missingArtifacts, verifyChecklist } from './verify.js';
 import { currentBranch, runGit } from './git.js';
 
@@ -55,6 +55,7 @@ export function taskSummary(root, taskId, state) {
     attempts: state.attempts?.current ?? 0,
     budget: state.gates?.budget ?? { usedTokens: 0, limitTokens: 0 },
     approvals: (state.approvals ?? []).map((item) => item.doc),
+    openQuestions: listQuestions(state, { status: 'open' }).length,
     events: state.events?.length ?? 0,
     updatedAt: state.updatedAt,
     lastEvent: last ? { action: last.action, ts: last.ts, detail: last.detail } : null,
@@ -118,6 +119,7 @@ export async function taskPayload(root, taskId) {
     recentCommits: log.code === 0 ? log.stdout.trim().split('\n').filter(Boolean) : [],
     tags: tags.code === 0 ? tags.stdout.trim().split('\n').filter(Boolean) : [],
     events: (state.events ?? []).slice(-30).reverse(),
+    questions: (state.questions ?? []).slice(-20).reverse(),
     currentBranch: branch,
   };
 }

@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  addQuestion,
   amendDocument,
+  answerQuestion,
+  listQuestions,
   resetGatesForNextStage,
   approveDocument,
   createState,
@@ -117,4 +120,26 @@ test('amendDocument: лимит автономных поправок', () => {
     () => amendDocument(state, { doc: 'spec', summary: 'вторая', by: 'manager', autonomous: true }),
     /limit reached/,
   );
+});
+
+test('addQuestion/answerQuestion: вопрос копится и закрывается ответом', () => {
+  const state = createState({ root: '/tmp/x', taskId: 'q1' });
+  const { state: asked, question } = addQuestion(state, {
+    text: 'Кап длины?',
+    options: ['1200', '3700'],
+    recommended: '3700',
+  });
+  assert.equal(question.status, 'open');
+  assert.equal(listQuestions(asked, { status: 'open' }).length, 1);
+  const answered = answerQuestion(asked, { id: question.id, answer: '3700', by: 'vladimir' });
+  assert.equal(listQuestions(answered, { status: 'open' }).length, 0);
+  assert.equal(answered.questions[0].answer, '3700');
+  assert.equal(answered.events.at(-1).action, 'question_answered');
+});
+
+test('answerQuestion: повторный ответ — ошибка', () => {
+  const state = createState({ root: '/tmp/x', taskId: 'q2' });
+  const { state: asked, question } = addQuestion(state, { text: 'x' });
+  const answered = answerQuestion(asked, { id: question.id, answer: 'y', by: 'vladimir' });
+  assert.throws(() => answerQuestion(answered, { id: question.id, answer: 'z', by: 'vladimir' }), /already answered/);
 });

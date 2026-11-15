@@ -39,7 +39,7 @@ export function apply(ctx, config) {
   void config;
   const activity = createActivityTracker(ctx);
   ctx.effect(() => () => activity.dispose(), 'department: activity tracker');
-  ctx.effect(() => combine(registerTools(ctx)), 'department: model tools');
+  ctx.effect(() => combine(registerTools(ctx, activity)), 'department: model tools');
   ctx.effect(() => combine(registerCommands(ctx)), 'department: slash command');
 
   // Панель: маршруты появляются, когда поднимается сервис соединений.

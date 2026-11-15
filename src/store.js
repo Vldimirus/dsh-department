@@ -76,6 +76,7 @@ export function createState(input) {
       budget: { limitTokens: Number(input.budgetTokens ?? 60000), usedTokens: 0, status: 'ok' },
     },
     approvals: [],
+    questions: [],
     roles: input.roles ?? {},
     policy: {
       // Руководитель решает тактические вопросы сам; человек — только продуктовые.
@@ -354,4 +355,63 @@ export function resetGatesForNextStage(state) {
       review: { status: 'pending' },
     },
   };
+}
+
+/**
+ * Добавляет вопрос руководителя к человеку.
+ * Отдел не останавливается: вопрос копится, решение принимается по политике.
+ *
+ * @param {object} state Состояние.
+ * @param {{ text: string, options?: string[], recommended?: string, context?: string }} input Вопрос.
+ * @returns {{ state: object, question: object }}
+ */
+export function addQuestion(state, input) {
+  const now = new Date().toISOString();
+  const question = {
+    id: `q${(state.questions ?? []).length + 1}-${Date.now().toString(36)}`,
+    ts: now,
+    text: String(input.text ?? ''),
+    options: Array.isArray(input.options) ? input.options.map(String) : [],
+    recommended: input.recommended ? String(input.recommended) : '',
+    context: input.context ? String(input.context) : '',
+    status: 'open',
+    answer: null,
+    answeredBy: null,
+    answeredAt: null,
+  };
+  const next = { ...state, questions: [...(state.questions ?? []), question], updatedAt: now };
+  return {
+    state: appendEvent(next, { actor: 'manager', action: 'question_asked', detail: question.text.slice(0, 140) }),
+    question,
+  };
+}
+
+/**
+ * Отвечает на вопрос от имени человека.
+ *
+ * @param {object} state Состояние.
+ * @param {{ id: string, answer: string, by: string }} input Ответ.
+ * @returns {object} Новое состояние.
+ */
+export function answerQuestion(state, input) {
+  const now = new Date().toISOString();
+  const questions = state.questions ?? [];
+  const index = questions.findIndex((question) => question.id === input.id);
+  if (index < 0) throw new Error(`question not found: ${input.id}`);
+  if (questions[index].status === 'answered') throw new Error(`question already answered: ${input.id}`);
+  const updated = { ...questions[index], status: 'answered', answer: String(input.answer), answeredBy: input.by, answeredAt: now };
+  const next = { ...state, questions: questions.map((question, position) => (position === index ? updated : question)), updatedAt: now };
+  return appendEvent(next, { actor: input.by, action: 'question_answered', detail: `${input.id}: ${String(input.answer).slice(0, 100)}` });
+}
+
+/**
+ * Открытые и отвеченные вопросы задачи.
+ *
+ * @param {object} state Состояние.
+ * @param {{ status?: 'open'|'answered' }} [filter] Фильтр.
+ * @returns {object[]}
+ */
+export function listQuestions(state, filter = {}) {
+  const questions = state.questions ?? [];
+  return filter.status ? questions.filter((question) => question.status === filter.status) : questions;
 }

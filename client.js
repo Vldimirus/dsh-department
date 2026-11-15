@@ -276,6 +276,23 @@ window.__ModuleLoader__.load({
         h('div', { className: 'dept-title' }, 'Документы'),
         h('div', { className: 'dept-grid' }, ...docs.map((name) =>
           h('div', { key: name, className: `dept-doc ${detail.files?.[name] ? '' : 'missing'}` }, `${name}${detail.files?.[name] ? '' : ' — нет'}`))),
+        (detail.questions ?? []).length > 0
+          ? h('div', null,
+              h('div', { className: 'dept-title' }, 'Вопросы к человеку'),
+              h('div', { className: 'dept-events' },
+                ...(detail.questions ?? []).map((question) =>
+                  h('div', { key: question.id, className: 'dept-doc' },
+                    h('div', { className: 'dept-row' },
+                      h('span', { className: question.status === 'open' ? 'dept-badge wait' : 'dept-badge ok' },
+                        question.status === 'open' ? 'ждёт ответа' : 'отвечен'),
+                      h('span', { className: 'dept-sub' }, question.id)),
+                    h('div', null, question.text),
+                    (question.options ?? []).length
+                      ? h('div', { className: 'dept-sub' }, `варианты: ${question.options.join(' / ')}`)
+                      : null,
+                    question.recommended ? h('div', { className: 'dept-sub' }, `отдел выбрал: ${question.recommended}`) : null,
+                    question.answer ? h('div', { className: 'dept-sub' }, `ответ: ${question.answer} (${question.answeredBy})`) : null)))) 
+          : null,
         h('div', { className: 'dept-title' }, 'Аудит'),
         h('div', { className: 'dept-events' }, ...(detail.audit?.checks ?? []).map((check) =>
           h('div', { key: check.id, className: 'dept-event' },

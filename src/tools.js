@@ -4,8 +4,11 @@
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  addQuestion,
   advanceStage,
   amendDocument,
+  answerQuestion,
+  listQuestions,
   resetGatesForNextStage,
   appendEvent,
   approveDocument,
@@ -58,7 +61,7 @@ function summaryOutput(state) {
  * @param {object} ctx Контекст плагина.
  * @returns {Array<() => void>} Диспозеры.
  */
-export function registerTools(ctx) {
+export function registerTools(ctx, activity) {
   if (!ctx.tools || typeof ctx.tools.register !== 'function') return [];
   const disposers = [];
   disposers.push(ctx.tools.register(startTool()));
@@ -68,6 +71,9 @@ export function registerTools(ctx) {
   disposers.push(ctx.tools.register(stageTool()));
   disposers.push(ctx.tools.register(verifyTool()));
   disposers.push(ctx.tools.register(amendTool()));
+  disposers.push(ctx.tools.register(askTool()));
+  disposers.push(ctx.tools.register(answerTool()));
+  disposers.push(ctx.tools.register(reportTool(activity)));
   disposers.push(ctx.tools.register(commitTool()));
   return disposers;
 }
@@ -452,6 +458,127 @@ function amendTool() {
         autonomous,
       }));
       return summaryOutput(next);
+    },
+  };
+}
+
+function askTool() {
+  return {
+    name: 'dept_ask',
+    description: 'Записать вопрос к человеку, не останавливая работу: отдел решает сам, но вопрос копится и будет выдан, когда человек спросит статус. Не блокирует этап.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        text: { type: 'string', description: 'Вопрос одной строкой.' },
+        options: { type: 'array', items: { type: 'string' }, description: 'Варианты ответа.' },
+        recommended: { type: 'string', description: 'Что отдел выбрал сам, пока ждёт ответа.' },
+        context: { type: 'string', description: 'Почему вопрос возник, какие данные.' },
+      },
+      required: ['root', 'taskId', 'text'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } }, required: ['stage', 'summary', 'state'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const { state: next, question } = addQuestion(state, {
+        text: requireString(args, 'text'),
+        options: args?.options,
+        recommended: args?.recommended,
+        context: args?.context,
+      });
+      const saved = await writeState(root, next);
+      return { ...summaryOutput(saved), summary: `${summarize(saved)} · вопрос ${question.id} записан` };
+    },
+  };
+}
+
+function answerTool() {
+  return {
+    name: 'dept_answer',
+    description: 'Ответ человека на накопленный вопрос отдела. После ответа руководитель может добавить задачи на доработку.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        questionId: { type: 'string', description: 'Идентификатор вопроса.' },
+        answer: { type: 'string', description: 'Ответ человека.' },
+        by: { type: 'string', description: 'Кто ответил (имя человека).' },
+      },
+      required: ['root', 'taskId', 'questionId', 'answer', 'by'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } }, required: ['stage', 'summary', 'state'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const by = requireString(args, 'by');
+      if (!isHumanApprover(by)) throw new Error('answer must be signed by the human');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, answerQuestion(state, {
+        id: requireString(args, 'questionId'),
+        answer: requireString(args, 'answer'),
+        by,
+      }));
+      return summaryOutput(next);
+    },
+  };
+}
+
+function reportTool(activity) {
+  return {
+    name: 'dept_report',
+    description: 'Отчёт о состоянии отдела для человека: что за задача, этап, гейты, кто из сотрудников занят и чем, открытые вопросы. Используй, когда человек спрашивает «как дела».',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { report: { type: 'string' }, openQuestions: { type: 'integer' } }, required: ['report', 'openQuestions'] },
+      render: (_args, value) => text(value.report),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const open = listQuestions(state, { status: 'open' });
+      const agents = activity ? activity.list([root]) : [];
+      const lines = [
+        `Задача: ${state.title} (${state.taskId})`,
+        `Этап: ${state.stage} · ветка ${state.branch} · попытки ${state.attempts?.current ?? 0}/${state.attempts?.max ?? 0}`,
+        `Гейты: тесты ${state.gates?.tests?.status ?? 'pending'}, ревью ${state.gates?.review?.status ?? 'pending'}`,
+        `Бюджет: ${state.gates?.budget?.usedTokens ?? 0}/${state.gates?.budget?.limitTokens ?? 0}`,
+      ];
+      if (agents.length > 0) {
+        lines.push('Сотрудники:');
+        for (const agent of agents) {
+          lines.push(`  - ${agent.kind}: ${agent.busy ? 'работает' : 'ждёт'} · ${agent.lastAction}${agent.tool ? ' · ' + agent.tool : ''}`);
+        }
+      } else {
+        lines.push('Сотрудники: активных сессий нет');
+      }
+      lines.push(`Открытые вопросы: ${open.length}`);
+      for (const question of open) {
+        lines.push(`  - ${question.id}: ${question.text}${question.recommended ? ' (отдел выбрал: ' + question.recommended + ')' : ''}`);
+      }
+      const last = (state.events ?? []).slice(-3).map((event) => `  - ${event.ts} ${event.action}`);
+      if (last.length) lines.push('Последние события:', ...last);
+      return { report: lines.join('\n'), openQuestions: open.length };
     },
   };
 }
