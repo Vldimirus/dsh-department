@@ -141,12 +141,12 @@ window.__ModuleLoader__.load({
 
     // Шахматный порядок: соседние столы смещены по вертикали.
     const DESKS = [
-      { key: 'coder', x: 90, y: 180, label: 'Кодер' },
-      { key: 'manager', x: 210, y: 180, label: 'Руководитель' },
-      { key: 'reviewer', x: 330, y: 180, label: 'Ревьюер' },
-      { key: 'analyst', x: 90, y: 268, label: 'Аналитик' },
-      { key: 'tester', x: 210, y: 268, label: 'Тестер' },
-      { key: 'archivist', x: 330, y: 268, label: 'Архивариус' },
+      { key: 'coder', x: 90, y: 112, label: 'Кодер' },
+      { key: 'manager', x: 220, y: 112, label: 'Руководитель' },
+      { key: 'reviewer', x: 350, y: 112, label: 'Ревьюер' },
+      { key: 'analyst', x: 90, y: 232, label: 'Аналитик' },
+      { key: 'tester', x: 220, y: 232, label: 'Тестер' },
+      { key: 'archivist', x: 350, y: 232, label: 'Архивариус' },
     ]
 
     function inferRole(entry) {
@@ -161,28 +161,12 @@ window.__ModuleLoader__.load({
       return 'coder'
     }
 
-    const ATLAS_URL = '/api/department/asset?name=office-atlas.png'
-    const ATLAS_W = 256
-    const ATLAS_H = 60
-
-    function spriteBox(name, x, y, scale) {
-      const sp = SPRITES[name]
-      if (!sp) return null
-      const size = scale ?? 2
-      return h('svg', {
-        x, y, width: sp.w * size, height: sp.h * size,
-        viewBox: sp.x + ' ' + sp.y + ' ' + sp.w + ' ' + sp.h,
-        preserveAspectRatio: 'none',
-        style: { imageRendering: 'pixelated' },
-      }, h('image', { href: ATLAS_URL, x: 0, y: 0, width: ATLAS_W, height: ATLAS_H }))
-    }
-
     function zoneOfPoint(point) {
       return point.x < 404 ? 'open' : 'break'
     }
 
     function routeTo(from, to) {
-      const door = [{ x: 436, y: 188 }, { x: 404, y: 188 }, { x: 372, y: 188 }]
+      const door = [{ x: 436, y: 159 }, { x: 404, y: 159 }, { x: 372, y: 159 }]
       if (zoneOfPoint(from) === zoneOfPoint(to)) return [to]
       const pass = zoneOfPoint(from) === 'break' ? door : [...door].reverse()
       return [...pass, to]
@@ -191,7 +175,10 @@ window.__ModuleLoader__.load({
     function routeLength(from, points) {
       let total = 0
       let previous = from
-      for (const point of points) { total += Math.hypot(point.x - previous.x, point.y - previous.y); previous = point }
+      for (const point of points) {
+        total += Math.hypot(point.x - previous.x, point.y - previous.y)
+        previous = point
+      }
       return total
     }
 
@@ -211,12 +198,11 @@ window.__ModuleLoader__.load({
       return points[points.length - 1] ?? from
     }
 
-    const SPRITES = {"floor":{"x":2,"y":2,"w":16,"h":16},"wall":{"x":20,"y":2,"w":16,"h":16},"desk":{"x":38,"y":2,"w":32,"h":12},"chair":{"x":72,"y":2,"w":12,"h":11},"monitor":{"x":86,"y":2,"w":14,"h":12},"plant":{"x":102,"y":2,"w":16,"h":15},"plant2":{"x":120,"y":2,"w":16,"h":14},"cactus":{"x":138,"y":2,"w":16,"h":12},"flower":{"x":156,"y":2,"w":16,"h":13},"cooler":{"x":174,"y":2,"w":12,"h":14},"coffee":{"x":188,"y":2,"w":12,"h":11},"sofa":{"x":202,"y":2,"w":32,"h":9},"table":{"x":2,"y":20,"w":24,"h":7},"books":{"x":28,"y":20,"w":8,"h":6},"papers":{"x":38,"y":20,"w":9,"h":7},"mug":{"x":49,"y":20,"w":6,"h":5},"lamp":{"x":57,"y":20,"w":8,"h":8},"bin":{"x":67,"y":20,"w":8,"h":5},"board":{"x":77,"y":20,"w":21,"h":7},"window":{"x":100,"y":20,"w":16,"h":7},"door":{"x":118,"y":20,"w":8,"h":9},"rug":{"x":128,"y":20,"w":16,"h":5},"server":{"x":146,"y":20,"w":16,"h":7},"printer":{"x":164,"y":20,"w":16,"h":7},"clock":{"x":182,"y":20,"w":7,"h":6},"laptop":{"x":191,"y":20,"w":12,"h":6},"shelf":{"x":205,"y":20,"w":8,"h":8},"kettle":{"x":215,"y":20,"w":8,"h":7},"manager_stand":{"x":225,"y":20,"w":12,"h":18},"manager_sit":{"x":239,"y":20,"w":12,"h":14},"coder_stand":{"x":2,"y":40,"w":12,"h":18},"coder_sit":{"x":16,"y":40,"w":12,"h":14},"reviewer_stand":{"x":30,"y":40,"w":12,"h":18},"reviewer_sit":{"x":44,"y":40,"w":12,"h":14},"tester_stand":{"x":58,"y":40,"w":12,"h":18},"tester_sit":{"x":72,"y":40,"w":12,"h":14},"analyst_stand":{"x":86,"y":40,"w":12,"h":18},"analyst_sit":{"x":100,"y":40,"w":12,"h":14},"archivist_stand":{"x":114,"y":40,"w":12,"h":18},"archivist_sit":{"x":128,"y":40,"w":12,"h":14},"instrumenter_stand":{"x":142,"y":40,"w":12,"h":18},"instrumenter_sit":{"x":156,"y":40,"w":12,"h":14}}
-
     function OfficeView({ items, selected, onSelect }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
+      if (!settled.current) settled.current = new Map()
       const plans = React.useRef(new Map())
       const [, setFrame] = React.useState(0)
       React.useEffect(() => {
@@ -241,36 +227,147 @@ window.__ModuleLoader__.load({
       }
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
-      const chairSeats = [{ x: 456, y: 214 }, { x: 520, y: 214 }, { x: 584, y: 214 }, { x: 520, y: 254 }]
-      const coolerSpot = { x: 588, y: 250 }
-      const windowSpot = { x: 438, y: 74 }
+      const chairSeats = [{ x: 446, y: 152 }, { x: 520, y: 152 }, { x: 594, y: 152 }, { x: 520, y: 198 }]
+      const coolerSpot = { x: 570, y: 252 }
+      const windowSpot = { x: 466, y: 66 }
       const loungeTargets = [...chairSeats.map((seat, index) => ({ kind: 'seat', spot: seat, index })), { kind: 'cooler', spot: coolerSpot }, { kind: 'window', spot: windowSpot }]
       const time = Date.now()
 
       const box = (x, y, width, height, fill, extra) => h('rect', Object.assign({ x, y, width, height, fill }, extra ?? {}))
       const wall = (x, y, width, height) => h('g', null,
-        box(x, y, width, height, '#3a4560'),
-        box(x, y, width, 3, '#5b6a90'),
-        box(x, y + height - 3, width, 3, '#232c42'))
+        box(x, y, width, height, '#3b4666'),
+        box(x, y, width, 3, '#55628a'))
+      const door = (x, y, width, height) => h('g', null,
+        box(x, y, width, height, '#6b5a3a'),
+        box(x + 2, y + 2, width - 4, height - 4, '#8a7450'))
+      const monitorOn = (x, y) => h('g', null,
+        box(x - 11, y, 22, 15, '#0b1220'),
+        box(x - 10, y + 1, 20, 13, '#2d6cff'),
+        box(x - 8, y + 3, 7, 2, '#cfe6ff'),
+        box(x - 8, y + 6, 11, 2, '#cfe6ff'),
+        box(x - 2, y + 15, 4, 3, '#1a2436'))
+      const plant = (x, y) => h('g', null,
+        box(x - 7, y, 14, 10, '#8a5a2b'),
+        box(x - 7, y, 14, 3, '#a8713a'),
+        box(x - 9, y - 14, 18, 14, '#3f8a4f'),
+        box(x - 6, y - 18, 12, 6, '#4fa05e'),
+        box(x - 3, y - 21, 6, 5, '#5cb06c'))
+      const cooler = (x, y) => h('g', null,
+        box(x - 8, y - 10, 16, 22, '#dfe6ee'),
+        box(x - 8, y - 10, 16, 3, '#f2f6fa'),
+        box(x - 6, y - 24, 12, 14, '#7fc4ff'),
+        box(x - 6, y - 24, 12, 3, '#a8d8ff'),
+        box(x - 2, y - 4, 4, 3, '#9aa7b8'))
+      const chair = (x, y) => h('g', null,
+        box(x - 9, y - 4, 18, 6, '#4a3a26'),
+        box(x - 9, y - 4, 18, 2, '#5d4a30'),
+        box(x - 9, y - 16, 18, 4, '#4a3a26'),
+        box(x + 7, y - 16, 3, 12, '#3a2d1d'))
+      const deskSprite = (desk) => h('g', { key: 'desk-' + desk.key },
+        box(desk.x - 34, desk.y - 6, 68, 16, '#8a5a2b'),
+        box(desk.x - 34, desk.y - 6, 68, 4, '#a8713a'),
+        box(desk.x - 30, desk.y + 10, 4, 14, '#6b4420'),
+        box(desk.x + 26, desk.y + 10, 4, 14, '#6b4420'),
+        box(desk.x + 16, desk.y - 14, 5, 5, '#efe9d6'),
+        box(desk.x + 16, desk.y - 14, 5, 2, '#c25a4a'),
+        box(desk.x - 26, desk.y - 13, 9, 6, '#efe9d6'))
 
-      const personAt = (role, entry, x, y, sitting) => h('g', {
-        key: (sitting ? 'sit-' : 'stand-') + entry.sessionId,
-        onClick: () => onSelect(entry.sessionId),
-        style: { cursor: 'pointer', filter: selected === entry.sessionId ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined },
-      }, spriteBox(role + (sitting ? '_sit' : '_stand'), x - 10, y - (sitting ? 30 : 36), 2))
-
-      const walkingPerson = (role, entry, spot) => h('g', {
-        key: 'walk-' + entry.sessionId,
-        onClick: () => onSelect(entry.sessionId),
-        style: {
-          transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
-          transition: 'transform .34s linear',
-          cursor: 'pointer',
-          filter: selected === entry.sessionId ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
+      const personAtDesk = (entry, desk) => {
+        const isSelected = selected === entry.sessionId
+        return h('g', {
+          key: entry.sessionId,
+          className: 'dept-avatar busy',
+          transform: 'translate(' + desk.x + ',' + desk.y + ')',
+          onClick: () => onSelect(entry.sessionId),
+          style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-      },
-        h('ellipse', { cx: 0, cy: 2, rx: 8, ry: 3, fill: '#00000022' }),
-        h('g', { transform: 'translate(-10,-36)' }, spriteBox(role + '_stand', 0, 0, 2)))
+          box(-12, -24, 24, 9, '#2a3448'),
+          box(-9, -34, 18, 15, '#3d7bff'),
+          box(-9, -34, 18, 3, '#5b95ff'),
+          box(-6, -45, 12, 12, '#f0c9a0'),
+          box(-7, -47, 14, 4, '#5a3a22'),
+          box(-4, -41, 2, 2, '#20304a'),
+          box(2, -41, 2, 2, '#20304a'),
+          monitorOn(0, -20),
+          h('g', { className: 'dept-typing' },
+            box(-10, -13, 5, 7, '#f0c9a0'),
+            box(5, -13, 5, 7, '#f0c9a0')),
+          h('rect', { className: 'dept-keyboard', x: -14, y: -15, width: 28, height: 4, fill: '#1a2436' }))
+      }
+
+      const seatedPerson = (entry, desk, index) => {
+        const isSelected = selected === entry.sessionId
+        const reading = (index % 2) === 0
+        return h('g', {
+          key: 'seat-' + entry.sessionId,
+          className: 'dept-avatar idle',
+          transform: 'translate(' + desk.x + ',' + desk.y + ')',
+          onClick: () => onSelect(entry.sessionId),
+          style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
+        },
+          box(-9, -28, 18, 17, '#c25a4a'),
+          box(-6, -38, 12, 12, '#f0c9a0'),
+          box(-7, -40, 14, 4, '#5a3a22'),
+          reading ? h('g', { className: 'dept-reading' },
+              box(-9, -24, 18, 12, '#ece6d0'),
+              box(-7, -23, 6, 1, '#8e8873'),
+              box(-7, -21, 14, 1, '#8e8873'),
+              box(-7, -19, 11, 1, '#8e8873'))
+            : h('g', { className: 'dept-coffee' },
+                box(6, -24, 6, 9, '#f2f2f2'),
+                box(7, -23, 4, 2, '#7a4a24'),
+                box(-12, -22, 4, 9, '#f0c9a0'),
+                h('rect', { className: 'dept-steam s1', x: 8, y: -29, width: 2, height: 3, fill: '#d8e6ff' }),
+                h('rect', { className: 'dept-steam s2', x: 10, y: -31, width: 2, height: 3, fill: '#d8e6ff' })),
+          h('text', { x: 0, y: 18, fill: '#5f7392', fontSize: 8, textAnchor: 'middle' },
+            entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(entry.sessionId) ?? 'coder'))?.label ?? 'агент')))
+      }
+
+      const standingPerson = (entry, spot, looking) => {
+        const isSelected = selected === entry.sessionId
+        return h('g', {
+          key: 'stand-' + entry.sessionId,
+          className: 'dept-avatar',
+          style: {
+            transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
+            transition: 'transform 1.2s linear',
+            filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
+          },
+          onClick: () => onSelect(entry.sessionId),
+        },
+          h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
+          box(-8, -34, 16, 18, '#c25a4a'),
+          box(-6, -45, 12, 12, '#f0c9a0'),
+          box(-7, -47, 14, 4, '#5a3a22'),
+          box(-8, -16, 6, 15, '#2a3448'),
+          box(2, -16, 6, 15, '#2a3448'),
+          looking === 'window' ? h('g', { className: 'dept-reading' }, box(-9, -40, 18, 8, '#cfe6ff'), box(-8, -39, 16, 6, '#8fd3ff'))
+            : h('g', { className: 'dept-coffee' },
+                box(8, -30, 6, 8, '#f2f2f2'),
+                box(9, -29, 4, 2, '#7a4a24'),
+                h('rect', { className: 'dept-steam s1', x: 10, y: -34, width: 2, height: 3, fill: '#d8e6ff' })))
+      }
+
+      const walkingPerson = (entry, spot) => {
+        const isSelected = selected === entry.sessionId
+        return h('g', {
+          key: 'walk-' + entry.sessionId,
+          className: 'dept-avatar walking',
+          style: {
+            transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
+            transition: 'transform .34s linear',
+            filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
+          },
+          onClick: () => onSelect(entry.sessionId),
+        },
+          h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
+          box(-8, -34, 16, 18, '#c25a4a'),
+          box(-6, -45, 12, 12, '#f0c9a0'),
+          box(-7, -47, 14, 4, '#5a3a22'),
+          h('g', { className: 'dept-legs' },
+            box(-8, -16, 6, 15, '#2a3448'),
+            box(2, -16, 6, 15, '#2a3448')))
+      }
 
       const actors = []
       for (const [role, entry] of byRole.entries()) {
@@ -292,9 +389,9 @@ window.__ModuleLoader__.load({
           if (ratio >= 1) {
             plans.current.delete(id)
             settled.current.set(id, { x: plan.target.spot.x, y: plan.target.spot.y, mode: plan.target.kind, index: plan.target.index ?? current.index })
-            actors.push({ entry, role, mode: plan.target.kind, spot: plan.target.spot, index: plan.target.index ?? current.index, desk })
+            actors.push({ entry, mode: plan.target.kind, spot: plan.target.spot, index: plan.target.index ?? current.index, desk })
           } else {
-            actors.push({ entry, role, mode: 'walk', spot: position, index: current.index, desk })
+            actors.push({ entry, mode: 'walk', spot: position, index: current.index, desk })
           }
         } else {
           const moved = current.mode !== target.kind || Math.hypot(current.x - target.spot.x, current.y - target.spot.y) > 2
@@ -302,9 +399,9 @@ window.__ModuleLoader__.load({
             const points = routeTo({ x: current.x, y: current.y }, target.spot)
             const duration = Math.min(22000, Math.max(6000, routeLength({ x: current.x, y: current.y }, points) * 95))
             plans.current.set(id, { from: { x: current.x, y: current.y }, points, start: time, duration, target })
-            actors.push({ entry, role, mode: 'walk', spot: current, index: current.index, desk })
+            actors.push({ entry, mode: 'walk', spot: current, index: current.index, desk })
           } else {
-            actors.push({ entry, role, mode: current.mode, spot: { x: current.x, y: current.y }, index: current.index, desk })
+            actors.push({ entry, mode: current.mode, spot: { x: current.x, y: current.y }, index: current.index, desk })
           }
         }
       }
@@ -319,54 +416,44 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
             h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': 'Офис ИИ-отдела', style: { imageRendering: 'pixelated' } },
               h('defs', null,
-                h('pattern', { id: 'dept-floor', width: 32, height: 32, patternUnits: 'userSpaceOnUse' },
-                  box(0, 0, 32, 32, '#d9c9a3'),
-                  box(0, 0, 32, 2, '#cbb98f'),
-                  box(0, 0, 2, 32, '#cbb98f'))),
-              box(0, 0, 640, 400, '#1e2536'),
-              box(8, 8, 624, 384, 'url(#dept-floor)'),
-              wall(0, 0, 640, 24), wall(0, 0, 12, 400), wall(628, 0, 12, 400), wall(0, 388, 640, 12),
-              spriteBox('window', 30, 2, 2), spriteBox('window', 150, 2, 2), spriteBox('window', 270, 2, 2), spriteBox('window', 470, 2, 2),
-              wall(404, 24, 8, 150), spriteBox('door', 402, 176, 2), wall(404, 210, 8, 100),
-              wall(12, 292, 172, 8), spriteBox('door', 186, 290, 2), wall(224, 292, 246, 8), spriteBox('door', 472, 290, 2), wall(510, 292, 118, 8),
-              h('text', { x: 22, y: 48, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
-              h('text', { x: 420, y: 48, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
-              spriteBox('rug', 436, 200, 2),
-              spriteBox('sofa', 430, 244, 2),
-              spriteBox('table', 470, 140, 2),
-              spriteBox('board', 500, 44, 2),
-              spriteBox('shelf', 430, 60, 2),
-              spriteBox('clock', 560, 30, 2),
-              spriteBox('coffee', 592, 60, 2),
-              spriteBox('cooler', 580, 246, 2),
-              spriteBox('plant', 404, 250, 2),
-              spriteBox('plant2', 20, 250, 2),
-              spriteBox('cactus', 380, 250, 2),
-              spriteBox('flower', 24, 40, 2),
+                h('pattern', { id: 'dept-floor', width: 16, height: 16, patternUnits: 'userSpaceOnUse' },
+                  box(0, 0, 16, 16, '#c9b48c'),
+                  box(0, 0, 16, 8, '#d3bf97'),
+                  box(8, 8, 8, 8, '#d3bf97'))),
+              box(0, 0, 640, 400, '#2a3350'),
+              box(12, 12, 616, 376, 'url(#dept-floor)'),
+              wall(12, 4, 616, 10), wall(12, 386, 616, 10), wall(4, 4, 10, 392), wall(626, 4, 10, 392),
+              ...Array.from({ length: 5 }, (_, index) => box(40 + index * 110, 6, 44, 7, '#8fd3ff')),
+              wall(404, 14, 8, 128), door(404, 142, 8, 34), wall(404, 176, 8, 116),
+              wall(412, 292, 216, 8), wall(12, 292, 172, 8), door(184, 292, 40, 8), door(470, 292, 40, 8), wall(510, 292, 118, 8),
+              h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
+              h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
+              plant(26, 268), plant(386, 24), plant(26, 24), plant(618, 276),
+              cooler(366, 58),
+              box(470, 112, 100, 28, '#8a5a2b'), box(470, 112, 100, 4, '#a8713a'),
+              box(474, 140, 4, 12, '#6b4420'), box(562, 140, 4, 12, '#6b4420'),
+              box(444, 76, 10, 26, '#6f5a3a'),
+              cooler(596, 250),
+              chair(446, 152), chair(520, 152), chair(594, 152), chair(520, 198),
+              ...DESKS.map((desk) => deskSprite(desk)),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
-                if (!entry) return null
+                if (!entry) return monitorOn(desk.x, desk.y - 20)
                 const actor = actors.find((item) => item.entry.sessionId === entry.sessionId)
-                if (!actor || actor.mode !== 'desk') return null
-                const role = desk.key
-                return personAt(role, entry, desk.x, desk.y - 14, true)
+                return actor && actor.mode === 'desk' ? personAtDesk(entry, desk) : null
               }),
-              ...DESKS.map((desk) => h('ellipse', { cx: desk.x, cy: desk.y + 12, rx: 34, ry: 6, fill: '#00000022' })),
-              ...DESKS.map((desk) => spriteBox('mug', desk.x + 16, desk.y - 26, 1)),
-              ...DESKS.map((desk) => spriteBox('papers', desk.x - 28, desk.y - 28, 1)),
-              ...DESKS.map((desk) => spriteBox('desk', desk.x - 32, desk.y - 14, 2)),
-              ...DESKS.map((desk) => spriteBox('monitor', desk.x - 30, desk.y - 36, 2)),
               ...actors.map((actor) => {
                 if (actor.mode === 'desk') return null
-                if (actor.mode === 'walk') return walkingPerson(actor.role, actor.entry, actor.spot)
-                return personAt(actor.role, actor.entry, actor.spot.x, actor.spot.y, actor.mode === 'seat')
+                if (actor.mode === 'walk') return walkingPerson(actor.entry, actor.spot)
+                return actor.mode === 'seat' ? seatedPerson(actor.entry, actor.spot, actor.index) : standingPerson(actor.entry, actor.spot, actor.mode)
               }),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 const actor = entry ? actors.find((item) => item.entry.sessionId === entry.sessionId) : null
+                const busy = Boolean(entry?.busy)
                 const atDesk = actor?.mode === 'desk'
-                return h('text', { key: 'label-' + desk.key, x: desk.x - 2, y: desk.y - 58, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
-                  desk.label + (entry ? (atDesk ? ' · работает' : entry.busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
+                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
+                  desk.label + (entry ? (atDesk ? ' · работает' : busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
               }),
             ),
           ),
