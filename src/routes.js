@@ -2,13 +2,19 @@
  * HTTP-маршруты Web-панели отдела на общем канале `/api`.
  * Только чтение: доска и карточка задачи.
  */
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
+
+const assetsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 
 /** Точные маршруты панели. */
 export const DEPARTMENT_ROUTES = {
   tasks: '/api/department/tasks',
   task: '/api/department/task',
   activity: '/api/department/activity',
+  asset: '/api/department/asset',
 };
 
 /**
@@ -56,6 +62,23 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.asset,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const name = String(url.searchParams.get('name') ?? '');
+      if (!/^[a-z0-9._-]+$/i.test(name)) return new Response('bad asset name', { status: 400 });
+      try {
+        const bytes = await readFile(join(assetsDir, name));
+        return new Response(bytes, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=3600' } });
+      } catch {
+        return new Response('not found', { status: 404 });
+      }
     },
   });
 

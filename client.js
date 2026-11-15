@@ -141,12 +141,12 @@ window.__ModuleLoader__.load({
 
     // Шахматный порядок: соседние столы смещены по вертикали.
     const DESKS = [
-      { key: 'coder', x: 90, y: 112, label: 'Кодер' },
-      { key: 'manager', x: 220, y: 112, label: 'Руководитель' },
-      { key: 'reviewer', x: 350, y: 112, label: 'Ревьюер' },
-      { key: 'analyst', x: 90, y: 232, label: 'Аналитик' },
-      { key: 'tester', x: 220, y: 232, label: 'Тестер' },
-      { key: 'archivist', x: 350, y: 232, label: 'Архивариус' },
+      { key: 'coder', x: 90, y: 180, label: 'Кодер' },
+      { key: 'manager', x: 210, y: 180, label: 'Руководитель' },
+      { key: 'reviewer', x: 330, y: 180, label: 'Ревьюер' },
+      { key: 'analyst', x: 90, y: 268, label: 'Аналитик' },
+      { key: 'tester', x: 210, y: 268, label: 'Тестер' },
+      { key: 'archivist', x: 330, y: 268, label: 'Архивариус' },
     ]
 
     function inferRole(entry) {
@@ -161,12 +161,47 @@ window.__ModuleLoader__.load({
       return 'coder'
     }
 
+    const OFFICE_ASSET = '/api/department/asset?name=office-tilemap.png'
+
+    function tile(col, row, width, height, x, y, drawWidth, drawHeight) {
+      return h('svg', {
+        x, y, width: drawWidth, height: drawHeight,
+        viewBox: (col * 32) + ' ' + (row * 32) + ' ' + width + ' ' + height,
+        preserveAspectRatio: 'none',
+        style: { imageRendering: 'pixelated' },
+      }, h('image', { href: OFFICE_ASSET, x: 0, y: 0, width: 160, height: 160 }))
+    }
+
+    function personFigure(x, y, options) {
+      const shirt = options?.shirt ?? '#3d7bff'
+      const skin = '#f2cda4'
+      const outline = '#1b2434'
+      const walking = options?.walking
+      const sitting = options?.sitting
+      return h('g', { transform: 'translate(' + x + ',' + y + ')' },
+        sitting ? null : h('g', { className: walking ? 'dept-legs' : undefined },
+          h('rect', { x: -7, y: -14, width: 6, height: 14, fill: '#2a3448', stroke: outline, strokeWidth: 1 }),
+          h('rect', { x: 1, y: -14, width: 6, height: 14, fill: '#2a3448', stroke: outline, strokeWidth: 1 }),
+          h('rect', { x: -8, y: -3, width: 7, height: 3, fill: '#20293a' }),
+          h('rect', { x: 1, y: -3, width: 7, height: 3, fill: '#20293a' })),
+        h('rect', { x: -9, y: -40, width: 18, height: 26, fill: shirt, stroke: outline, strokeWidth: 1 }),
+        h('rect', { x: -9, y: -40, width: 5, height: 26, fill: '#ffffff22' }),
+        h('rect', { x: options?.armLeft ?? -12, y: -36, width: 4, height: 16, fill: shirt, stroke: outline, strokeWidth: 1 }),
+        h('rect', { x: options?.armRight ?? 8, y: -36, width: 4, height: 16, fill: shirt, stroke: outline, strokeWidth: 1 }),
+        h('rect', { x: -7, y: -56, width: 14, height: 16, fill: skin, stroke: outline, strokeWidth: 1 }),
+        h('rect', { x: -8, y: -60, width: 16, height: 6, fill: options?.hair ?? '#4a3220' }),
+        h('rect', { x: -8, y: -56, width: 3, height: 8, fill: options?.hair ?? '#4a3220' }),
+        h('rect', { x: -4, y: -50, width: 2, height: 2, fill: outline }),
+        h('rect', { x: 2, y: -50, width: 2, height: 2, fill: outline }),
+        h('rect', { x: -2, y: -45, width: 4, height: 1, fill: '#c98f7a' }))
+    }
+
     function zoneOfPoint(point) {
       return point.x < 404 ? 'open' : 'break'
     }
 
     function routeTo(from, to) {
-      const door = [{ x: 436, y: 159 }, { x: 404, y: 159 }, { x: 372, y: 159 }]
+      const door = [{ x: 436, y: 188 }, { x: 404, y: 188 }, { x: 372, y: 188 }]
       if (zoneOfPoint(from) === zoneOfPoint(to)) return [to]
       const pass = zoneOfPoint(from) === 'break' ? door : [...door].reverse()
       return [...pass, to]
@@ -175,10 +210,7 @@ window.__ModuleLoader__.load({
     function routeLength(from, points) {
       let total = 0
       let previous = from
-      for (const point of points) {
-        total += Math.hypot(point.x - previous.x, point.y - previous.y)
-        previous = point
-      }
+      for (const point of points) { total += Math.hypot(point.x - previous.x, point.y - previous.y); previous = point }
       return total
     }
 
@@ -202,7 +234,6 @@ window.__ModuleLoader__.load({
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
-      if (!settled.current) settled.current = new Map()
       const plans = React.useRef(new Map())
       const [, setFrame] = React.useState(0)
       React.useEffect(() => {
@@ -227,147 +258,70 @@ window.__ModuleLoader__.load({
       }
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
-      const chairSeats = [{ x: 446, y: 152 }, { x: 520, y: 152 }, { x: 594, y: 152 }, { x: 520, y: 198 }]
-      const coolerSpot = { x: 570, y: 252 }
-      const windowSpot = { x: 466, y: 66 }
+      const chairSeats = [{ x: 446, y: 214 }, { x: 520, y: 214 }, { x: 592, y: 214 }, { x: 520, y: 258 }]
+      const coolerSpot = { x: 566, y: 268 }
+      const windowSpot = { x: 436, y: 66 }
       const loungeTargets = [...chairSeats.map((seat, index) => ({ kind: 'seat', spot: seat, index })), { kind: 'cooler', spot: coolerSpot }, { kind: 'window', spot: windowSpot }]
       const time = Date.now()
 
       const box = (x, y, width, height, fill, extra) => h('rect', Object.assign({ x, y, width, height, fill }, extra ?? {}))
       const wall = (x, y, width, height) => h('g', null,
-        box(x, y, width, height, '#3b4666'),
-        box(x, y, width, 3, '#55628a'))
-      const door = (x, y, width, height) => h('g', null,
-        box(x, y, width, height, '#6b5a3a'),
-        box(x + 2, y + 2, width - 4, height - 4, '#8a7450'))
-      const monitorOn = (x, y) => h('g', null,
-        box(x - 11, y, 22, 15, '#0b1220'),
-        box(x - 10, y + 1, 20, 13, '#2d6cff'),
-        box(x - 8, y + 3, 7, 2, '#cfe6ff'),
-        box(x - 8, y + 6, 11, 2, '#cfe6ff'),
-        box(x - 2, y + 15, 4, 3, '#1a2436'))
-      const plant = (x, y) => h('g', null,
-        box(x - 7, y, 14, 10, '#8a5a2b'),
-        box(x - 7, y, 14, 3, '#a8713a'),
-        box(x - 9, y - 14, 18, 14, '#3f8a4f'),
-        box(x - 6, y - 18, 12, 6, '#4fa05e'),
-        box(x - 3, y - 21, 6, 5, '#5cb06c'))
-      const cooler = (x, y) => h('g', null,
-        box(x - 8, y - 10, 16, 22, '#dfe6ee'),
-        box(x - 8, y - 10, 16, 3, '#f2f6fa'),
-        box(x - 6, y - 24, 12, 14, '#7fc4ff'),
-        box(x - 6, y - 24, 12, 3, '#a8d8ff'),
-        box(x - 2, y - 4, 4, 3, '#9aa7b8'))
-      const chair = (x, y) => h('g', null,
-        box(x - 9, y - 4, 18, 6, '#4a3a26'),
-        box(x - 9, y - 4, 18, 2, '#5d4a30'),
-        box(x - 9, y - 16, 18, 4, '#4a3a26'),
-        box(x + 7, y - 16, 3, 12, '#3a2d1d'))
-      const deskSprite = (desk) => h('g', { key: 'desk-' + desk.key },
-        box(desk.x - 34, desk.y - 6, 68, 16, '#8a5a2b'),
-        box(desk.x - 34, desk.y - 6, 68, 4, '#a8713a'),
-        box(desk.x - 30, desk.y + 10, 4, 14, '#6b4420'),
-        box(desk.x + 26, desk.y + 10, 4, 14, '#6b4420'),
-        box(desk.x + 16, desk.y - 14, 5, 5, '#efe9d6'),
-        box(desk.x + 16, desk.y - 14, 5, 2, '#c25a4a'),
-        box(desk.x - 26, desk.y - 13, 9, 6, '#efe9d6'))
+        box(x, y, width, height, '#39435f'),
+        box(x, y, width, 3, '#5b6a90'),
+        box(x, y + height - 3, width, 3, '#252d44'))
 
-      const personAtDesk = (entry, desk) => {
-        const isSelected = selected === entry.sessionId
-        return h('g', {
-          key: entry.sessionId,
-          className: 'dept-avatar busy',
-          transform: 'translate(' + desk.x + ',' + desk.y + ')',
-          onClick: () => onSelect(entry.sessionId),
-          style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
-        },
-          box(-12, -24, 24, 9, '#2a3448'),
-          box(-9, -34, 18, 15, '#3d7bff'),
-          box(-9, -34, 18, 3, '#5b95ff'),
-          box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, '#5a3a22'),
-          box(-4, -41, 2, 2, '#20304a'),
-          box(2, -41, 2, 2, '#20304a'),
-          monitorOn(0, -20),
-          h('g', { className: 'dept-typing' },
-            box(-10, -13, 5, 7, '#f0c9a0'),
-            box(5, -13, 5, 7, '#f0c9a0')),
-          h('rect', { className: 'dept-keyboard', x: -14, y: -15, width: 28, height: 4, fill: '#1a2436' }))
-      }
+      const deskSprite = (desk) => h('g', null,
+        tile(0, 0, 64, 64, desk.x - 32, desk.y - 48, 64, 64))
+      const monitorSprite = (desk) => h('g', null,
+        tile(0, 2, 32, 32, desk.x - 32, desk.y - 78, 30, 30))
+      const plantSprite = (x, y) => tile(1, 3, 32, 32, x, y, 32, 32)
+      const coffeeSprite = (x, y) => tile(0, 3, 32, 32, x, y, 32, 32)
+      const boardSprite = (x, y) => tile(3, 3, 64, 64, x, y, 56, 56)
+      const booksSprite = (x, y) => tile(1, 2, 32, 32, x, y, 26, 26)
 
-      const seatedPerson = (entry, desk, index) => {
-        const isSelected = selected === entry.sessionId
-        const reading = (index % 2) === 0
-        return h('g', {
-          key: 'seat-' + entry.sessionId,
-          className: 'dept-avatar idle',
-          transform: 'translate(' + desk.x + ',' + desk.y + ')',
-          onClick: () => onSelect(entry.sessionId),
-          style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
-        },
-          box(-9, -28, 18, 17, '#c25a4a'),
-          box(-6, -38, 12, 12, '#f0c9a0'),
-          box(-7, -40, 14, 4, '#5a3a22'),
-          reading ? h('g', { className: 'dept-reading' },
-              box(-9, -24, 18, 12, '#ece6d0'),
-              box(-7, -23, 6, 1, '#8e8873'),
-              box(-7, -21, 14, 1, '#8e8873'),
-              box(-7, -19, 11, 1, '#8e8873'))
-            : h('g', { className: 'dept-coffee' },
-                box(6, -24, 6, 9, '#f2f2f2'),
-                box(7, -23, 4, 2, '#7a4a24'),
-                box(-12, -22, 4, 9, '#f0c9a0'),
-                h('rect', { className: 'dept-steam s1', x: 8, y: -29, width: 2, height: 3, fill: '#d8e6ff' }),
-                h('rect', { className: 'dept-steam s2', x: 10, y: -31, width: 2, height: 3, fill: '#d8e6ff' })),
-          h('text', { x: 0, y: 18, fill: '#5f7392', fontSize: 8, textAnchor: 'middle' },
-            entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(entry.sessionId) ?? 'coder'))?.label ?? 'агент')))
-      }
+      const seatedPerson = (entry, seat) => h('g', {
+        key: 'seat-' + entry.sessionId,
+        onClick: () => onSelect(entry.sessionId),
+        style: { cursor: 'pointer', filter: selected === entry.sessionId ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined },
+      },
+        box(seat.x - 13, seat.y - 8, 26, 10, '#4a3a26'),
+        box(seat.x - 13, seat.y - 8, 26, 3, '#5d4a30'),
+        personFigure(seat.x, seat.y, { shirt: '#c25a4a', sitting: true }),
+        h('g', { className: 'dept-reading' },
+          box(seat.x - 8, seat.y - 40, 16, 12, '#ece6d0'),
+          box(seat.x - 6, seat.y - 39, 5, 1, '#8e8873'),
+          box(seat.x - 6, seat.y - 37, 11, 1, '#8e8873'),
+          box(seat.x - 6, seat.y - 35, 8, 1, '#8e8873')))
 
-      const standingPerson = (entry, spot, looking) => {
-        const isSelected = selected === entry.sessionId
-        return h('g', {
-          key: 'stand-' + entry.sessionId,
-          className: 'dept-avatar',
-          style: {
-            transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
-            transition: 'transform 1.2s linear',
-            filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
-          },
-          onClick: () => onSelect(entry.sessionId),
+      const standingPerson = (entry, spot, looking) => h('g', {
+        key: 'stand-' + entry.sessionId,
+        onClick: () => onSelect(entry.sessionId),
+        style: {
+          transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
+          transition: 'transform 1.2s linear',
+          cursor: 'pointer',
+          filter: selected === entry.sessionId ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
         },
-          h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
-          box(-8, -34, 16, 18, '#c25a4a'),
-          box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, '#5a3a22'),
-          box(-8, -16, 6, 15, '#2a3448'),
-          box(2, -16, 6, 15, '#2a3448'),
-          looking === 'window' ? h('g', { className: 'dept-reading' }, box(-9, -40, 18, 8, '#cfe6ff'), box(-8, -39, 16, 6, '#8fd3ff'))
-            : h('g', { className: 'dept-coffee' },
-                box(8, -30, 6, 8, '#f2f2f2'),
-                box(9, -29, 4, 2, '#7a4a24'),
-                h('rect', { className: 'dept-steam s1', x: 10, y: -34, width: 2, height: 3, fill: '#d8e6ff' })))
-      }
+      },
+        personFigure(0, 0, { shirt: '#c25a4a' }),
+        looking === 'window'
+          ? h('g', { className: 'dept-reading' }, box(-8, -46, 16, 8, '#cfe6ff'), box(-7, -45, 14, 6, '#8fd3ff'))
+          : h('g', { className: 'dept-coffee' },
+              box(9, -36, 6, 9, '#f2f2f2', { stroke: '#1b2434', strokeWidth: 1 }),
+              h('rect', { className: 'dept-steam s1', x: 10, y: -41, width: 2, height: 3, fill: '#d8e6ff' })))
 
-      const walkingPerson = (entry, spot) => {
-        const isSelected = selected === entry.sessionId
-        return h('g', {
-          key: 'walk-' + entry.sessionId,
-          className: 'dept-avatar walking',
-          style: {
-            transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
-            transition: 'transform .34s linear',
-            filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
-          },
-          onClick: () => onSelect(entry.sessionId),
+      const walkingPerson = (entry, spot) => h('g', {
+        key: 'walk-' + entry.sessionId,
+        onClick: () => onSelect(entry.sessionId),
+        style: {
+          transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
+          transition: 'transform .34s linear',
+          cursor: 'pointer',
+          filter: selected === entry.sessionId ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
         },
-          h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
-          box(-8, -34, 16, 18, '#c25a4a'),
-          box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, '#5a3a22'),
-          h('g', { className: 'dept-legs' },
-            box(-8, -16, 6, 15, '#2a3448'),
-            box(2, -16, 6, 15, '#2a3448')))
-      }
+      },
+        h('ellipse', { cx: 0, cy: 0, rx: 9, ry: 3, fill: '#00000022' }),
+        personFigure(0, 0, { shirt: '#c25a4a', walking: true }))
 
       const actors = []
       for (const [role, entry] of byRole.entries()) {
@@ -416,44 +370,59 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
             h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': 'Офис ИИ-отдела', style: { imageRendering: 'pixelated' } },
               h('defs', null,
-                h('pattern', { id: 'dept-floor', width: 16, height: 16, patternUnits: 'userSpaceOnUse' },
-                  box(0, 0, 16, 16, '#c9b48c'),
-                  box(0, 0, 16, 8, '#d3bf97'),
-                  box(8, 8, 8, 8, '#d3bf97'))),
-              box(0, 0, 640, 400, '#2a3350'),
-              box(12, 12, 616, 376, 'url(#dept-floor)'),
-              wall(12, 4, 616, 10), wall(12, 386, 616, 10), wall(4, 4, 10, 392), wall(626, 4, 10, 392),
-              ...Array.from({ length: 5 }, (_, index) => box(40 + index * 110, 6, 44, 7, '#8fd3ff')),
-              wall(404, 14, 8, 128), door(404, 142, 8, 34), wall(404, 176, 8, 116),
-              wall(412, 292, 216, 8), wall(12, 292, 172, 8), door(184, 292, 40, 8), door(470, 292, 40, 8), wall(510, 292, 118, 8),
-              h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
-              h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
-              plant(26, 268), plant(386, 24), plant(26, 24), plant(618, 276),
-              cooler(366, 58),
-              box(470, 112, 100, 28, '#8a5a2b'), box(470, 112, 100, 4, '#a8713a'),
-              box(474, 140, 4, 12, '#6b4420'), box(562, 140, 4, 12, '#6b4420'),
-              box(444, 76, 10, 26, '#6f5a3a'),
-              cooler(596, 250),
-              chair(446, 152), chair(520, 152), chair(594, 152), chair(520, 198),
+                h('pattern', { id: 'dept-carpet', width: 32, height: 32, patternUnits: 'userSpaceOnUse' },
+                  box(0, 0, 32, 32, '#b9a67f'),
+                  box(0, 0, 32, 2, '#c7b48c'),
+                  box(0, 0, 2, 32, '#c7b48c'))),
+              box(0, 0, 640, 400, '#20283c'),
+              box(8, 8, 624, 384, 'url(#dept-carpet)'),
+              wall(0, 0, 640, 22),
+              ...Array.from({ length: 5 }, (_, index) => box(30 + index * 120, 5, 56, 12, '#8fd3ff', { stroke: '#5b6a90', strokeWidth: 1 })),
+              wall(0, 0, 12, 400), wall(628, 0, 12, 400),
+              wall(0, 388, 640, 12),
+              wall(404, 22, 8, 140), box(404, 162, 8, 30, '#6b5a3a'),
+              wall(404, 192, 8, 100),
+              wall(12, 292, 172, 8), box(184, 292, 40, 8, '#6b5a3a'),
+              wall(224, 292, 246, 8), box(470, 292, 40, 8, '#6b5a3a'), wall(510, 292, 118, 8),
+              h('text', { x: 22, y: 40, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
+              h('text', { x: 420, y: 40, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
+              plantSprite(400, 250),
+              plantSprite(20, 40),
+              coffeeSprite(596, 44),
+              boardSprite(490, 40),
+              booksSprite(420, 44),
+              box(470, 160, 100, 36, '#8a5a2b', { stroke: '#1b2434', strokeWidth: 1 }),
+              box(470, 160, 100, 5, '#a8713a'),
+              box(474, 196, 4, 12, '#6b4420'), box(562, 196, 4, 12, '#6b4420'),
+              box(560, 250, 14, 26, '#dfe6ee', { stroke: '#1b2434', strokeWidth: 1 }),
+              box(562, 232, 10, 20, '#7fc4ff', { stroke: '#1b2434', strokeWidth: 1 }),
               ...DESKS.map((desk) => deskSprite(desk)),
-              ...DESKS.map((desk) => {
-                const entry = byRole.get(desk.key)
-                if (!entry) return monitorOn(desk.x, desk.y - 20)
-                const actor = actors.find((item) => item.entry.sessionId === entry.sessionId)
-                return actor && actor.mode === 'desk' ? personAtDesk(entry, desk) : null
+              ...DESKS.map((desk) => monitorSprite(desk)),
+              ...actors.map((actor) => {
+                if (actor.mode !== 'desk') return null
+                const shirt = actor.entry.kind === 'менеджер' ? '#7a5cff' : '#3d7bff'
+                return h('g', {
+                  key: 'desk-' + actor.entry.sessionId,
+                  onClick: () => onSelect(actor.entry.sessionId),
+                  style: { cursor: 'pointer', filter: selected === actor.entry.sessionId ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined },
+                },
+                  personFigure(actor.desk.x + 10, actor.desk.y, { shirt }),
+                  h('g', { className: 'dept-typing' },
+                    box(actor.desk.x + 2, actor.desk.y - 46, 4, 6, '#f2cda4'),
+                    box(actor.desk.x + 14, actor.desk.y - 46, 4, 6, '#f2cda4')))
               }),
               ...actors.map((actor) => {
-                if (actor.mode === 'desk') return null
                 if (actor.mode === 'walk') return walkingPerson(actor.entry, actor.spot)
-                return actor.mode === 'seat' ? seatedPerson(actor.entry, actor.spot, actor.index) : standingPerson(actor.entry, actor.spot, actor.mode)
+                if (actor.mode === 'seat') return seatedPerson(actor.entry, actor.spot)
+                if (actor.mode === 'cooler' || actor.mode === 'window') return standingPerson(actor.entry, actor.spot, actor.mode)
+                return null
               }),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 const actor = entry ? actors.find((item) => item.entry.sessionId === entry.sessionId) : null
-                const busy = Boolean(entry?.busy)
                 const atDesk = actor?.mode === 'desk'
-                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
-                  desk.label + (entry ? (atDesk ? ' · работает' : busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
+                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 28, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 9, textAnchor: 'middle' },
+                  desk.label + (entry ? (atDesk ? ' · работает' : entry.busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
               }),
             ),
           ),
