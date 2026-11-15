@@ -77,6 +77,12 @@ export function createState(input) {
     },
     approvals: [],
     roles: input.roles ?? {},
+    policy: {
+      // Руководитель решает тактические вопросы сам; человек — только продуктовые.
+      autonomous: true,
+      escalateOnly: ['scope', 'budget', 'ux', 'timeline'],
+      maxAutonomousAmendments: 5,
+    },
     createdAt: now,
     updatedAt: now,
     events: [
@@ -301,11 +307,22 @@ export function advanceStage(state, target, reason = '') {
  */
 export function amendDocument(state, input) {
   const now = new Date().toISOString();
+  const autonomous = Boolean(input.autonomous);
+  const policy = state.policy ?? {};
+  if (autonomous) {
+    if (policy.autonomous === false) throw new Error('autonomous amendments are disabled by policy');
+    const used = (state.amendments ?? []).filter((item) => item.autonomous).length;
+    const limit = Number(policy.maxAutonomousAmendments ?? 5);
+    if (used >= limit) {
+      throw new Error(`autonomous amendment limit reached (${used}/${limit}); escalate to the human`);
+    }
+  }
   const amendment = {
     doc: input.doc,
     summary: input.summary,
     reason: input.reason ?? '',
     by: input.by,
+    autonomous,
     ts: now,
   };
   const next = {
@@ -314,9 +331,9 @@ export function amendDocument(state, input) {
     updatedAt: now,
   };
   return appendEvent(next, {
-    actor: input.by,
+    actor: autonomous ? 'manager' : input.by,
     action: 'amended_document',
-    detail: `${input.doc}: ${input.summary}`,
+    detail: `${autonomous ? '[автономно] ' : ''}${input.doc}: ${input.summary}`,
   });
 }
 

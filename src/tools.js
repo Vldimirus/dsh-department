@@ -420,7 +420,8 @@ function amendTool() {
         doc: { type: 'string', enum: ['concept', 'spec', 'plan'], description: 'Какой документ меняется.' },
         summary: { type: 'string', description: 'Что именно меняется, одной строкой.' },
         reason: { type: 'string', description: 'Почему: данные ревью или измерение.' },
-        by: { type: 'string', description: 'Кто из людей утвердил поправку.' },
+        by: { type: 'string', description: 'Кто подписал: имя человека или manager для автономной поправки.' },
+        autonomous: { type: 'boolean', description: 'true — руководитель решает тактический вопрос сам, по политике автономии.' },
       },
       required: ['root', 'taskId', 'doc', 'summary', 'by'],
     },
@@ -437,8 +438,9 @@ function amendTool() {
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const by = requireString(args, 'by');
-      if (!isHumanApprover(by)) {
-        throw new Error('amendment must be signed by the human, not a department role');
+      const autonomous = Boolean(args?.autonomous);
+      if (!autonomous && !isHumanApprover(by)) {
+        throw new Error('amendment must be signed by the human, or use autonomous=true for a tactical decision');
       }
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
@@ -447,6 +449,7 @@ function amendTool() {
         summary: requireString(args, 'summary'),
         reason: args?.reason ?? '',
         by,
+        autonomous,
       }));
       return summaryOutput(next);
     },

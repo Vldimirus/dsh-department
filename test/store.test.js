@@ -100,3 +100,21 @@ test('resetGatesForNextStage: гейты не переезжают на след
   assert.equal(next.gates.review.status, 'pending');
   assert.equal(next.stageIndex, 1);
 });
+
+test('amendDocument: автономная поправка подписывается manager и помечается', () => {
+  const state = createState({ root: '/tmp/x', taskId: 'a2' });
+  const amended = amendDocument(state, { doc: 'spec', summary: 'кап длины', by: 'manager', autonomous: true, reason: 'измерения' });
+  assert.equal(amended.amendments[0].autonomous, true);
+  assert.equal(amended.events.at(-1).actor, 'manager');
+  assert.match(amended.events.at(-1).detail, /автономно/);
+});
+
+test('amendDocument: лимит автономных поправок', () => {
+  let state = createState({ root: '/tmp/x', taskId: 'a3' });
+  state = { ...state, policy: { ...state.policy, maxAutonomousAmendments: 1 } };
+  state = amendDocument(state, { doc: 'spec', summary: 'первая', by: 'manager', autonomous: true });
+  assert.throws(
+    () => amendDocument(state, { doc: 'spec', summary: 'вторая', by: 'manager', autonomous: true }),
+    /limit reached/,
+  );
+});
