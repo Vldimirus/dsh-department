@@ -22,7 +22,7 @@ import {
   taskDir,
   writeState,
 } from './store.js';
-import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
+import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, runGit, tag } from './git.js';
 import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
 import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
