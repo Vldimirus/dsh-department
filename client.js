@@ -53,14 +53,16 @@ window.__ModuleLoader__.load({
         .dept-office-side .dept-pre { max-height: 220px; overflow: auto; }
         .dept-office { border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 16px; background: radial-gradient(circle at 50% 0%, #121a2b 0%, #0a0f18 70%); padding: 8px; }
         .dept-office svg { width: 100%; height: auto; display: block; }
-        .dept-typing rect { animation: dept-type .36s steps(2) infinite; }
-        .dept-typing rect:last-child { animation-delay: .18s; }
-        .dept-steam { animation: dept-steam 2.2s ease-in-out infinite; }
-        .dept-steam.s2 { animation-delay: .7s; }
-        .dept-reading { animation: dept-read 2.6s ease-in-out infinite; transform-origin: center; }
-        @keyframes dept-type { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
-        @keyframes dept-steam { 0% { opacity: 0; transform: translateY(0); } 50% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
-        @keyframes dept-read { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } }
+        .dept-typing rect { animation: dept-type .3s steps(2) infinite; }
+        .dept-typing rect:last-child { animation-delay: .15s; }
+        .dept-keyboard { animation: dept-key .4s steps(2) infinite; }
+        .dept-steam { animation: dept-steam 1.6s ease-in-out infinite; }
+        .dept-steam.s2 { animation-delay: .5s; }
+        .dept-reading { animation: dept-read 2.2s ease-in-out infinite; transform-origin: center; }
+        @keyframes dept-type { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+        @keyframes dept-key { 0%, 100% { fill: #1a2436; } 50% { fill: #6fb2ff; } }
+        @keyframes dept-steam { 0% { opacity: 0; transform: translateY(0); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+        @keyframes dept-read { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
         .dept-avatar { cursor: pointer; transition: transform .9s cubic-bezier(.2,.8,.2,1); }
         .dept-avatar .dept-body { animation: dept-bob 2.6s ease-in-out infinite; transform-origin: center; }
         .dept-avatar.busy .dept-pulse { animation: dept-pulse 1.4s ease-in-out infinite; }
@@ -136,12 +138,12 @@ window.__ModuleLoader__.load({
 
     // Шахматный порядок: соседние столы смещены по вертикали.
     const DESKS = [
-      { key: 'manager', x: 240, y: 110, label: 'Руководитель' },
-      { key: 'coder', x: 110, y: 180, label: 'Кодер' },
-      { key: 'reviewer', x: 368, y: 180, label: 'Ревьюер' },
-      { key: 'analyst', x: 70, y: 260, label: 'Аналитик' },
-      { key: 'tester', x: 240, y: 260, label: 'Тестер' },
-      { key: 'archivist', x: 400, y: 260, label: 'Архивариус' },
+      { key: 'coder', x: 90, y: 112, label: 'Кодер' },
+      { key: 'manager', x: 220, y: 112, label: 'Руководитель' },
+      { key: 'reviewer', x: 350, y: 112, label: 'Ревьюер' },
+      { key: 'analyst', x: 90, y: 232, label: 'Аналитик' },
+      { key: 'tester', x: 220, y: 232, label: 'Тестер' },
+      { key: 'archivist', x: 350, y: 232, label: 'Архивариус' },
     ]
 
     function inferRole(entry) {
@@ -177,29 +179,33 @@ window.__ModuleLoader__.load({
       }
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
-      const loungeSeats = [{ x: 476, y: 196 }, { x: 536, y: 196 }, { x: 596, y: 196 }, { x: 436, y: 196 }]
+      const loungeSeats = [{ x: 452, y: 168 }, { x: 522, y: 168 }, { x: 592, y: 168 }, { x: 522, y: 196 }]
       const idle = [...byRole.entries()].filter(([, entry]) => !entry.busy).map(([role, entry]) => ({ role, entry, ghost: false }))
       for (const desk of DESKS) {
         if (desk.key === 'manager') continue
         if (!byRole.has(desk.key)) idle.push({ role: desk.key, entry: null, ghost: true })
       }
 
-      const floor = (x, y, width, height, fill) => h('rect', { x, y, width, height, fill })
+      const box = (x, y, width, height, fill, extra) => h('rect', Object.assign({ x, y, width, height, fill }, extra ?? {}))
+      const wall = (x, y, width, height) => h('g', null,
+        box(x, y, width, height, '#3b4666'),
+        box(x, y, width, 3, '#55628a'))
+      const door = (x, y, width, height) => h('g', null,
+        box(x, y, width, height, '#6b5a3a'),
+        box(x + 2, y + 2, width - 4, height - 4, '#8a7450'))
 
-      const monitor = (x, y) => h('g', null,
-        floor(x - 9, y - 20, 18, 14, '#0b1220'),
-        floor(x - 8, y - 19, 16, 12, '#2d6cff'),
-        floor(x - 6, y - 17, 6, 2, '#bfe0ff'),
-        floor(x - 6, y - 14, 9, 2, '#bfe0ff'),
-        floor(x - 2, y - 6, 4, 4, '#1a2436'),
-      )
+      const monitorOn = (x, y) => h('g', null,
+        box(x - 11, y, 22, 15, '#0b1220'),
+        box(x - 10, y + 1, 20, 13, '#2d6cff'),
+        box(x - 8, y + 3, 7, 2, '#cfe6ff'),
+        box(x - 8, y + 6, 11, 2, '#cfe6ff'),
+        box(x - 2, y + 15, 4, 3, '#1a2436'))
 
       const deskSprite = (desk) => h('g', { key: 'desk-' + desk.key },
-        floor(desk.x - 34, desk.y - 6, 68, 14, '#8a5a2b'),
-        floor(desk.x - 34, desk.y - 6, 68, 4, '#a8713a'),
-        floor(desk.x - 30, desk.y + 8, 4, 14, '#6b4420'),
-        floor(desk.x + 26, desk.y + 8, 4, 14, '#6b4420'),
-      )
+        box(desk.x - 34, desk.y - 6, 68, 16, '#8a5a2b'),
+        box(desk.x - 34, desk.y - 6, 68, 4, '#a8713a'),
+        box(desk.x - 30, desk.y + 10, 4, 14, '#6b4420'),
+        box(desk.x + 26, desk.y + 10, 4, 14, '#6b4420'))
 
       const personAtDesk = (entry, desk) => {
         const isSelected = selected === entry.sessionId
@@ -210,29 +216,28 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          monitor(desk.x + 0 - desk.x, 0),
-          floor(-12, -2, 24, 3, '#c8d4e6'),
+          box(-12, -22, 24, 8, '#2a3448'),
+          box(-9, -32, 18, 14, '#3d7bff'),
+          box(-9, -32, 18, 3, '#5b95ff'),
+          box(-6, -42, 12, 11, '#f0c9a0'),
+          box(-7, -44, 14, 4, '#5a3a22'),
+          box(-4, -38, 2, 2, '#20304a'),
+          box(2, -38, 2, 2, '#20304a'),
+          monitorOn(0, -30),
           h('g', { className: 'dept-typing' },
-            floor(-9, -6, 3, 7, '#f0c9a0'),
-            floor(6, -6, 3, 7, '#f0c9a0'),
-          ),
-          floor(-8, -18, 16, 14, '#3d7bff'),
-          floor(-8, -18, 16, 3, '#5b95ff'),
-          floor(-6, -27, 12, 10, '#f0c9a0'),
-          floor(-7, -29, 14, 4, '#5a3a22'),
-          floor(-4, -23, 2, 2, '#20304a'),
-          floor(2, -23, 2, 2, '#20304a'),
-        )
+            box(-10, -12, 5, 7, '#f0c9a0'),
+            box(5, -12, 5, 7, '#f0c9a0')),
+          h('rect', { className: 'dept-keyboard', x: -14, y: -14, width: 28, height: 4, fill: '#1a2436' }))
       }
 
       const personIdle = (entry, seat, index, ghostRole) => {
         if (!entry) {
           const desk = DESKS.find((candidate) => candidate.key === ghostRole)
-          return h('g', { key: 'ghost-' + ghostRole, opacity: 0.3 },
-            floor(seat.x - 7, seat.y - 20, 14, 12, '#2a344a'),
-            floor(seat.x - 5, seat.y - 28, 10, 9, '#2f3b52'),
-            h('text', { x: seat.x, y: seat.y + 10, fill: '#4c5f7f', fontSize: 8, textAnchor: 'middle' }, desk ? desk.label : ghostRole),
-          )
+          return h('g', { key: 'ghost-' + ghostRole, opacity: 0.32 },
+            box(seat.x - 12, seat.y - 6, 24, 8, '#2a3448'),
+            box(seat.x - 8, seat.y - 24, 16, 16, '#33405a'),
+            box(seat.x - 6, seat.y - 33, 12, 10, '#3a4762'),
+            h('text', { x: seat.x, y: seat.y + 16, fill: '#5a6d8f', fontSize: 8, textAnchor: 'middle' }, desk ? desk.label : ghostRole))
         }
         const reading = (index % 2) === 0
         const isSelected = selected === entry.sessionId
@@ -242,26 +247,26 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          floor(seat.x - 14, seat.y - 2, 28, 10, '#4a3a26'),
-          floor(seat.x - 14, seat.y - 2, 28, 3, '#5d4a30'),
-          floor(seat.x - 9, seat.y - 16, 18, 14, '#c25a4a'),
-          floor(seat.x - 5, seat.y - 24, 10, 9, '#f0c9a0'),
-          floor(seat.x - 6, seat.y - 26, 12, 3, '#5a3a22'),
+          box(seat.x - 13, seat.y - 8, 26, 10, '#4a3a26'),
+          box(seat.x - 13, seat.y - 8, 26, 3, '#5d4a30'),
+          box(seat.x - 9, seat.y - 26, 18, 16, '#c25a4a'),
+          box(seat.x - 6, seat.y - 36, 12, 11, '#f0c9a0'),
+          box(seat.x - 7, seat.y - 38, 14, 4, '#5a3a22'),
+          h('text', { x: seat.x, y: seat.y + 16, fill: '#5f7392', fontSize: 8, textAnchor: 'middle' },
+            entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(entry.sessionId) ?? 'coder'))?.label ?? 'агент')),
           reading
             ? h('g', { className: 'dept-reading' },
-                floor(seat.x - 7, seat.y - 18, 14, 9, '#e8e2cc'),
-                floor(seat.x - 6, seat.y - 17, 5, 1, '#8e8873'),
-                floor(seat.x - 6, seat.y - 15, 12, 1, '#8e8873'),
-                floor(seat.x - 6, seat.y - 13, 10, 1, '#8e8873'),
-              )
+                box(seat.x - 8, seat.y - 22, 16, 11, '#ece6d0'),
+                box(seat.x - 6, seat.y - 21, 5, 1, '#8e8873'),
+                box(seat.x - 6, seat.y - 19, 12, 1, '#8e8873'),
+                box(seat.x - 6, seat.y - 17, 10, 1, '#8e8873'),
+                box(seat.x - 6, seat.y - 15, 8, 1, '#8e8873'))
             : h('g', { className: 'dept-coffee' },
-                floor(seat.x + 5, seat.y - 17, 6, 7, '#f2f2f2'),
-                floor(seat.x + 6, seat.y - 16, 4, 2, '#7a4a24'),
-                h('rect', { className: 'dept-steam s1', x: seat.x + 7, y: seat.y - 21, width: 2, height: 2, fill: '#d8e6ff' }),
-                h('rect', { className: 'dept-steam s2', x: seat.x + 9, y: seat.y - 23, width: 2, height: 2, fill: '#d8e6ff' }),
-                floor(seat.x - 11, seat.y - 14, 4, 8, '#f0c9a0'),
-              ),
-        )
+                box(seat.x + 6, seat.y - 22, 6, 8, '#f2f2f2'),
+                box(seat.x + 7, seat.y - 21, 4, 2, '#7a4a24'),
+                box(seat.x - 12, seat.y - 20, 4, 8, '#f0c9a0'),
+                h('rect', { className: 'dept-steam s1', x: seat.x + 8, y: seat.y - 26, width: 2, height: 3, fill: '#d8e6ff' }),
+                h('rect', { className: 'dept-steam s2', x: seat.x + 10, y: seat.y - 28, width: 2, height: 3, fill: '#d8e6ff' })))
       }
 
       return h(
@@ -275,29 +280,39 @@ window.__ModuleLoader__.load({
             h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': 'Офис ИИ-отдела', style: { imageRendering: 'pixelated' } },
               h('defs', null,
                 h('pattern', { id: 'dept-floor', width: 16, height: 16, patternUnits: 'userSpaceOnUse' },
-                  floor(0, 0, 16, 16, '#c9b48c'),
-                  floor(0, 0, 16, 8, '#d3bf97'),
-                  floor(8, 8, 8, 8, '#d3bf97'),
-                )),
-              floor(8, 8, 624, 392, '#2a3350'),
-              floor(16, 16, 608, 376, 'url(#dept-floor)'),
-              floor(16, 16, 608, 24, '#3b4666'),
-              floor(16, 16, 608, 4, '#55628a'),
-              ...Array.from({ length: 6 }, (_, index) => floor(48 + index * 96, 20, 40, 14, '#8fd3ff')),
-              floor(16, 16, 4, 376, '#3b4666'),
-              floor(620, 16, 4, 376, '#3b4666'),
-              floor(16, 372, 608, 20, '#3b4666'),
-              floor(424, 40, 8, 336, '#3b4666'),
-              floor(424, 40, 8, 128, '#2a3350'),
-              floor(16, 300, 408, 8, '#3b4666'),
-              floor(40, 320, 356, 36, '#b9a67f'),
-              h('text', { x: 30, y: 300, fill: '#7d8aa8', fontSize: 9 }, 'OPEN SPACE'),
-              h('text', { x: 440, y: 60, fill: '#7d8aa8', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
-              floor(436, 68, 180, 10, '#6b4a2a'),
-              floor(436, 68, 180, 3, '#8a6338'),
-              floor(450, 82, 12, 10, '#e8e2cc'),
-              floor(560, 68, 10, 10, '#d8d8d8'),
-              floor(572, 68, 10, 10, '#d8d8d8'),
+                  box(0, 0, 16, 16, '#c9b48c'),
+                  box(0, 0, 16, 8, '#d3bf97'),
+                  box(8, 8, 8, 8, '#d3bf97'))),
+              box(0, 0, 640, 400, '#2a3350'),
+              box(12, 12, 616, 376, 'url(#dept-floor)'),
+
+              wall(12, 4, 616, 10),
+              wall(12, 386, 616, 10),
+              wall(4, 4, 10, 392),
+              wall(626, 4, 10, 392),
+              ...Array.from({ length: 5 }, (_, index) => box(40 + index * 110, 6, 44, 7, '#8fd3ff')),
+
+              wall(404, 14, 8, 128),
+              door(404, 142, 8, 34),
+              wall(404, 176, 8, 34),
+
+              wall(412, 292, 216, 8),
+              wall(12, 292, 172, 8),
+              door(184, 292, 40, 8),
+              door(470, 292, 40, 8),
+              wall(510, 292, 118, 8),
+
+              h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
+              h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
+
+              box(420, 46, 188, 10, '#5d4a30'),
+              box(420, 46, 188, 3, '#6f5a3a'),
+              box(436, 56, 14, 8, '#e8e2cc'),
+              box(580, 56, 12, 10, '#d8d8d8'),
+              box(596, 56, 12, 10, '#d8d8d8'),
+              box(452, 120, 70, 26, '#8a5a2b'),
+              box(452, 120, 70, 4, '#a8713a'),
+
               ...DESKS.map((desk) => deskSprite(desk)),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
@@ -307,7 +322,7 @@ window.__ModuleLoader__.load({
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 const busy = Boolean(entry?.busy)
-                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 34, fill: busy ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
+                return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: busy ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
                   desk.label + (entry ? (busy ? ' · работает' : ' · перерыв') : ' · свободно'))
               }),
             ),
