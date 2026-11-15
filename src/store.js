@@ -70,6 +70,11 @@ export function createState(input) {
     stage: 'analysis',
     stageIndex: 0,
     attempts: { current: 0, max: Number(input.maxAttempts ?? 4) },
+    attemptsByGate: {
+      tests: { current: 0, max: Number(input.maxAttempts ?? 4), signatures: [] },
+      review: { current: 0, max: Number(input.maxAttempts ?? 4), signatures: [] },
+    },
+    stats: { testsRuns: 0, testsFails: 0, reviewRuns: 0, reviewFails: 0 },
     gates: {
       tests: { status: 'pending', last: null },
       review: { status: 'pending' },
@@ -187,6 +192,9 @@ export function approveDocument(state, input) {
  */
 export function recordTestGate(state, result) {
   const status = result.ok ? 'pass' : 'fail';
+  const previous = state.attemptsByGate?.tests ?? { current: 0, max: state.attempts?.max ?? 4, signatures: [] };
+  const signature = result.ok ? previous.signatures.at(-1) ?? null : signatureOf(result.summary ?? '');
+  const signatures = result.ok ? previous.signatures : [...previous.signatures, signature].slice(-8);
   const next = {
     ...state,
     gates: {
@@ -194,8 +202,21 @@ export function recordTestGate(state, result) {
       tests: {
         ...state.gates.tests,
         status,
-        last: { ok: Boolean(result.ok), exitCode: result.exitCode, summary: result.summary ?? '', ts: new Date().toISOString() },
+        last: { ok: Boolean(result.ok), exitCode: result.exitCode, summary: result.summary ?? '', signature, ts: new Date().toISOString() },
       },
+    },
+    attemptsByGate: {
+      ...(state.attemptsByGate ?? {}),
+      tests: {
+        current: result.ok ? previous.current : previous.current + 1,
+        max: previous.max,
+        signatures,
+      },
+    },
+    stats: {
+      ...(state.stats ?? {}),
+      testsRuns: (state.stats?.testsRuns ?? 0) + 1,
+      testsFails: (state.stats?.testsFails ?? 0) + (result.ok ? 0 : 1),
     },
     attempts: result.ok
       ? state.attempts
@@ -216,11 +237,27 @@ export function recordTestGate(state, result) {
  * @returns {object} Новое состояние.
  */
 export function recordReview(state, verdict) {
+  const previous = state.attemptsByGate?.review ?? { current: 0, max: state.attempts?.max ?? 4, signatures: [] };
+  const signature = verdict.pass ? previous.signatures.at(-1) ?? null : signatureOf(verdict.summary ?? '');
+  const signatures = verdict.pass ? previous.signatures : [...previous.signatures, signature].slice(-8);
   const next = {
     ...state,
     gates: {
       ...state.gates,
-      review: { status: verdict.pass ? 'pass' : 'fail', summary: verdict.summary ?? '', ts: new Date().toISOString() },
+      review: { status: verdict.pass ? 'pass' : 'fail', summary: verdict.summary ?? '', signature, ts: new Date().toISOString() },
+    },
+    attemptsByGate: {
+      ...(state.attemptsByGate ?? {}),
+      review: {
+        current: verdict.pass ? previous.current : previous.current + 1,
+        max: previous.max,
+        signatures,
+      },
+    },
+    stats: {
+      ...(state.stats ?? {}),
+      reviewRuns: (state.stats?.reviewRuns ?? 0) + 1,
+      reviewFails: (state.stats?.reviewFails ?? 0) + (verdict.pass ? 0 : 1),
     },
   };
   return appendEvent(next, {
@@ -414,4 +451,35 @@ export function answerQuestion(state, input) {
 export function listQuestions(state, filter = {}) {
   const questions = state.questions ?? [];
   return filter.status ? questions.filter((question) => question.status === filter.status) : questions;
+}
+
+import { createHash } from 'node:crypto';
+
+/**
+ * Подпись провала: нормализованный хвост вывода.
+ *
+ * @param {string} text Вывод теста/ревью.
+ * @returns {string}
+ */
+export function signatureOf(text) {
+  const normalized = String(text ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !/^ℹ (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)/.test(line))
+    .slice(-6)
+    .join('\n');
+  return createHash('sha256').update(normalized).digest('hex').slice(0, 12);
+}
+
+/**
+ * Провал повторяется (та же подпись уже была).
+ *
+ * @param {object} state Состояние.
+ * @param {'tests'|'review'} gate Гейт.
+ * @returns {boolean}
+ */
+export function isRepeatedFailure(state, gate) {
+  const signatures = state.attemptsByGate?.[gate]?.signatures ?? [];
+  if (signatures.length < 2) return false;
+  return signatures.at(-1) === signatures.at(-2);
 }

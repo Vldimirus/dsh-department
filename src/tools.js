@@ -8,6 +8,8 @@ import {
   advanceStage,
   amendDocument,
   answerQuestion,
+  closeTask,
+  isRepeatedFailure,
   listQuestions,
   resetGatesForNextStage,
   appendEvent,
@@ -23,6 +25,7 @@ import {
 import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
 import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
+import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
 async function collectArtifacts(root, taskId) {
@@ -249,11 +252,32 @@ function gateTool() {
       if (!state) throw new Error(`task not found: ${taskId}`);
 
       let next;
+      const stageNo = (state.stageIndex ?? 0) + 1;
       if (kind === 'tests') {
+        if (state.gates?.tests?.status === 'fail') {
+          await assertRetryReady(root, taskId, stageNo);
+        }
         const result = await runTestGate(root, state.testCommand);
         next = recordTestGate(state, result);
+        if (!result.ok) {
+          await writeFailureData(root, taskId, stageNo, result.summary ?? '');
+          if (isRepeatedFailure(next, 'tests')) {
+            next = closeTask(next, 'blocked', 'повторяющийся провал тестов: нужна смена подхода');
+            next = addQuestion(next, {
+              text: 'Повторяющийся провал тестов: сменить подход или принять ограничение?',
+              context: String(result.summary ?? '').slice(0, 500),
+            }).state;
+          }
+        }
       } else if (kind === 'review') {
         next = recordReview(state, { pass: Boolean(args?.pass), summary: args?.summary ?? '' });
+        if (!args?.pass && isRepeatedFailure(next, 'review')) {
+          next = closeTask(next, 'blocked', 'повторяющийся провал ревью: нужна смена подхода');
+          next = addQuestion(next, {
+            text: 'Ревьюер повторно нашёл то же: сменить подход или принять ограничение?',
+            context: String(args?.summary ?? '').slice(0, 500),
+          }).state;
+        }
       } else {
         throw new Error(`unknown gate kind: ${kind}`);
       }
@@ -292,6 +316,9 @@ function commitTool() {
       const taskId = requireString(args, 'taskId');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      if (state.stage === 'blocked') {
+        throw new Error('commit blocked: этап заблокирован (повторяющийся провал); нужно решение человека');
+      }
 
       const committed = await commitAll(root, requireString(args, 'message'));
       if (!committed.ok) throw new Error(`commit failed: ${committed.error ?? ''}`);
