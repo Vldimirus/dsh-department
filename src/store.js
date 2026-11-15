@@ -110,10 +110,25 @@ export function createState(input) {
  * @param {string} taskId Идентификатор задачи.
  * @returns {Promise<object|null>}
  */
+export function normalizeState(state) {
+  if (!state) return state;
+  const max = Number(state.attempts?.max ?? 4);
+  const next = { ...state };
+  next.questions = state.questions ?? [];
+  next.policy = state.policy ?? { autonomous: true, escalateOnly: ['scope', 'budget', 'ux', 'timeline'], maxAutonomousAmendments: 5 };
+  next.stageIndex = state.stageIndex ?? 0;
+  next.attemptsByGate = state.attemptsByGate ?? {
+    tests: { current: 0, max, signatures: [] },
+    review: { current: 0, max, signatures: [] },
+  };
+  next.stats = state.stats ?? { testsRuns: 0, testsFails: 0, reviewRuns: 0, reviewFails: 0 };
+  return next;
+}
+
 export async function readState(root, taskId) {
   try {
     const text = await readFile(statePath(root, taskId), 'utf8');
-    return JSON.parse(text);
+    return normalizeState(JSON.parse(text));
   } catch (error) {
     if (error?.code === 'ENOENT') return null;
     throw error;
@@ -128,7 +143,7 @@ export async function readState(root, taskId) {
  * @returns {Promise<object>} Записанное состояние.
  */
 export async function writeState(root, state) {
-  const next = { ...state, updatedAt: new Date().toISOString() };
+  const next = { ...normalizeState(state), updatedAt: new Date().toISOString() };
   await mkdir(taskDir(root, state.taskId), { recursive: true });
   await writeFile(statePath(root, state.taskId), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
   return next;

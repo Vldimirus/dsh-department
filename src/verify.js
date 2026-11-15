@@ -46,7 +46,15 @@ export function verifyChecklist({ state, files, currentBranch }) {
   }
 
   if (state.stage === 'executing') {
-    check('gate:tests', state.gates?.tests?.status === 'pass', `status=${state.gates?.tests?.status ?? 'pending'}`);
+    // Сразу после коммита гейты сброшены: этап закрыт, ждём старта следующего.
+    const events = state.events ?? [];
+    const lastAction = events.at(-1)?.action ?? '';
+    const stageClosed = lastAction === 'commit_pushed';
+    check('gate:tests', stageClosed || state.gates?.tests?.status === 'pass', stageClosed ? 'этап закрыт коммитом' : `status=${state.gates?.tests?.status ?? 'pending'}`);
+    if (stageClosed) {
+      check('gate:review', true, 'этап закрыт коммитом');
+      return { ok: checks.every((item) => item.ok), checks };
+    }
 
     // Гейты должны быть получены после последнего коммита этапа, иначе pass
     // предыдущего этапа «переезжает» на текущий.
