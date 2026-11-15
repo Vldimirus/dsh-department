@@ -14,6 +14,21 @@ export const name = 'department';
 export const inject = ['tools', 'commands'];
 
 /**
+ * Оборачивает список диспозеров в один Cordis-диспозер.
+ * `ctx.effect` требует функцию, а регистрации возвращают массив функций.
+ *
+ * @param {Array<() => void>} disposers Диспозеры.
+ * @returns {() => void}
+ */
+function combine(disposers) {
+  return () => {
+    for (const dispose of disposers) {
+      if (typeof dispose === 'function') dispose();
+    }
+  };
+}
+
+/**
  * Точка входа плагина.
  *
  * @param {object} ctx Контекст Cordis.
@@ -21,6 +36,7 @@ export const inject = ['tools', 'commands'];
  */
 export function apply(ctx, config) {
   void config;
-  ctx.effect(() => registerTools(ctx), 'department: model tools');
-  if (ctx.get('commands')) ctx.effect(() => registerCommands(ctx), 'department: slash command');
+  ctx.effect(() => combine(registerTools(ctx)), 'department: model tools');
+
+  ctx.effect(() => combine(registerCommands(ctx)), 'department: slash command');
 }

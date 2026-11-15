@@ -4,6 +4,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  advanceStage,
   appendEvent,
   approveDocument,
   createState,
@@ -46,6 +47,7 @@ export function registerTools(ctx) {
   disposers.push(ctx.tools.register(statusTool()));
   disposers.push(ctx.tools.register(approveTool()));
   disposers.push(ctx.tools.register(gateTool()));
+  disposers.push(ctx.tools.register(stageTool()));
   disposers.push(ctx.tools.register(commitTool()));
   return disposers;
 }
@@ -58,8 +60,8 @@ function startTool() {
     parameters: {
       type: 'object',
       properties: {
-        root: { type: 'string', description: 'Абсолютный путь к корню проекта.', required: true },
-        taskId: { type: 'string', description: 'Идентификатор задачи, например game-01.', required: true },
+        root: { type: 'string', description: 'Абсолютный путь к корню проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи, например game-01.' },
         title: { type: 'string', description: 'Человеческое название задачи.' },
         brief: { type: 'string', description: 'Текст брифа задачи (попадёт в task.md).' },
         testCommand: { type: 'string', description: 'Команда гейта тестов, например "npm test".' },
@@ -73,7 +75,7 @@ function startTool() {
     output: {
       schema: {
         type: 'object',
-        additionalProperties: true,
+        additionalProperties: false,
         properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } },
         required: ['stage', 'summary', 'state'],
       },
@@ -117,15 +119,15 @@ function statusTool() {
     parameters: {
       type: 'object',
       properties: {
-        root: { type: 'string', description: 'Корень проекта.', required: true },
-        taskId: { type: 'string', description: 'Идентификатор задачи.', required: true },
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
       },
       required: ['root', 'taskId'],
     },
     output: {
       schema: {
         type: 'object',
-        additionalProperties: true,
+        additionalProperties: false,
         properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } },
         required: ['stage', 'summary', 'state'],
       },
@@ -149,10 +151,10 @@ function approveTool() {
     parameters: {
       type: 'object',
       properties: {
-        root: { type: 'string', description: 'Корень проекта.', required: true },
-        taskId: { type: 'string', description: 'Идентификатор задачи.', required: true },
-        doc: { type: 'string', enum: ['concept', 'spec'], description: 'Какой документ утверждается.', required: true },
-        by: { type: 'string', description: 'Кто утвердил (человек/идентификатор).', required: true },
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        doc: { type: 'string', enum: ['concept', 'spec'], description: 'Какой документ утверждается.' },
+        by: { type: 'string', description: 'Кто утвердил (человек/идентификатор).' },
         via: { type: 'string', description: 'Канал утверждения (chat, page).' },
       },
       required: ['root', 'taskId', 'doc', 'by'],
@@ -160,7 +162,7 @@ function approveTool() {
     output: {
       schema: {
         type: 'object',
-        additionalProperties: true,
+        additionalProperties: false,
         properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } },
         required: ['stage', 'summary', 'state'],
       },
@@ -187,9 +189,9 @@ function gateTool() {
     parameters: {
       type: 'object',
       properties: {
-        root: { type: 'string', description: 'Корень проекта.', required: true },
-        taskId: { type: 'string', description: 'Идентификатор задачи.', required: true },
-        kind: { type: 'string', enum: ['tests', 'review'], description: 'Тип гейта.', required: true },
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        kind: { type: 'string', enum: ['tests', 'review'], description: 'Тип гейта.' },
         pass: { type: 'boolean', description: 'Вердикт для kind=review (true=PASS).' },
         summary: { type: 'string', description: 'Краткий итог ревью/тестов.' },
       },
@@ -198,7 +200,7 @@ function gateTool() {
     output: {
       schema: {
         type: 'object',
-        additionalProperties: true,
+        additionalProperties: false,
         properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } },
         required: ['stage', 'summary', 'state'],
       },
@@ -233,9 +235,9 @@ function commitTool() {
     parameters: {
       type: 'object',
       properties: {
-        root: { type: 'string', description: 'Корень проекта.', required: true },
-        taskId: { type: 'string', description: 'Идентификатор задачи.', required: true },
-        message: { type: 'string', description: 'Сообщение коммита.', required: true },
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        message: { type: 'string', description: 'Сообщение коммита.' },
         tagName: { type: 'string', description: 'Имя тега, например stage-1.' },
         remote: { type: 'string', description: 'Remote для push (по умолчанию origin).' },
       },
@@ -244,7 +246,7 @@ function commitTool() {
     output: {
       schema: {
         type: 'object',
-        additionalProperties: true,
+        additionalProperties: false,
         properties: { commit: { type: 'string' }, tag: { type: 'string' }, pushed: { type: 'boolean' }, summary: { type: 'string' } },
         required: ['commit', 'pushed', 'summary'],
       },
@@ -279,6 +281,41 @@ function commitTool() {
         pushed: pushed.ok,
         summary: `${summarize(next)} · commit=${committed.commit ?? '?'} push=${pushed.ok ? 'ok' : 'failed'}`,
       };
+    },
+  };
+}
+
+function stageTool() {
+  return {
+    name: 'dept_stage',
+    description: 'Перевести задачу на следующую стадию (analysis → concept → concept_review; spec → spec_review). Утверждения concept→spec и spec→executing делаются только через dept_approve.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        stage: { type: 'string', enum: ['analysis', 'concept', 'concept_review', 'spec', 'spec_review', 'executing', 'done', 'blocked'], description: 'Целевая стадия.' },
+        reason: { type: 'string', description: 'Причина перехода.' },
+      },
+      required: ['root', 'taskId', 'stage'],
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { stage: { type: 'string' }, summary: { type: 'string' }, state: { type: 'object' } },
+        required: ['stage', 'summary', 'state'],
+      },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const target = requireString(args, 'stage');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, advanceStage(state, target, args?.reason ?? ''));
+      return summaryOutput(next);
     },
   };
 }

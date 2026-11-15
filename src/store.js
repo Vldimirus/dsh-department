@@ -255,3 +255,36 @@ export function summarize(state) {
     `events: ${state.events?.length ?? 0}`,
   ].join(' · ');
 }
+
+/** Разрешённые переходы стадий без утверждения человеком. */
+const STAGE_FLOW = Object.freeze({
+  analysis: ['concept'],
+  concept: ['concept_review', 'analysis'],
+  concept_review: ['concept', 'spec'],
+  spec: ['spec_review', 'concept'],
+  spec_review: ['spec', 'executing'],
+  executing: ['done', 'blocked', 'spec'],
+  done: [],
+  blocked: ['analysis', 'executing'],
+});
+
+/**
+ * Переводит задачу на следующую стадию с проверкой допустимости перехода.
+ * Утверждения (concept→spec, spec→executing) выполняются только через
+ * `approveDocument`, чтобы нельзя было проскочить человеческий гейт.
+ *
+ * @param {object} state Состояние.
+ * @param {string} target Целевая стадия.
+ * @param {string} [reason] Причина.
+ * @returns {object} Новое состояние.
+ */
+export function advanceStage(state, target, reason = '') {
+  const allowed = STAGE_FLOW[state.stage] ?? [];
+  if (!allowed.includes(target)) {
+    throw new Error(`cannot move ${state.stage} -> ${target}; allowed: ${allowed.join(', ') || 'none'}`);
+  }
+  if (target === 'spec' || target === 'executing') {
+    throw new Error(`${target} requires a human approval, use dept_approve`);
+  }
+  return appendEvent({ ...state, stage: target }, { actor: 'manager', action: `stage_${target}`, detail: reason });
+}
