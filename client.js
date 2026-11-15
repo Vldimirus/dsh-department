@@ -203,7 +203,7 @@ window.__ModuleLoader__.load({
       return points[points.length - 1] ?? from
     }
 
-    function OfficeView({ items, selected, onSelect }) {
+    function OfficeView({ items, selected, onSelect, tasks, onOpenTask }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
@@ -232,6 +232,13 @@ window.__ModuleLoader__.load({
       }
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
+      const selectedTask = selectedEntry && tasks ? tasks.find((task) => task.root === selectedEntry.cwd) : null
+      const projectName = (cwd) => String(cwd ?? '').split('/').filter(Boolean).pop() ?? '—'
+      const filesOf = (entry) => {
+        const text = [entry?.args ?? '', ...(entry?.recent ?? []).map((event) => event.text)].join(' ')
+        const matches = text.match(/[\w./-]+\.(?:js|mjs|md|json|html|css)/g) ?? []
+        return [...new Set(matches.map((file) => file.replace(/^\.\//, '')))].slice(0, 8)
+      }
       const chairSeats = [{ x: 446, y: 152 }, { x: 520, y: 152 }, { x: 594, y: 152 }, { x: 520, y: 198 }]
       const coolerSpot = { x: 570, y: 252 }
       const windowSpot = { x: 466, y: 66 }
@@ -482,16 +489,20 @@ window.__ModuleLoader__.load({
                   h('div', { className: 'dept-row' },
                     h('span', { className: selectedEntry.busy ? 'dept-badge ok' : 'dept-badge wait' }, selectedEntry.busy ? '● работает' : '○ перерыв'),
                     h('span', { className: 'dept-sub' }, formatElapsed(selectedEntry.elapsedMs))),
+                  h('div', { className: 'dept-sub' }, 'Проект: ' + projectName(selectedEntry.cwd) + (selectedTask ? ' · ' + selectedTask.taskId + ' · ' + selectedTask.stage : '')),
                   h('div', { className: 'dept-sub' }, 'Сейчас'),
                   h('div', { className: 'dept-pre' }, `${selectedEntry.lastAction}${selectedEntry.tool ? '\n' + selectedEntry.tool : ''}${selectedEntry.args ? '\n' + selectedEntry.args : ''}`),
+                  (filesOf(selectedEntry).length ? h('div', { className: 'dept-sub' }, 'Файлы: ' + filesOf(selectedEntry).join(', ')) : null),
                   h('div', { className: 'dept-sub' }, 'Последние действия'),
-                  (selectedEntry.recent ?? []).length === 0 ? h('div', { className: 'dept-sub' }, 'пока нет')
+                  (selectedEntry.recent ?? []).length === 0
+                    ? h('div', { className: 'dept-sub' }, 'пока нет')
                     : h('div', { className: 'dept-events' }, ...selectedEntry.recent.map((event, index) =>
                         h('div', { key: index, className: 'dept-event' },
                           h('time', null, String(new Date(event.ts).toLocaleTimeString('ru-RU'))),
                           h('span', null, event.text)))),
+                  selectedTask ? h('button', { className: 'dept-btn', onClick: () => onOpenTask(selectedEntry.cwd) }, 'Открыть задачу') : null,
                 ]
-              : h('div', { className: 'dept-sub' }, 'Выбери человечка на схеме — здесь появятся текущее дело и последние действия.'),
+              : h('div', { className: 'dept-sub' }, 'Выбери человечка на схеме — здесь появятся проект, файлы и история.'),
           ),
         ),
       )
@@ -710,7 +721,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
               h('button', { className: 'dept-btn active', onClick: () => setView('office') }, 'Офис')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
-          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession }),
+          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) } }),
         )
       }
 
