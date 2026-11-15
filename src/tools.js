@@ -1,7 +1,7 @@
 /**
  * Инструменты модели `dept_*`: запуск задачи, статус, утверждение, гейты, фиксация.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   advanceStage,
@@ -15,8 +15,9 @@ import {
   taskDir,
   writeState,
 } from './store.js';
-import { ensureBranch, commitAll, isRepo, push, tag } from './git.js';
+import { currentBranch, ensureBranch, commitAll, isRepo, push, tag } from './git.js';
 import { runTestGate } from './gates.js';
+import { formatReport, verifyChecklist } from './verify.js';
 
 function requireString(args, key) {
   const value = args?.[key];
@@ -48,6 +49,7 @@ export function registerTools(ctx) {
   disposers.push(ctx.tools.register(approveTool()));
   disposers.push(ctx.tools.register(gateTool()));
   disposers.push(ctx.tools.register(stageTool()));
+  disposers.push(ctx.tools.register(verifyTool()));
   disposers.push(ctx.tools.register(commitTool()));
   return disposers;
 }
@@ -175,6 +177,12 @@ function approveTool() {
       const by = requireString(args, 'by');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      const docFile = doc === 'concept' ? 'concept.md' : 'spec.md';
+      try {
+        await access(join(taskDir(root, taskId), docFile));
+      } catch {
+        throw new Error(`cannot approve ${doc}: ${docFile} is missing`);
+      }
       const next = await writeState(root, approveDocument(state, { doc, by, via: args?.via }));
       return summaryOutput(next);
     },
@@ -316,6 +324,50 @@ function stageTool() {
       if (!state) throw new Error(`task not found: ${taskId}`);
       const next = await writeState(root, advanceStage(state, target, args?.reason ?? ''));
       return summaryOutput(next);
+    },
+  };
+}
+
+function verifyTool() {
+  return {
+    name: 'dept_verify',
+    description: 'Аудит задачи отдела: состояние ↔ артефакты ↔ git. Возвращает PASS/FAIL и список проверок. Используй перед коммитом этапа и для проверки, что процесс шёл через инструменты dept_*.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { ok: { type: 'boolean' }, summary: { type: 'string' }, checks: { type: 'array', items: { type: 'object' } } },
+        required: ['ok', 'summary', 'checks'],
+      },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+
+      const names = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md'];
+      const files = {};
+      for (const name of names) {
+        try {
+          await access(join(taskDir(root, taskId), name));
+          files[name] = true;
+        } catch {
+          files[name] = false;
+        }
+      }
+      const branch = await currentBranch(root);
+      const report = verifyChecklist({ state, files, currentBranch: branch });
+      return { ok: report.ok, summary: formatReport(report), checks: report.checks };
     },
   };
 }
