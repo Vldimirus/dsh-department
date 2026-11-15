@@ -294,12 +294,13 @@ window.__ModuleLoader__.load({
 
               wall(404, 14, 8, 128),
               door(404, 142, 8, 34),
-              wall(404, 176, 8, 34),
+              wall(404, 176, 8, 116),
 
               wall(412, 292, 216, 8),
               wall(12, 292, 172, 8),
               door(184, 292, 40, 8),
               door(470, 292, 40, 8),
+              wall(224, 292, 246, 8),
               wall(510, 292, 118, 8),
 
               h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
