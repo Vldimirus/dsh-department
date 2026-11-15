@@ -161,10 +161,15 @@ window.__ModuleLoader__.load({
     function OfficeView({ items, selected, onSelect }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
+      const [walkTick, setWalkTick] = React.useState(0)
+      React.useEffect(() => {
+        const timer = setInterval(() => setWalkTick((value) => value + 1), 18000)
+        return () => clearInterval(timer)
+      }, [])
+
       const byRole = new Map()
       const seats = DESKS.filter((desk) => desk.key !== 'manager')
       const taken = new Set()
-
       for (const entry of items) {
         let role = entry.kind === 'менеджер' ? 'manager' : assignments.current.get(entry.sessionId)
         if (entry.kind !== 'менеджер' && !role) {
@@ -179,7 +184,10 @@ window.__ModuleLoader__.load({
       }
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
-      const loungeSeats = [{ x: 452, y: 168 }, { x: 522, y: 168 }, { x: 592, y: 168 }, { x: 522, y: 196 }]
+      const loungeSeats = [{ x: 452, y: 168 }, { x: 522, y: 168 }, { x: 592, y: 168 }, { x: 522, y: 200 }]
+      const coolerSpots = [{ x: 366, y: 58 }, { x: 600, y: 246 }]
+      const windowSpots = [{ x: 62, y: 46 }, { x: 172, y: 46 }]
+
       const idle = [...byRole.entries()].filter(([, entry]) => !entry.busy).map(([role, entry]) => ({ role, entry, ghost: false }))
       for (const desk of DESKS) {
         if (desk.key === 'manager') continue
@@ -201,11 +209,31 @@ window.__ModuleLoader__.load({
         box(x - 8, y + 6, 11, 2, '#cfe6ff'),
         box(x - 2, y + 15, 4, 3, '#1a2436'))
 
+      const plant = (x, y) => h('g', null,
+        box(x - 7, y, 14, 10, '#8a5a2b'),
+        box(x - 7, y, 14, 3, '#a8713a'),
+        box(x - 9, y - 14, 18, 14, '#3f8a4f'),
+        box(x - 6, y - 18, 12, 6, '#4fa05e'),
+        box(x - 3, y - 21, 6, 5, '#5cb06c'))
+
+      const cooler = (x, y) => h('g', null,
+        box(x - 8, y - 10, 16, 22, '#dfe6ee'),
+        box(x - 8, y - 10, 16, 3, '#f2f6fa'),
+        box(x - 6, y - 24, 12, 14, '#7fc4ff'),
+        box(x - 6, y - 24, 12, 3, '#a8d8ff'),
+        box(x - 2, y - 4, 4, 3, '#9aa7b8'),
+        box(x - 10, y + 10, 4, 2, '#c8d4e6'))
+
       const deskSprite = (desk) => h('g', { key: 'desk-' + desk.key },
         box(desk.x - 34, desk.y - 6, 68, 16, '#8a5a2b'),
         box(desk.x - 34, desk.y - 6, 68, 4, '#a8713a'),
         box(desk.x - 30, desk.y + 10, 4, 14, '#6b4420'),
-        box(desk.x + 26, desk.y + 10, 4, 14, '#6b4420'))
+        box(desk.x + 26, desk.y + 10, 4, 14, '#6b4420'),
+        box(desk.x + 16, desk.y - 14, 5, 5, '#efe9d6'),
+        box(desk.x + 16, desk.y - 14, 5, 2, '#c25a4a'),
+        box(desk.x - 26, desk.y - 13, 9, 6, '#efe9d6'),
+        box(desk.x - 25, desk.y - 12, 7, 1, '#b9b29a'),
+        box(desk.x - 25, desk.y - 10, 5, 1, '#b9b29a'))
 
       const personAtDesk = (entry, desk) => {
         const isSelected = selected === entry.sessionId
@@ -216,57 +244,90 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          box(-12, -22, 24, 8, '#2a3448'),
-          box(-9, -32, 18, 14, '#3d7bff'),
-          box(-9, -32, 18, 3, '#5b95ff'),
-          box(-6, -42, 12, 11, '#f0c9a0'),
-          box(-7, -44, 14, 4, '#5a3a22'),
-          box(-4, -38, 2, 2, '#20304a'),
-          box(2, -38, 2, 2, '#20304a'),
-          monitorOn(0, -30),
+          box(-12, -24, 24, 9, '#2a3448'),
+          box(-9, -34, 18, 15, '#3d7bff'),
+          box(-9, -34, 18, 3, '#5b95ff'),
+          box(-6, -45, 12, 12, '#f0c9a0'),
+          box(-7, -47, 14, 4, '#5a3a22'),
+          box(-4, -41, 2, 2, '#20304a'),
+          box(2, -41, 2, 2, '#20304a'),
+          monitorOn(0, -20),
           h('g', { className: 'dept-typing' },
-            box(-10, -12, 5, 7, '#f0c9a0'),
-            box(5, -12, 5, 7, '#f0c9a0')),
-          h('rect', { className: 'dept-keyboard', x: -14, y: -14, width: 28, height: 4, fill: '#1a2436' }))
+            box(-10, -13, 5, 7, '#f0c9a0'),
+            box(5, -13, 5, 7, '#f0c9a0')),
+          h('rect', { className: 'dept-keyboard', x: -14, y: -15, width: 28, height: 4, fill: '#1a2436' }))
       }
 
-      const personIdle = (entry, seat, index, ghostRole) => {
-        if (!entry) {
-          const desk = DESKS.find((candidate) => candidate.key === ghostRole)
-          return h('g', { key: 'ghost-' + ghostRole, opacity: 0.32 },
-            box(seat.x - 12, seat.y - 6, 24, 8, '#2a3448'),
-            box(seat.x - 8, seat.y - 24, 16, 16, '#33405a'),
-            box(seat.x - 6, seat.y - 33, 12, 10, '#3a4762'),
-            h('text', { x: seat.x, y: seat.y + 16, fill: '#5a6d8f', fontSize: 8, textAnchor: 'middle' }, desk ? desk.label : ghostRole))
-        }
-        const reading = (index % 2) === 0
+      const personSeated = (entry, seat, index, ghostRole) => {
+        const isSelected = selected === entry?.sessionId
+        return h('g', {
+          key: entry ? entry.sessionId : 'ghost-' + ghostRole,
+          className: 'dept-avatar idle',
+          transform: 'translate(' + seat.x + ',' + seat.y + ')',
+          opacity: entry ? 1 : 0.32,
+          onClick: entry ? () => onSelect(entry.sessionId) : undefined,
+          style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
+        },
+          box(-13, -8, 26, 10, '#4a3a26'),
+          box(-13, -8, 26, 3, '#5d4a30'),
+          box(-9, -28, 18, 17, entry ? '#c25a4a' : '#33405a'),
+          box(-6, -38, 12, 12, entry ? '#f0c9a0' : '#3a4762'),
+          box(-7, -40, 14, 4, '#5a3a22'),
+          entry && (index % 2 === 0)
+            ? h('g', { className: 'dept-reading' },
+                box(-9, -24, 18, 12, '#ece6d0'),
+                box(-7, -23, 6, 1, '#8e8873'),
+                box(-7, -21, 14, 1, '#8e8873'),
+                box(-7, -19, 11, 1, '#8e8873'),
+                box(-7, -17, 9, 1, '#8e8873'))
+            : entry
+              ? h('g', { className: 'dept-coffee' },
+                  box(6, -24, 6, 9, '#f2f2f2'),
+                  box(7, -23, 4, 2, '#7a4a24'),
+                  box(-12, -22, 4, 9, '#f0c9a0'),
+                  h('rect', { className: 'dept-steam s1', x: 8, y: -29, width: 2, height: 3, fill: '#d8e6ff' }),
+                  h('rect', { className: 'dept-steam s2', x: 10, y: -31, width: 2, height: 3, fill: '#d8e6ff' }))
+              : null,
+          h('text', { x: 0, y: 18, fill: entry ? '#5f7392' : '#5a6d8f', fontSize: 8, textAnchor: 'middle' },
+            ghostRole ? (DESKS.find((desk) => desk.key === ghostRole)?.label ?? ghostRole) : ''))
+      }
+
+      const personStanding = (entry, spot, looking) => {
         const isSelected = selected === entry.sessionId
         return h('g', {
           key: entry.sessionId,
-          className: 'dept-avatar idle',
+          className: 'dept-avatar walking',
+          style: {
+            transform: 'translate(' + spot.x + 'px,' + spot.y + 'px)',
+            transition: 'transform 1.4s ease-in-out',
+            filter: isSelected ? 'drop-shadow(0 0 4px #6fb2ff)' : undefined,
+          },
           onClick: () => onSelect(entry.sessionId),
-          style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          box(seat.x - 13, seat.y - 8, 26, 10, '#4a3a26'),
-          box(seat.x - 13, seat.y - 8, 26, 3, '#5d4a30'),
-          box(seat.x - 9, seat.y - 26, 18, 16, '#c25a4a'),
-          box(seat.x - 6, seat.y - 36, 12, 11, '#f0c9a0'),
-          box(seat.x - 7, seat.y - 38, 14, 4, '#5a3a22'),
-          h('text', { x: seat.x, y: seat.y + 16, fill: '#5f7392', fontSize: 8, textAnchor: 'middle' },
-            entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(entry.sessionId) ?? 'coder'))?.label ?? 'агент')),
-          reading
-            ? h('g', { className: 'dept-reading' },
-                box(seat.x - 8, seat.y - 22, 16, 11, '#ece6d0'),
-                box(seat.x - 6, seat.y - 21, 5, 1, '#8e8873'),
-                box(seat.x - 6, seat.y - 19, 12, 1, '#8e8873'),
-                box(seat.x - 6, seat.y - 17, 10, 1, '#8e8873'),
-                box(seat.x - 6, seat.y - 15, 8, 1, '#8e8873'))
+          box(-8, -34, 16, 18, '#c25a4a'),
+          box(-6, -45, 12, 12, '#f0c9a0'),
+          box(-7, -47, 14, 4, '#5a3a22'),
+          box(-8, -16, 6, 14, '#2a3448'),
+          box(2, -16, 6, 14, '#2a3448'),
+          looking === 'window'
+            ? h('g', { className: 'dept-reading' }, box(-9, -40, 18, 8, '#cfe6ff'), box(-8, -39, 16, 6, '#8fd3ff'))
             : h('g', { className: 'dept-coffee' },
-                box(seat.x + 6, seat.y - 22, 6, 8, '#f2f2f2'),
-                box(seat.x + 7, seat.y - 21, 4, 2, '#7a4a24'),
-                box(seat.x - 12, seat.y - 20, 4, 8, '#f0c9a0'),
-                h('rect', { className: 'dept-steam s1', x: seat.x + 8, y: seat.y - 26, width: 2, height: 3, fill: '#d8e6ff' }),
-                h('rect', { className: 'dept-steam s2', x: seat.x + 10, y: seat.y - 28, width: 2, height: 3, fill: '#d8e6ff' })))
+                box(8, -30, 6, 8, '#f2f2f2'),
+                box(9, -29, 4, 2, '#7a4a24'),
+                h('rect', { className: 'dept-steam s1', x: 10, y: -34, width: 2, height: 3, fill: '#d8e6ff' })))
+      }
+
+      const walkTargets = []
+      for (let index = 0; index < idle.length; index += 1) {
+        const item = idle[index]
+        if (item.ghost) {
+          walkTargets.push({ kind: 'seat', seat: loungeSeats[index % loungeSeats.length], item })
+          continue
+        }
+        const seed = (item.entry.sessionId.length * 7 + walkTick) % 3
+        if (seed === 0) walkTargets.push({ kind: 'seat', seat: loungeSeats[index % loungeSeats.length], item })
+        else if (seed === 1) walkTargets.push({ kind: 'window', spot: windowSpots[index % windowSpots.length], item })
+        else walkTargets.push({ kind: 'cooler', spot: coolerSpots[index % coolerSpots.length], item })
       }
 
       return h(
@@ -285,41 +346,37 @@ window.__ModuleLoader__.load({
                   box(8, 8, 8, 8, '#d3bf97'))),
               box(0, 0, 640, 400, '#2a3350'),
               box(12, 12, 616, 376, 'url(#dept-floor)'),
-
               wall(12, 4, 616, 10),
               wall(12, 386, 616, 10),
               wall(4, 4, 10, 392),
               wall(626, 4, 10, 392),
               ...Array.from({ length: 5 }, (_, index) => box(40 + index * 110, 6, 44, 7, '#8fd3ff')),
-
               wall(404, 14, 8, 128),
               door(404, 142, 8, 34),
               wall(404, 176, 8, 116),
-
               wall(412, 292, 216, 8),
               wall(12, 292, 172, 8),
               door(184, 292, 40, 8),
               door(470, 292, 40, 8),
-              wall(224, 292, 246, 8),
               wall(510, 292, 118, 8),
-
               h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
               h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
-
+              plant(26, 268), plant(386, 24), plant(26, 24), plant(618, 276),
+              cooler(366, 58), cooler(600, 246),
               box(420, 46, 188, 10, '#5d4a30'),
               box(420, 46, 188, 3, '#6f5a3a'),
               box(436, 56, 14, 8, '#e8e2cc'),
-              box(580, 56, 12, 10, '#d8d8d8'),
-              box(596, 56, 12, 10, '#d8d8d8'),
               box(452, 120, 70, 26, '#8a5a2b'),
               box(452, 120, 70, 4, '#a8713a'),
-
               ...DESKS.map((desk) => deskSprite(desk)),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
-                return entry && entry.busy ? personAtDesk(entry, desk) : null
+                return entry && entry.busy ? personAtDesk(entry, desk) : monitorOn(desk.x, desk.y - 20)
               }),
-              ...idle.slice(0, loungeSeats.length).map((item, index) => personIdle(item.entry, loungeSeats[index], index, item.role)),
+              ...walkTargets.map((target) => {
+                if (target.kind === 'seat') return personSeated(target.item.entry, target.seat, idle.indexOf(target.item), target.item.role)
+                return personStanding(target.item.entry, target.spot, target.kind)
+              }),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 const busy = Boolean(entry?.busy)
