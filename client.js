@@ -211,7 +211,7 @@ window.__ModuleLoader__.load({
       return points[points.length - 1] ?? from
     }
 
-    const SPRITES = {"floor":{"x":2,"y":2,"w":16,"h":16},"wall":{"x":20,"y":2,"w":16,"h":16},"desk":{"x":38,"y":2,"w":33,"h":12},"chair":{"x":73,"y":2,"w":10,"h":11},"monitor":{"x":85,"y":2,"w":16,"h":10},"plant":{"x":103,"y":2,"w":16,"h":15},"plant2":{"x":121,"y":2,"w":16,"h":14},"cactus":{"x":139,"y":2,"w":16,"h":12},"flower":{"x":157,"y":2,"w":16,"h":13},"cooler":{"x":175,"y":2,"w":12,"h":14},"coffee":{"x":189,"y":2,"w":12,"h":11},"sofa":{"x":203,"y":2,"w":32,"h":10},"table":{"x":2,"y":20,"w":22,"h":8},"books":{"x":26,"y":20,"w":8,"h":6},"papers":{"x":36,"y":20,"w":9,"h":7},"mug":{"x":47,"y":20,"w":6,"h":5},"lamp":{"x":55,"y":20,"w":8,"h":8},"bin":{"x":65,"y":20,"w":8,"h":5},"board":{"x":75,"y":20,"w":21,"h":7},"window":{"x":98,"y":20,"w":16,"h":7},"door":{"x":116,"y":20,"w":8,"h":9},"rug":{"x":126,"y":20,"w":16,"h":5},"server":{"x":144,"y":20,"w":16,"h":7},"printer":{"x":162,"y":20,"w":16,"h":7},"clock":{"x":180,"y":20,"w":7,"h":6},"laptop":{"x":189,"y":20,"w":12,"h":6},"shelf":{"x":203,"y":20,"w":8,"h":8},"kettle":{"x":213,"y":20,"w":8,"h":7},"manager_stand":{"x":223,"y":20,"w":10,"h":18},"manager_sit":{"x":235,"y":20,"w":10,"h":15},"coder_stand":{"x":2,"y":40,"w":10,"h":18},"coder_sit":{"x":14,"y":40,"w":10,"h":15},"reviewer_stand":{"x":26,"y":40,"w":10,"h":18},"reviewer_sit":{"x":38,"y":40,"w":10,"h":15},"tester_stand":{"x":50,"y":40,"w":10,"h":18},"tester_sit":{"x":62,"y":40,"w":10,"h":15},"analyst_stand":{"x":74,"y":40,"w":10,"h":18},"analyst_sit":{"x":86,"y":40,"w":10,"h":15},"archivist_stand":{"x":98,"y":40,"w":10,"h":18},"archivist_sit":{"x":110,"y":40,"w":10,"h":15},"instrumenter_stand":{"x":122,"y":40,"w":10,"h":18},"instrumenter_sit":{"x":134,"y":40,"w":10,"h":15}}
+    const SPRITES = {"floor":{"x":2,"y":2,"w":16,"h":16},"wall":{"x":20,"y":2,"w":16,"h":16},"desk":{"x":38,"y":2,"w":32,"h":12},"chair":{"x":72,"y":2,"w":12,"h":11},"monitor":{"x":86,"y":2,"w":14,"h":12},"plant":{"x":102,"y":2,"w":16,"h":15},"plant2":{"x":120,"y":2,"w":16,"h":14},"cactus":{"x":138,"y":2,"w":16,"h":12},"flower":{"x":156,"y":2,"w":16,"h":13},"cooler":{"x":174,"y":2,"w":12,"h":14},"coffee":{"x":188,"y":2,"w":12,"h":11},"sofa":{"x":202,"y":2,"w":32,"h":9},"table":{"x":2,"y":20,"w":24,"h":7},"books":{"x":28,"y":20,"w":8,"h":6},"papers":{"x":38,"y":20,"w":9,"h":7},"mug":{"x":49,"y":20,"w":6,"h":5},"lamp":{"x":57,"y":20,"w":8,"h":8},"bin":{"x":67,"y":20,"w":8,"h":5},"board":{"x":77,"y":20,"w":21,"h":7},"window":{"x":100,"y":20,"w":16,"h":7},"door":{"x":118,"y":20,"w":8,"h":9},"rug":{"x":128,"y":20,"w":16,"h":5},"server":{"x":146,"y":20,"w":16,"h":7},"printer":{"x":164,"y":20,"w":16,"h":7},"clock":{"x":182,"y":20,"w":7,"h":6},"laptop":{"x":191,"y":20,"w":12,"h":6},"shelf":{"x":205,"y":20,"w":8,"h":8},"kettle":{"x":215,"y":20,"w":8,"h":7},"manager_stand":{"x":225,"y":20,"w":12,"h":18},"manager_sit":{"x":239,"y":20,"w":12,"h":14},"coder_stand":{"x":2,"y":40,"w":12,"h":18},"coder_sit":{"x":16,"y":40,"w":12,"h":14},"reviewer_stand":{"x":30,"y":40,"w":12,"h":18},"reviewer_sit":{"x":44,"y":40,"w":12,"h":14},"tester_stand":{"x":58,"y":40,"w":12,"h":18},"tester_sit":{"x":72,"y":40,"w":12,"h":14},"analyst_stand":{"x":86,"y":40,"w":12,"h":18},"analyst_sit":{"x":100,"y":40,"w":12,"h":14},"archivist_stand":{"x":114,"y":40,"w":12,"h":18},"archivist_sit":{"x":128,"y":40,"w":12,"h":14},"instrumenter_stand":{"x":142,"y":40,"w":12,"h":18},"instrumenter_sit":{"x":156,"y":40,"w":12,"h":14}}
 
     function OfficeView({ items, selected, onSelect }) {
       const assignments = React.useRef(null)
@@ -351,9 +351,11 @@ window.__ModuleLoader__.load({
                 const role = desk.key
                 return personAt(role, entry, desk.x, desk.y - 14, true)
               }),
+              ...DESKS.map((desk) => h('ellipse', { cx: desk.x, cy: desk.y + 12, rx: 34, ry: 6, fill: '#00000022' })),
+              ...DESKS.map((desk) => spriteBox('mug', desk.x + 16, desk.y - 26, 1)),
+              ...DESKS.map((desk) => spriteBox('papers', desk.x - 28, desk.y - 28, 1)),
               ...DESKS.map((desk) => spriteBox('desk', desk.x - 32, desk.y - 14, 2)),
               ...DESKS.map((desk) => spriteBox('monitor', desk.x - 30, desk.y - 36, 2)),
-              ...DESKS.map((desk) => spriteBox('chair', desk.x - 10, desk.y + 8, 2)),
               ...actors.map((actor) => {
                 if (actor.mode === 'desk') return null
                 if (actor.mode === 'walk') return walkingPerson(actor.role, actor.entry, actor.spot)
@@ -363,7 +365,7 @@ window.__ModuleLoader__.load({
                 const entry = byRole.get(desk.key)
                 const actor = entry ? actors.find((item) => item.entry.sessionId === entry.sessionId) : null
                 const atDesk = actor?.mode === 'desk'
-                return h('text', { key: 'label-' + desk.key, x: desk.x - 2, y: desk.y + 34, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
+                return h('text', { key: 'label-' + desk.key, x: desk.x - 2, y: desk.y - 58, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
                   desk.label + (entry ? (atDesk ? ' · работает' : entry.busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
               }),
             ),
