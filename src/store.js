@@ -298,6 +298,7 @@ export function summarize(state) {
     `attempts: ${state.attempts?.current ?? 0}/${state.attempts?.max ?? 0}`,
     `budget: ${state.gates?.budget?.usedTokens ?? 0}/${state.gates?.budget?.limitTokens ?? 0}`,
     `events: ${state.events?.length ?? 0}`,
+    `stats: tests ${state.stats?.testsRuns ?? 0}/${state.stats?.testsFails ?? 0} fail, review ${state.stats?.reviewRuns ?? 0}/${state.stats?.reviewFails ?? 0} fail`,
   ].join(' · ');
 }
 
