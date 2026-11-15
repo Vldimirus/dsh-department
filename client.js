@@ -170,6 +170,42 @@ window.__ModuleLoader__.load({
       }
 
       const selectedEntry = items.find((entry) => entry.sessionId === selected) ?? null
+      const idleSeats = [
+        { x: 120, y: 372 },
+        { x: 260, y: 372 },
+        { x: 400, y: 372 },
+        { x: 540, y: 372 },
+      ]
+      const idle = [...byRole.entries()].filter(([, entry]) => !entry.busy)
+
+      const drawAvatar = (entry, x, y, dim) => {
+        const busy = Boolean(entry.busy)
+        const isSelected = selected === entry.sessionId
+        return h('g', {
+          key: entry.sessionId,
+          className: `dept-avatar ${busy ? 'busy' : ''}`,
+          transform: `translate(${x}, ${y - 54})`,
+          onClick: () => onSelect(entry.sessionId),
+          opacity: dim ? 0.55 : 1,
+          style: isSelected ? { filter: 'drop-shadow(0 0 6px #4b8bff)' } : undefined,
+        },
+          h('circle', { className: 'dept-pulse', cx: 0, cy: 10, r: 16, fill: busy ? '#2d6cff33' : '#2a344a22' }),
+          h('g', { className: 'dept-body' },
+            h('circle', { cx: 0, cy: 2, r: 7, fill: busy ? '#8fc2ff' : '#6c7a92' }),
+            h('rect', { x: -8, y: 10, width: 16, height: 20, rx: 6, fill: busy ? '#3d7bff' : '#3a4560' }),
+          ),
+          busy
+            ? h('g', { className: 'dept-typing' },
+                h('circle', { cx: 16, cy: -6, r: 2, fill: '#9fd0ff' }),
+                h('circle', { cx: 22, cy: -10, r: 2, fill: '#9fd0ff' }),
+                h('circle', { cx: 28, cy: -14, r: 2, fill: '#9fd0ff' }))
+            : null,
+          h('text', { x: 0, y: 44, fill: busy ? '#9fd0ff' : '#6f7f98', fontSize: 9, textAnchor: 'middle' },
+            entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(entry.sessionId) ?? 'coder'))?.label ?? 'агент')),
+          h('text', { x: 0, y: 56, fill: busy ? '#7fdc9a' : '#4c5a73', fontSize: 8, textAnchor: 'middle' },
+            busy ? 'работает' : 'перерыв'),
+        )
+      }
 
       return h(
         'div',
@@ -177,56 +213,39 @@ window.__ModuleLoader__.load({
         h('div', { className: 'dept-row' },
           h('div', { className: 'dept-title' }, 'Офис отдела'),
           h('div', { className: 'dept-sub' }, items.length ? `сотрудников: ${items.length} из ${DESKS.length}` : 'никого нет')),
-        h('div', { className: 'dept-office-layout' },
-          h('div', { className: 'dept-office' },
-            h('svg', { viewBox: '0 0 640 320', role: 'img', 'aria-label': 'Офис ИИ-отдела' },
-              h('rect', { x: 16, y: 34, width: 608, height: 268, rx: 18, fill: '#0c1320', stroke: '#1c2740' }),
+        h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'nowrap' } },
+          h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
+            h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': 'Офис ИИ-отдела' },
+              h('rect', { x: 16, y: 34, width: 608, height: 350, rx: 18, fill: '#0c1320', stroke: '#1c2740' }),
               h('rect', { x: 16, y: 34, width: 608, height: 22, rx: 11, fill: '#101a2b' }),
               h('text', { x: 32, y: 50, fill: '#5f7392', fontSize: 10 }, 'AI DEPARTMENT · FLOOR 1'),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 const busy = Boolean(entry?.busy)
-                const isSelected = entry && selected === entry.sessionId
-                const deskY = desk.y
                 return h('g', { key: desk.key },
-                  h('rect', { x: desk.x - 48, y: deskY - 4, width: 96, height: 16, rx: 5, fill: '#141d2e', stroke: entry ? '#22304a' : '#1a2436', strokeDasharray: entry ? '0' : '4 4' }),
-                  h('text', { x: desk.x, y: deskY + 8, fill: entry ? '#41577a' : '#2c3a52', fontSize: 8, textAnchor: 'middle' }, entry ? desk.label : `${desk.label} · свободно`),
-                  entry
-                    ? h('g', {
-                        className: `dept-avatar ${busy ? 'busy' : ''}`,
-                        transform: `translate(${desk.x}, ${deskY - 54})`,
-                        onClick: () => onSelect(entry.sessionId),
-                        style: isSelected ? { filter: 'drop-shadow(0 0 6px #4b8bff)' } : undefined,
-                      },
-                        h('circle', { className: 'dept-pulse', cx: 0, cy: 10, r: 16, fill: busy ? '#2d6cff33' : '#2a344a22' }),
-                        h('g', { className: 'dept-body' },
-                          h('circle', { cx: 0, cy: 2, r: 7, fill: busy ? '#8fc2ff' : '#6c7a92' }),
-                          h('rect', { x: -8, y: 10, width: 16, height: 20, rx: 6, fill: busy ? '#3d7bff' : '#3a4560' }),
-                        ),
-                        busy
-                          ? h('g', { className: 'dept-typing' },
-                              h('circle', { cx: 16, cy: -6, r: 2, fill: '#9fd0ff' }),
-                              h('circle', { cx: 22, cy: -10, r: 2, fill: '#9fd0ff' }),
-                              h('circle', { cx: 28, cy: -14, r: 2, fill: '#9fd0ff' }))
-                          : null,
-                        h('text', { x: 0, y: 44, fill: busy ? '#9fd0ff' : '#6f7f98', fontSize: 9, textAnchor: 'middle' },
-                          entry.kind === 'менеджер' ? 'руководитель' : desk.label),
-                        h('text', { x: 0, y: 56, fill: busy ? '#7fdc9a' : '#4c5a73', fontSize: 8, textAnchor: 'middle' },
-                          busy ? 'работает' : 'ждёт'),
-                      )
-                    : h('g', { opacity: 0.35 },
-                        h('circle', { cx: desk.x, cy: deskY - 44, r: 6, fill: '#2c3a52' }),
-                        h('rect', { x: desk.x - 6, y: deskY - 34, width: 12, height: 16, rx: 5, fill: '#25324a' })),
+                  h('rect', { x: desk.x - 48, y: desk.y - 4, width: 96, height: 16, rx: 5, fill: '#141d2e', stroke: entry ? '#22304a' : '#1a2436', strokeDasharray: entry ? '0' : '4 4' }),
+                  h('text', { x: desk.x, y: desk.y + 8, fill: entry ? '#41577a' : '#2c3a52', fontSize: 8, textAnchor: 'middle' },
+                    entry ? (busy ? `${desk.label} · работает` : `${desk.label} · на перерыве`) : `${desk.label} · свободно`),
+                  busy && entry ? drawAvatar(entry, desk.x, desk.y - 54 + 54, false) : null,
+                  !busy ? h('g', { opacity: 0.35 },
+                    h('circle', { cx: desk.x, cy: desk.y - 44, r: 6, fill: '#2c3a52' }),
+                    h('rect', { x: desk.x - 6, y: desk.y - 34, width: 12, height: 16, rx: 5, fill: '#25324a' })) : null,
                 )
               }),
+              h('rect', { x: 24, y: 300, width: 592, height: 80, rx: 14, fill: '#0a1018', stroke: '#1a2537', strokeDasharray: '5 5' }),
+              h('text', { x: 36, y: 318, fill: '#4c5f7f', fontSize: 10 }, 'Комната отдыха · перерыв'),
+              ...idle.slice(0, idleSeats.length).map(([, entry], index) => drawAvatar(entry, idleSeats[index].x, idleSeats[index].y, true)),
+              idle.length > idleSeats.length
+                ? h('text', { x: 600, y: 318, fill: '#4c5f7f', fontSize: 9, textAnchor: 'end' }, `+${idle.length - idleSeats.length}`)
+                : null,
             ),
           ),
-          h('div', { className: 'dept-office-side' },
+          h('div', { className: 'dept-office-side', style: { flex: '0 0 340px', width: '340px' } },
             selectedEntry
               ? [
                   h('div', { className: 'dept-title' }, selectedEntry.kind === 'менеджер' ? 'Руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(selectedEntry.sessionId) ?? inferRole(selectedEntry)))?.label ?? 'Агент')),
                   h('div', { className: 'dept-row' },
-                    h('span', { className: selectedEntry.busy ? 'dept-badge ok' : 'dept-badge wait' }, selectedEntry.busy ? '● работает' : '○ ждёт'),
+                    h('span', { className: selectedEntry.busy ? 'dept-badge ok' : 'dept-badge wait' }, selectedEntry.busy ? '● работает' : '○ перерыв'),
                     h('span', { className: 'dept-sub' }, formatElapsed(selectedEntry.elapsedMs))),
                   h('div', { className: 'dept-sub' }, 'Сейчас'),
                   h('div', { className: 'dept-pre' }, `${selectedEntry.lastAction}${selectedEntry.tool ? '\n' + selectedEntry.tool : ''}${selectedEntry.args ? '\n' + selectedEntry.args : ''}`),
