@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
 import { amendDocument, answerQuestion, approveDocument, readState, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
+import { buildBlueprint } from './blueprint.js';
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 
@@ -18,6 +19,7 @@ export const DEPARTMENT_ROUTES = {
   activity: '/api/department/activity',
   asset: '/api/department/asset',
   approve: '/api/department/approve',
+  blueprint: '/api/department/blueprint',
   answer: '/api/department/answer',
   amend: '/api/department/amend',
   budget: '/api/department/budget',
@@ -68,6 +70,22 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.blueprint,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const root = new URL(request.url).searchParams.get('root');
+      if (!root) return Response.json({ error: 'root required' }, { status: 400 });
+      try {
+        const blueprint = await buildBlueprint(root);
+        return Response.json({ blueprint });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
     },
   });
 

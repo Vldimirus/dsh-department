@@ -18,6 +18,7 @@ window.__ModuleLoader__.load({
       answer: '/api/department/answer',
       amend: '/api/department/amend',
       budget: '/api/department/budget',
+      blueprint: '/api/department/blueprint',
     }
 
     function styleOnce() {
@@ -668,6 +669,94 @@ window.__ModuleLoader__.load({
       )
     }
 
+    /* ---------------- Схема проекта ---------------- */
+
+    const BLUEPRINT_COLORS = ['#4b8bff', '#7fdc9a', '#d8c07a', '#c25a4a', '#9b7bff', '#6fd4e0', '#e08ab0']
+
+    function BlueprintView({ tasks }) {
+      const roots = [...new Set((tasks ?? []).map((task) => task.root))]
+      const [root, setRoot] = useState(roots[0] ?? null)
+      const [blueprint, setBlueprint] = useState(null)
+      const [error, setError] = useState(null)
+      const [selected, setSelected] = useState(null)
+      const [loading, setLoading] = useState(false)
+
+      useEffect(() => {
+        if (!root) return
+        setLoading(true)
+        api(`${ROUTES.blueprint}?root=${encodeURIComponent(root)}`)
+          .then((payload) => { setBlueprint(payload.blueprint); setError(null) })
+          .catch((problem) => setError(problem.message))
+          .finally(() => setLoading(false))
+      }, [root])
+
+      if (!root) return h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Нет проектов с задачами.'))
+
+      const files = blueprint?.files ?? []
+      const edges = blueprint?.edges ?? []
+      const center = { x: 320, y: 210 }
+      const radius = Math.min(170, 40 + files.length * 5)
+      const positions = new Map(files.map((file, index) => {
+        const angle = (index / Math.max(1, files.length)) * Math.PI * 2 - Math.PI / 2
+        return [file.path, { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }]
+      }))
+      const dirs = [...new Set(files.map((file) => file.dir))]
+      const colorOf = (dir) => BLUEPRINT_COLORS[Math.max(0, dirs.indexOf(dir)) % BLUEPRINT_COLORS.length]
+      const selectedFile = files.find((file) => file.path === selected) ?? null
+      const dependents = selectedFile ? edges.filter((edge) => edge.to === selectedFile.path).map((edge) => edge.from) : []
+
+      return h('div', { className: 'dept-root' },
+        h('div', { className: 'dept-head' },
+          h('div', null,
+            h('div', { className: 'dept-title' }, 'Схема проекта'),
+            h('div', { className: 'dept-sub' }, blueprint ? `файлов: ${blueprint.stats.files} · строк: ${blueprint.stats.loc} · связей: ${edges.length}` : (loading ? 'загрузка…' : '—'))),
+          h('div', { className: 'dept-row' },
+            roots.length > 1
+              ? h('select', { className: 'dept-input', value: root, onChange: (event) => setRoot(event.target.value) },
+                  ...roots.map((candidate) => h('option', { key: candidate, value: candidate }, candidate.split('/').pop())))
+              : null)),
+        error ? h('div', { className: 'dept-badge fail' }, error) : null,
+        h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start' } },
+          h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
+            h('svg', { viewBox: '0 0 640 420', style: { imageRendering: 'pixelated' } },
+              h('rect', { x: 0, y: 0, width: 640, height: 420, fill: '#141a28' }),
+              ...edges.map((edge, index) => {
+                const from = positions.get(edge.from)
+                const to = positions.get(edge.to)
+                if (!from || !to) return null
+                const active = selectedFile && (edge.from === selectedFile.path || edge.to === selectedFile.path)
+                return h('line', { key: 'e' + index, x1: from.x, y1: from.y, x2: to.x, y2: to.y, stroke: active ? '#7fdc9a' : '#3a4a6a', strokeWidth: active ? 1.6 : 1, opacity: active ? 0.9 : 0.5 })
+              }),
+              ...files.map((file) => {
+                const position = positions.get(file.path)
+                const isSelected = selected === file.path
+                return h('g', { key: file.path, style: { cursor: 'pointer' }, onClick: () => setSelected(file.path) },
+                  h('circle', { cx: position.x, cy: position.y, r: isSelected ? 8 : 6, fill: colorOf(file.dir), stroke: isSelected ? '#ffffff' : '#0b1220', strokeWidth: 1 }),
+                  h('title', null, `${file.path} · ${file.loc} строк`),
+                  (isSelected || file.loc > 200)
+                    ? h('text', { x: position.x + 9, y: position.y + 3, fill: '#c9d6ea', fontSize: 8 }, file.path.split('/').pop())
+                    : null)
+              }),
+            ),
+          ),
+          h('div', { className: 'dept-office-side', style: { flex: '0 0 320px', width: '320px' } },
+            selectedFile
+              ? [
+                  h('div', { className: 'dept-title' }, selectedFile.path.split('/').pop()),
+                  h('div', { className: 'dept-sub' }, selectedFile.path),
+                  h('div', { className: 'dept-sub' }, `строк: ${selectedFile.loc} · папка: ${selectedFile.dir}`),
+                  h('div', { className: 'dept-sub' }, 'Импортирует'),
+                  selectedFile.imports.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
+                    ...selectedFile.imports.map((target) => h('div', { key: target, className: 'dept-event' }, h('span', null, target)))),
+                  h('div', { className: 'dept-sub' }, 'Используется в'),
+                  dependents.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
+                    ...dependents.map((source) => h('div', { key: source, className: 'dept-event' }, h('span', null, source)))),
+                ]
+              : h('div', { className: 'dept-sub' }, 'Клик по узлу — путь, размер, импорты и кто его использует.')),
+        ),
+      )
+    }
+
     /* ---------------- Панель ---------------- */
 
     function DepartmentPanel() {
@@ -714,12 +803,24 @@ window.__ModuleLoader__.load({
           : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Загрузка задачи…'))
       }
 
+      if (view === 'blueprint') {
+        return h('div', { className: 'dept-root' },
+          h('div', { className: 'dept-head' },
+            h('div', { className: 'dept-tabs' },
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
+              h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
+              h('button', { className: 'dept-btn active' }, 'Схема')),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+          h(BlueprintView, { tasks }))
+      }
+
       if (view === 'office') {
         return h('div', { className: 'dept-root' },
           h('div', { className: 'dept-head' },
             h('div', { className: 'dept-tabs' },
               h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
-              h('button', { className: 'dept-btn active', onClick: () => setView('office') }, 'Офис')),
+              h('button', { className: 'dept-btn active', onClick: () => setView('office') }, 'Офис'),
+              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
           h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) } }),
         )
@@ -736,6 +837,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-tabs' },
             h('button', { className: 'dept-btn active', onClick: () => setView('board') }, 'Доска'),
             h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
+            h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
         ),
         h(ActivityBlock, { items: activity.items, error: activity.error }),
