@@ -343,9 +343,6 @@ window.__ModuleLoader__.load({
               spriteBox('plant2', 20, 250, 2),
               spriteBox('cactus', 380, 250, 2),
               spriteBox('flower', 24, 40, 2),
-              ...DESKS.map((desk) => spriteBox('desk', desk.x - 32, desk.y - 14, 2)),
-              ...DESKS.map((desk) => spriteBox('monitor', desk.x - 30, desk.y - 36, 2)),
-              ...DESKS.map((desk) => spriteBox('chair', desk.x - 10, desk.y + 8, 2)),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 if (!entry) return null
@@ -354,6 +351,9 @@ window.__ModuleLoader__.load({
                 const role = desk.key
                 return personAt(role, entry, desk.x, desk.y - 14, true)
               }),
+              ...DESKS.map((desk) => spriteBox('desk', desk.x - 32, desk.y - 14, 2)),
+              ...DESKS.map((desk) => spriteBox('monitor', desk.x - 30, desk.y - 36, 2)),
+              ...DESKS.map((desk) => spriteBox('chair', desk.x - 10, desk.y + 8, 2)),
               ...actors.map((actor) => {
                 if (actor.mode === 'desk') return null
                 if (actor.mode === 'walk') return walkingPerson(actor.role, actor.entry, actor.spot)
@@ -363,7 +363,7 @@ window.__ModuleLoader__.load({
                 const entry = byRole.get(desk.key)
                 const actor = entry ? actors.find((item) => item.entry.sessionId === entry.sessionId) : null
                 const atDesk = actor?.mode === 'desk'
-                return h('text', { key: 'label-' + desk.key, x: desk.x - 2, y: desk.y + 30, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
+                return h('text', { key: 'label-' + desk.key, x: desk.x - 2, y: desk.y + 34, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
                   desk.label + (entry ? (atDesk ? ' · работает' : entry.busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
               }),
             ),
