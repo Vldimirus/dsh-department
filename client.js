@@ -220,7 +220,7 @@ window.__ModuleLoader__.load({
       return points[points.length - 1] ?? from
     }
 
-    function OfficeView({ items, selected, onSelect, tasks, onOpenTask }) {
+    function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
@@ -489,6 +489,14 @@ window.__ModuleLoader__.load({
                 if (actor.mode === 'walk') return walkingPerson(actor.entry, actor.spot)
                 return actor.mode === 'seat' ? seatedPerson(actor.entry, actor.spot, actor.index) : standingPerson(actor.entry, actor.spot, actor.mode)
               }),
+              (attention ?? 0) > 0
+                ? (() => {
+                    const managerDesk = DESKS.find((desk) => desk.key === 'manager') ?? { x: 220, y: 112 }
+                    return h('g', { key: 'attention' },
+                      h('rect', { x: managerDesk.x - 36, y: managerDesk.y - 66, width: 72, height: 22, rx: 11, fill: '#d8c07a', stroke: '#1b2434' }),
+                      h('text', { x: managerDesk.x, y: managerDesk.y - 51, fill: '#1b2434', fontSize: 11, textAnchor: 'middle', fontWeight: 'bold' }, '✍ ' + attention))
+                  })()
+                : null,
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
                 const actor = entry ? actors.find((item) => item.entry.sessionId === entry.sessionId) : null
@@ -530,18 +538,19 @@ window.__ModuleLoader__.load({
     function TaskCard({ task, onOpen }) {
       return h(
         'div',
-        { className: 'dept-card', onClick: () => onOpen(task) },
+        { className: 'dept-card', onClick: () => onOpen(task), style: task.memos ? { borderColor: '#d8c07a' } : undefined },
         h('div', { className: 'dept-row' }, h('strong', null, task.title), h('span', { className: 'dept-sub' }, task.taskId)),
         h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, task.stage), h('span', { className: 'dept-sub' }, `ветка ${task.branch}`)),
         h('div', { className: 'dept-bar' }, h('i', { style: { width: `${task.progress}%` } })),
-        h('div', { className: 'dept-row' }, h('span', { className: 'dept-sub' }, `${task.progress}%`), badge(`tests:${task.tests}`), badge(`review:${task.review}`)),
+        h('div', { className: 'dept-row' }, h('span', { className: 'dept-sub' }, `${task.progress}%`), badge(`tests:${task.tests}`), badge(`review:${task.review}`),
+          task.memos ? h('span', { className: 'dept-badge wait' }, '✍ ' + task.memos) : null),
         task.lastEvent ? h('div', { className: 'dept-sub' }, `${task.lastEvent.action} · ${task.lastEvent.detail ?? ''}`) : null,
       )
     }
 
     /* ---------------- Документы (почта отдела) ---------------- */
 
-    function DocumentsView({ root, taskId }) {
+    function DocumentsView({ root, taskId, memos }) {
       const [documents, setDocuments] = useState([])
       const [query, setQuery] = useState('')
       const [type, setType] = useState('all')
@@ -564,12 +573,16 @@ window.__ModuleLoader__.load({
       }, [selected, root, taskId])
 
       const types = ['all', ...new Set(documents.map((item) => item.type))]
-      const filtered = documents.filter((item) => {
-        if (type !== 'all' && item.type !== type) return false
-        if (!query.trim()) return true
-        const haystack = (item.title + ' ' + item.path + ' ' + item.type).toLowerCase()
-        return haystack.includes(query.trim().toLowerCase())
-      })
+      const memoPaths = memos ?? []
+      const isMemo = (item) => item.type === 'служебная записка' && memoPaths.some((path) => String(path).endsWith(item.path))
+      const filtered = documents
+        .filter((item) => {
+          if (type !== 'all' && item.type !== type) return false
+          if (!query.trim()) return true
+          const haystack = (item.title + ' ' + item.path + ' ' + item.type).toLowerCase()
+          return haystack.includes(query.trim().toLowerCase())
+        })
+        .sort((a, b) => Number(isMemo(b)) - Number(isMemo(a)) || String(b.ts).localeCompare(String(a.ts)))
 
       return h('div', { style: { display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
         h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
@@ -699,7 +712,7 @@ window.__ModuleLoader__.load({
 
       const content = (() => {
         if (tab === 'docs') {
-          return h(DocumentsView, { root: detail.root, taskId: detail.taskId })
+          return h(DocumentsView, { root: detail.root, taskId: detail.taskId, memos: detail.memoPaths ?? [] })
         }
         if (tab === 'questions') {
           return h('div', { className: 'dept-block' },
@@ -907,7 +920,11 @@ window.__ModuleLoader__.load({
         h('div', { className: 'dept-head' },
           h('div', null,
             h('div', { className: 'dept-title' }, detail.title),
-            h('div', { className: 'dept-sub' }, `${detail.taskId} · ${detail.stage} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`)),
+            h('div', { className: 'dept-sub' }, `${detail.taskId} · ${detail.stage} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`),
+            (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
+              ? h('div', { className: 'dept-row', style: { marginTop: '4px' } },
+                  h('span', { className: 'dept-badge wait' }, '✍ служебных записок: ' + (detail.questions ?? []).filter((question) => question.status === 'memo').length))
+              : null),
           h('div', { className: 'dept-row' },
             h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: 'ваше имя', title: 'Имя для подписи' }),
             h('button', { className: 'dept-btn', onClick: onBack }, '← К доске'))),
@@ -1261,6 +1278,7 @@ window.__ModuleLoader__.load({
       const [selectedSession, setSelectedSession] = useState(null)
       const [projectFilter, setProjectFilter] = useState(null)
       const activity = useActivity()
+      const attention = tasks.reduce((sum, task) => sum + (task.memos ?? 0), 0)
 
       async function loadTasks() {
         setLoading(true)
@@ -1339,7 +1357,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
               h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
-          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) } }),
+          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) } }),
         )
       }
 
@@ -1359,6 +1377,11 @@ window.__ModuleLoader__.load({
             h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики'),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
         ),
+        attention > 0
+          ? h('div', { className: 'dept-block' },
+              h('div', { className: 'dept-block-title' }, 'Требует внимания'),
+              h('div', null, `${attention} служебных записок ждут вашего решения — откройте задачу, вкладка «Вопросы».`))
+          : null,
         h(ActivityBlock, { items: activity.items, error: activity.error }),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         projectFilter ? h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, 'проект: ' + projectFilter.split('/').pop()), h('button', { className: 'dept-btn', onClick: () => setProjectFilter(null) }, 'Сбросить')) : null,

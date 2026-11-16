@@ -56,6 +56,8 @@ export function taskSummary(root, taskId, state) {
     budget: state.gates?.budget ?? { usedTokens: 0, limitTokens: 0 },
     approvals: (state.approvals ?? []).map((item) => item.doc),
     openQuestions: listQuestions(state, { status: 'open' }).length,
+    memos: listQuestions(state, { status: 'memo' }).length,
+    memoPaths: listQuestions(state, { status: 'memo' }).map((question) => question.memoPath).filter(Boolean),
     events: state.events?.length ?? 0,
     updatedAt: state.updatedAt,
     lastEvent: last ? { action: last.action, ts: last.ts, detail: last.detail } : null,
