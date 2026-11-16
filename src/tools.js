@@ -24,13 +24,15 @@ import {
   readState,
   recordReview,
   setModules,
+  addWorktreeRecord,
+  removeWorktreeRecord,
   setRole,
   recordTestGate,
   summarize,
   taskDir,
   writeState,
 } from './store.js';
-import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, runGit, tag } from './git.js';
+import { addWorktree, amendCommit, currentBranch, ensureBranch, commitAll, isRepo, listWorktrees, push, removeWorktree, runGit, tag } from './git.js';
 import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
@@ -98,6 +100,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(bugTool()));
   disposers.push(ctx.tools.register(browseTool()));
   disposers.push(ctx.tools.register(guiTool()));
+  disposers.push(ctx.tools.register(worktreeTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -1195,6 +1198,65 @@ function guiTool() {
       const stdout = result.stdout.trim();
       const summary = `gui: ${args.command} → код ${result.code ?? 'нет'}` + (result.timedOut ? ' (таймаут)' : '') + (screenshot ? ' · скриншот ' + screenshot : '') + '\nstdout: ' + stdout.replace(/\s+/g, ' ').slice(0, 400);
       return { code: Number(result.code ?? -1), screenshot, stdout: stdout.slice(0, 4000), summary };
+    },
+  };
+}
+
+function worktreeTool() {
+  return {
+    name: 'dept_worktree',
+    description: 'git worktree для параллельной работы: create/list/remove. Позволяет нескольким кодерам работать в изолированных каталогах, не конфликтуя по файлам.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        action: { type: 'string', enum: ['create', 'list', 'remove'], description: 'Действие.' },
+        name: { type: 'string', description: 'Имя worktree (например, module-a).' },
+        branch: { type: 'string', description: 'Ветка (по умолчанию dept/<taskId>-<name>).' },
+      },
+      required: ['root', 'taskId', 'action'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { worktrees: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['worktrees', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const action = requireString(args, 'action');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      if (action === 'create') {
+        const name = requireString(args, 'name');
+        const path = join(root, '.worktrees', name);
+        const branch = typeof args?.branch === 'string' && args.branch.trim() !== '' ? args.branch.trim() : `dept/${taskId}-${name}`;
+        const ignorePath = join(root, '.gitignore');
+        try {
+          const current = await readFile(ignorePath, 'utf8');
+          if (!current.split(String.fromCharCode(10)).includes('.worktrees/')) {
+            await writeFile(ignorePath, current.replace(/\s*$/, String.fromCharCode(10)) + '.worktrees/' + String.fromCharCode(10), 'utf8');
+          }
+        } catch {
+          await writeFile(ignorePath, '.worktrees/' + String.fromCharCode(10), 'utf8');
+        }
+        const created = await addWorktree(root, path, branch);
+        if (!created.ok) throw new Error('worktree failed: ' + (created.error ?? ''));
+        state = await writeState(root, addWorktreeRecord(state, { name, path, branch }));
+      } else if (action === 'remove') {
+        const name = requireString(args, 'name');
+        const record = (state.worktrees ?? []).find((item) => item.name === name);
+        if (!record) throw new Error(`worktree not found: ${name}`);
+        const removed = await removeWorktree(root, record.path);
+        if (!removed.ok) throw new Error('worktree remove failed: ' + (removed.error ?? ''));
+        state = await writeState(root, removeWorktreeRecord(state, name));
+      }
+      const worktrees = state.worktrees ?? [];
+      const raw = await listWorktrees(root);
+      const summary = worktrees.length > 0
+        ? worktrees.map((item) => `${item.name}: ${item.branch} → ${item.path}`).join('\n')
+        : 'worktree нет\n' + raw.split(String.fromCharCode(10)).filter(Boolean).join('\n');
+      return { worktrees, summary };
     },
   };
 }

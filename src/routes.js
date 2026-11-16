@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
+import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
 import { amendDocument, answerQuestion, approveDocument, listRoles, readState, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
@@ -21,6 +21,7 @@ export const DEPARTMENT_ROUTES = {
   approve: '/api/department/approve',
   blueprint: '/api/department/blueprint',
   roles: '/api/department/roles',
+  projects: '/api/department/projects',
   answer: '/api/department/answer',
   amend: '/api/department/amend',
   budget: '/api/department/budget',
@@ -71,6 +72,17 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.projects,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const roots = resolveRoots(ctx, new URL(request.url).searchParams.get('root'));
+      const projects = await listProjects(roots);
+      return Response.json({ projects });
     },
   });
 

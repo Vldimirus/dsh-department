@@ -145,3 +145,39 @@ export async function amendCommit(root) {
   if (amend.code !== 0) return { ok: false, amended: false, error: amend.stderr };
   return { ok: true, amended: true };
 }
+
+/**
+ * Создаёт worktree для параллельной работы.
+ *
+ * @param {string} root Корень основного репозитория.
+ * @param {string} path Путь worktree.
+ * @param {string} branch Ветка worktree.
+ * @returns {Promise<{ ok: boolean, error?: string }>}
+ */
+export async function addWorktree(root, path, branch) {
+  const result = await runGit(root, ['worktree', 'add', '-B', branch, path]);
+  return { ok: result.code === 0, error: result.code === 0 ? undefined : result.stderr };
+}
+
+/**
+ * Список worktree.
+ *
+ * @param {string} root Корень.
+ * @returns {Promise<string>}
+ */
+export async function listWorktrees(root) {
+  const result = await runGit(root, ['worktree', 'list', '--porcelain']);
+  return result.code === 0 ? result.stdout : '';
+}
+
+/**
+ * Удаляет worktree.
+ *
+ * @param {string} root Корень.
+ * @param {string} path Путь.
+ * @returns {Promise<{ ok: boolean, error?: string }>}
+ */
+export async function removeWorktree(root, path) {
+  const result = await runGit(root, ['worktree', 'remove', '--force', path]);
+  return { ok: result.code === 0, error: result.code === 0 ? undefined : result.stderr };
+}

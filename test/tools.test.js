@@ -110,3 +110,16 @@ test('dept_bug: пишет файл багрепорта и фиксирует �
   const text = await readFile(join(root, 'docs/department/b1/bugs/bug-1.md'), 'utf8');
   assert.match(text, /карта не открывается/);
 });
+
+test('dept_worktree: создаёт, показывает и удаляет worktree', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'w1', testCommand: 'true', branch: 'dept/w1' });
+  const created = await tools.get('dept_worktree').execute({ root, taskId: 'w1', action: 'create', name: 'module-a' });
+  assert.equal(created.worktrees.length, 1);
+  assert.equal(created.worktrees[0].branch, 'dept/w1-module-a');
+  const listed = await tools.get('dept_worktree').execute({ root, taskId: 'w1', action: 'list' });
+  assert.equal(listed.worktrees.length, 1);
+  const removed = await tools.get('dept_worktree').execute({ root, taskId: 'w1', action: 'remove', name: 'module-a' });
+  assert.equal(removed.worktrees.length, 0);
+});

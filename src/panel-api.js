@@ -207,3 +207,38 @@ export function stageHistory(state) {
     return row;
   });
 }
+
+/**
+ * Агрегирует проекты по корням: сколько задач, на каких стадиях, бюджет.
+ *
+ * @param {string[]} roots Корни.
+ * @returns {Promise<object[]>}
+ */
+export async function listProjects(roots) {
+  const tasks = await listTasks(roots);
+  const byRoot = new Map();
+  for (const task of tasks) {
+    if (!byRoot.has(task.root)) {
+      byRoot.set(task.root, {
+        root: task.root,
+        name: task.root.split('/').filter(Boolean).pop() ?? task.root,
+        tasks: [],
+        stages: {},
+        budgetUsed: 0,
+        budgetLimit: 0,
+        lastEvent: null,
+      });
+    }
+    const project = byRoot.get(task.root);
+    project.tasks.push(task);
+    project.stages[task.stage] = (project.stages[task.stage] ?? 0) + 1;
+    project.budgetUsed += Number(task.budget?.usedTokens ?? 0);
+    project.budgetLimit += Number(task.budget?.limitTokens ?? 0);
+    if (!project.lastEvent || String(task.lastEvent?.ts ?? '') > String(project.lastEvent.ts ?? '')) project.lastEvent = task.lastEvent ?? null;
+  }
+  return [...byRoot.values()].map((project) => ({
+    ...project,
+    taskCount: project.tasks.length,
+    active: project.tasks.filter((task) => task.stage === 'executing').length,
+  }));
+}

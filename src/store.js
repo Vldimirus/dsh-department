@@ -728,3 +728,36 @@ export function addBug(state, input) {
     bug,
   };
 }
+
+/**
+ * Добавляет запись о worktree в состояние.
+ *
+ * @param {object} state Состояние.
+ * @param {{ name: string, path: string, branch: string }} input Запись.
+ * @returns {object} Новое состояние.
+ */
+export function addWorktreeRecord(state, input) {
+  const now = new Date().toISOString();
+  const record = { name: String(input.name), path: String(input.path), branch: String(input.branch), ts: now };
+  return appendEvent({ ...state, worktrees: [...(state.worktrees ?? []), record], updatedAt: now }, {
+    actor: 'manager',
+    action: 'worktree_created',
+    detail: `${record.name} → ${record.branch}`,
+  });
+}
+
+/**
+ * Удаляет запись о worktree.
+ *
+ * @param {object} state Состояние.
+ * @param {string} name Имя.
+ * @returns {object} Новое состояние.
+ */
+export function removeWorktreeRecord(state, name) {
+  const now = new Date().toISOString();
+  return appendEvent({ ...state, worktrees: (state.worktrees ?? []).filter((item) => item.name !== name), updatedAt: now }, {
+    actor: 'manager',
+    action: 'worktree_removed',
+    detail: String(name),
+  });
+}
