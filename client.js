@@ -162,6 +162,11 @@ window.__ModuleLoader__.load({
     /* ---------------- Офис ---------------- */
 
     // Шахматный порядок: соседние столы смещены по вертикали.
+    // Состояние сотрудников живёт вне компонента: переключение вкладок не сбрасывает
+    // координаты и начатые переходы. Позиция считается по времени.
+    const officeSettled = new Map()
+    const officePlans = new Map()
+
     const DESKS = [
       { key: 'coder', x: 90, y: 112, label: 'Кодер' },
       { key: 'manager', x: 220, y: 112, label: 'Руководитель' },
@@ -224,7 +229,6 @@ window.__ModuleLoader__.load({
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
-      if (!settled.current) settled.current = new Map()
       const plans = React.useRef(new Map())
       const [, setFrame] = React.useState(0)
       React.useEffect(() => {
@@ -409,15 +413,15 @@ window.__ModuleLoader__.load({
               const pick = loungeTargets[(id.length + Math.floor(time / 14000) + index) % loungeTargets.length]
               return { kind: pick.kind, spot: pick.spot, index: pick.index ?? index }
             })()
-        if (!settled.current.has(id)) settled.current.set(id, { x: chairSeats[actors.length % chairSeats.length].x, y: chairSeats[actors.length % chairSeats.length].y, mode: 'seat', index: actors.length })
-        const current = settled.current.get(id)
-        const plan = plans.current.get(id)
+        if (!officeSettled.has(id)) officeSettled.set(id, { x: chairSeats[actors.length % chairSeats.length].x, y: chairSeats[actors.length % chairSeats.length].y, mode: 'seat', index: actors.length })
+        const current = officeSettled.get(id)
+        const plan = officePlans.get(id)
         if (plan) {
           const ratio = Math.min(1, (time - plan.start) / plan.duration)
           const position = pointAlong(plan.from, plan.points, ratio)
           if (ratio >= 1) {
-            plans.current.delete(id)
-            settled.current.set(id, { x: plan.target.spot.x, y: plan.target.spot.y, mode: plan.target.kind, index: plan.target.index ?? current.index })
+            officePlans.delete(id)
+            officeSettled.set(id, { x: plan.target.spot.x, y: plan.target.spot.y, mode: plan.target.kind, index: plan.target.index ?? current.index })
             actors.push({ entry, mode: plan.target.kind, spot: plan.target.spot, index: plan.target.index ?? current.index, desk })
           } else {
             actors.push({ entry, mode: 'walk', spot: position, index: current.index, desk })
@@ -427,7 +431,7 @@ window.__ModuleLoader__.load({
           if (moved) {
             const points = routeTo({ x: current.x, y: current.y }, target.spot)
             const duration = Math.min(11000, Math.max(3000, routeLength({ x: current.x, y: current.y }, points) * 48))
-            plans.current.set(id, { from: { x: current.x, y: current.y }, points, start: time, duration, target })
+            officePlans.set(id, { from: { x: current.x, y: current.y }, points, start: time, duration, target })
             actors.push({ entry, mode: 'walk', spot: current, index: current.index, desk })
           } else {
             actors.push({ entry, mode: current.mode, spot: { x: current.x, y: current.y }, index: current.index, desk })
