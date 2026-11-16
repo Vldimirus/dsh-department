@@ -1625,6 +1625,10 @@ function budgetTool() {
       let state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       if (args?.limitTokens !== undefined || args?.rateRUB !== undefined || args?.override !== undefined || args?.prices !== undefined) {
+        const currentLimit = Number(state.gates?.budget?.limitTokens ?? 0);
+        if (state.gates?.budget?.humanSet === true && args?.limitTokens !== undefined && Number(args.limitTokens) < currentLimit) {
+          throw new Error(`бюджет установлен человеком (${currentLimit}); руководитель не может понизить его — спроси человека`);
+        }
         state = await writeState(root, setBudget(state, {
           limitTokens: args?.limitTokens,
           rateRUB: args?.rateRUB,

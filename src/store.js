@@ -887,6 +887,7 @@ export function setBudget(state, input) {
     ...(input.prices && typeof input.prices === 'object' ? { prices: { ...(budget.prices ?? {}), ...input.prices } } : {}),
     ...(Number.isFinite(Number(input.rateRUB)) ? { rateRUB: Number(input.rateRUB) } : {}),
     ...(input.override !== undefined ? { override: Boolean(input.override) } : {}),
+    ...(input.human ? { humanSet: true } : {}),
     updatedAt: now,
   };
   return appendEvent({ ...state, gates: { ...state.gates, budget: next }, updatedAt: now }, {

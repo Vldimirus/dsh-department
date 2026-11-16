@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
-import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setRole, writeState } from './store.js';
+import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 import { listDocuments, readDocument } from './documents.js';
@@ -284,24 +284,19 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       if (request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
-        const { root, taskId, limitTokens, prices, rateRUB } = body ?? {};
+        const { root, taskId, limitTokens, prices, rateRUB, by } = body ?? {};
         if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
         const state = await readState(root, taskId);
         if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
-        const budget = state.gates?.budget ?? {};
-        const next = {
-          ...state,
-          gates: {
-            ...state.gates,
-            budget: {
-              ...budget,
-              ...(Number.isFinite(Number(limitTokens)) ? { limitTokens: Number(limitTokens) } : {}),
-              ...(prices && typeof prices === 'object' ? { prices } : {}),
-              ...(Number.isFinite(Number(rateRUB)) ? { rateRUB: Number(rateRUB) } : {}),
-            },
-          },
-        };
-        await writeState(root, next);
+        const human = Boolean(by) && isHumanApprover(String(by));
+        const next = await writeState(root, setBudget(state, {
+          limitTokens,
+          prices,
+          rateRUB,
+          human,
+          by: human ? String(by) : 'manager',
+          reason: human ? 'человек: изменение бюджета' : '',
+        }));
         return Response.json({ budget: next.gates.budget });
       }
       const root = url.searchParams.get('root');
