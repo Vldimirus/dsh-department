@@ -543,6 +543,8 @@ window.__ModuleLoader__.load({
       const [drafts, setDrafts] = useState({})
       const [amend, setAmend] = useState({ doc: 'spec', summary: '', reason: '' })
       const [roles, setRoles] = useState([])
+      const [prices, setPrices] = useState({ limit: '', input: '', output: '', rate: '' })
+      const [savingBudget, setSavingBudget] = useState(false)
       const [busy, setBusy] = useState(false)
       const [message, setMessage] = useState(null)
 
@@ -557,6 +559,42 @@ window.__ModuleLoader__.load({
           .then((payload) => setRoles(payload.roles ?? []))
           .catch(() => {})
       }, [detail.taskId])
+
+      useEffect(() => {
+        if (!budget) return
+        setPrices({
+          limit: String(budget.limitTokens ?? ''),
+          input: String(budget.prices?.inputTokens ?? 0.27),
+          output: String(budget.prices?.outputTokens ?? 1.1),
+          rate: String(budget.rateRUB ?? 90),
+        })
+      }, [budget?.limitTokens, budget?.rateRUB])
+
+      async function savePrices() {
+        setSavingBudget(true)
+        try {
+          const response = await fetch(ROUTES.budget, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              root: detail.root,
+              taskId: detail.taskId,
+              limitTokens: Number(prices.limit) || 0,
+              rateRUB: Number(prices.rate) || 0,
+              prices: {
+                inputTokens: Number(prices.input) || 0,
+                outputTokens: Number(prices.output) || 0,
+                cacheReadTokens: Number(prices.input) / 3,
+                cacheWriteTokens: Number(prices.input) || 0,
+              },
+            }),
+          })
+          const data = await response.json().catch(() => ({}))
+          setMessage(response.ok ? 'Цены сохранены' : (data.error || 'ошибка'))
+        } finally {
+          setSavingBudget(false)
+        }
+      }
 
       async function post(path, body) {
         setBusy(true)
@@ -591,6 +629,7 @@ window.__ModuleLoader__.load({
         ['audit', 'Аудит'],
         ['events', 'События'],
         ['roles', 'Роли'],
+        ['billing', 'Бюджет'],
         ['git', 'Git'],
       ]
 
@@ -683,6 +722,35 @@ window.__ModuleLoader__.load({
                     if (response.ok) { setRoles(data.roles); setMessage('Роль сохранена') } else { setMessage(data.error || 'ошибка') }
                   },
                 }, 'Сохранить'))))
+        }
+        if (tab === 'billing') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Бюджет и цены'),
+            h('div', { className: 'dept-sub' }, 'Лимит и цены за 1M токенов; курс — для пересчёта в рубли.'),
+            h('div', { className: 'dept-row' },
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'Лимит токенов'),
+                h('input', { className: 'dept-input', value: prices.limit, onChange: (event) => setPrices({ ...prices, limit: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, '$/1M вход'),
+                h('input', { className: 'dept-input', value: prices.input, onChange: (event) => setPrices({ ...prices, input: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, '$/1M выход'),
+                h('input', { className: 'dept-input', value: prices.output, onChange: (event) => setPrices({ ...prices, output: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'курс ₽'),
+                h('input', { className: 'dept-input', value: prices.rate, onChange: (event) => setPrices({ ...prices, rate: event.target.value }) }))),
+            h('div', { className: 'dept-row' },
+              h('button', { className: 'dept-btn', disabled: savingBudget, onClick: savePrices }, 'Сохранить цены'),
+              h('span', { className: 'dept-sub' }, message ?? '')),
+            (budget?.history ?? []).length > 0
+              ? h('div', null,
+                  h('div', { className: 'dept-block-title' }, 'По этапам'),
+                  ...(budget.history ?? []).map((item, index) =>
+                    h('div', { key: index, className: 'dept-kv' },
+                      h('span', null, 'этап ' + item.stage),
+                      h('span', null, item.tokens.toLocaleString('ru-RU') + ' т. · $' + Number(item.costUSD).toFixed(2)))))
+              : null)
         }
         if (tab === 'git') {
           return h('div', { className: 'dept-block' },

@@ -339,6 +339,12 @@ function commitTool(activity) {
 
       const committed = await commitAll(root, requireString(args, 'message'));
       if (!committed.ok) throw new Error(`commit failed: ${committed.error ?? ''}`);
+      const preAgents = activity ? activity.list([root]) : [];
+      const preTokens = preAgents.reduce((sum, agent) => sum + (agent.usage?.inputTokens ?? 0) + (agent.usage?.outputTokens ?? 0), 0);
+      const limitTokens = Number(state.gates?.budget?.limitTokens ?? 0);
+      if (limitTokens > 0 && preTokens > limitTokens && state.gates?.budget?.override !== true) {
+        throw new Error(`commit blocked: бюджет превышен (${preTokens}/${limitTokens}); нужно решение человека или поднять лимит`);
+      }
       const agents = activity ? activity.list([root]) : [];
       const usage = agents.reduce((sum, agent) => ({
         inputTokens: sum.inputTokens + (agent.usage?.inputTokens ?? 0),
@@ -357,7 +363,14 @@ function commitTool(activity) {
         ...state,
         gates: {
           ...state.gates,
-          budget: { ...budget, usedTokens: usage.inputTokens + usage.outputTokens, usage, costUSD, updatedAt: new Date().toISOString() },
+          budget: {
+            ...budget,
+            usedTokens: usage.inputTokens + usage.outputTokens,
+            usage,
+            costUSD,
+            updatedAt: new Date().toISOString(),
+            history: [...(budget.history ?? []), { stage: (state.stageIndex ?? 0) + 1, tokens: usage.inputTokens + usage.outputTokens, costUSD, ts: new Date().toISOString() }].slice(-20),
+          },
         },
       };
       // Событие о коммите должно войти в тот же коммит, иначе дерево остаётся грязным.
