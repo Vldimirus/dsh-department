@@ -19,6 +19,7 @@ window.__ModuleLoader__.load({
       amend: '/api/department/amend',
       budget: '/api/department/budget',
       blueprint: '/api/department/blueprint',
+      roles: '/api/department/roles',
     }
 
     function styleOnce() {
@@ -541,6 +542,7 @@ window.__ModuleLoader__.load({
       const [budget, setBudget] = useState(detail.budget ?? null)
       const [drafts, setDrafts] = useState({})
       const [amend, setAmend] = useState({ doc: 'spec', summary: '', reason: '' })
+      const [roles, setRoles] = useState([])
       const [busy, setBusy] = useState(false)
       const [message, setMessage] = useState(null)
 
@@ -550,6 +552,11 @@ window.__ModuleLoader__.load({
           .then((payload) => setBudget(payload.budget))
           .catch(() => {})
       }, [detail.taskId, detail.events?.length])
+      useEffect(() => {
+        api(`${ROUTES.roles}?root=${encodeURIComponent(detail.root)}&taskId=${encodeURIComponent(detail.taskId)}`)
+          .then((payload) => setRoles(payload.roles ?? []))
+          .catch(() => {})
+      }, [detail.taskId])
 
       async function post(path, body) {
         setBusy(true)
@@ -583,6 +590,7 @@ window.__ModuleLoader__.load({
         ['questions', `Вопросы${openQuestions.length ? ' (' + openQuestions.length + ')' : ''}`],
         ['audit', 'Аудит'],
         ['events', 'События'],
+        ['roles', 'Роли'],
         ['git', 'Git'],
       ]
 
@@ -643,6 +651,38 @@ window.__ModuleLoader__.load({
               h('div', { key: event.id, className: 'dept-event' },
                 h('time', null, String(event.ts).replace('T', ' ').slice(0, 19)),
                 h('span', null, `${event.actor}: ${event.action}${event.detail ? ' — ' + event.detail : ''}`)))))
+        }
+        if (tab === 'roles') {
+          return h('div', { className: 'dept-block' },
+            h('div', { className: 'dept-block-title' }, 'Роли и модели'),
+            h('div', { className: 'dept-sub' }, 'Модель и reasoning для каждой роли. Пустая модель — по умолчанию.'),
+            ...roles.map((role) =>
+              h('div', { key: role.name, className: 'dept-kv', style: { alignItems: 'center', gap: '6px' } },
+                h('span', { style: { minWidth: '120px' } }, role.title),
+                h('input', {
+                  className: 'dept-input',
+                  placeholder: 'model (default)',
+                  value: role.model ?? '',
+                  onChange: (event) => setRoles(roles.map((item) => item.name === role.name ? { ...item, model: event.target.value } : item)),
+                }),
+                h('select', {
+                  className: 'dept-input',
+                  value: role.reasoning ?? '',
+                  onChange: (event) => setRoles(roles.map((item) => item.name === role.name ? { ...item, reasoning: event.target.value } : item)),
+                },
+                  h('option', { value: '' }, 'default'),
+                  h('option', { value: 'low' }, 'low'),
+                  h('option', { value: 'medium' }, 'medium'),
+                  h('option', { value: 'high' }, 'high')),
+                h('button', {
+                  className: 'dept-btn',
+                  disabled: busy,
+                  onClick: async () => {
+                    const response = await fetch(ROUTES.roles, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ root: detail.root, taskId: detail.taskId, role: role.name, model: role.model, reasoning: role.reasoning }) })
+                    const data = await response.json().catch(() => ({}))
+                    if (response.ok) { setRoles(data.roles); setMessage('Роль сохранена') } else { setMessage(data.error || 'ошибка') }
+                  },
+                }, 'Сохранить'))))
         }
         if (tab === 'git') {
           return h('div', { className: 'dept-block' },

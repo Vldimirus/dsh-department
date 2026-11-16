@@ -490,6 +490,7 @@ export function listQuestions(state, filter = {}) {
 }
 
 import { createHash } from 'node:crypto';
+import { DEFAULT_ROLES } from './roles.js';
 
 /**
  * Подпись провала: нормализованный хвост вывода.
@@ -518,4 +519,43 @@ export function isRepeatedFailure(state, gate) {
   const signatures = state.attemptsByGate?.[gate]?.signatures ?? [];
   if (signatures.length < 2) return false;
   return signatures.at(-1) === signatures.at(-2);
+}
+
+/**
+ * Настраивает роль отдела: модель и reasoning.
+ *
+ * @param {object} state Состояние.
+ * @param {{ role: string, model?: string|null, reasoning?: string }} input Правка.
+ * @returns {object} Новое состояние.
+ */
+export function setRole(state, input) {
+  const role = String(input.role ?? '');
+  if (!DEFAULT_ROLES[role]) throw new Error(`unknown role: ${role}`);
+  const roles = { ...(state.roles ?? {}) };
+  const next = { ...(roles[role] ?? {}) };
+  if (input.model !== undefined) next.model = input.model || null;
+  if (input.reasoning !== undefined) next.reasoning = input.reasoning || null;
+  roles[role] = next;
+  const now = new Date().toISOString();
+  return appendEvent({ ...state, roles, updatedAt: now }, {
+    actor: 'manager',
+    action: 'role_configured',
+    detail: `${role}: model=${next.model ?? 'default'} reasoning=${next.reasoning ?? 'default'}`,
+  });
+}
+
+/**
+ * Список ролей с настройками по умолчанию и переопределениями задачи.
+ *
+ * @param {object} state Состояние.
+ * @returns {object[]}
+ */
+export function listRoles(state) {
+  return Object.entries(DEFAULT_ROLES).map(([name, base]) => ({
+    name,
+    title: base.title,
+    model: state.roles?.[name]?.model ?? null,
+    reasoning: state.roles?.[name]?.reasoning ?? base.reasoning ?? null,
+    tools: base.tools,
+  }));
 }

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
-import { amendDocument, answerQuestion, approveDocument, readState, writeState } from './store.js';
+import { amendDocument, answerQuestion, approveDocument, listRoles, readState, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 
@@ -20,6 +20,7 @@ export const DEPARTMENT_ROUTES = {
   asset: '/api/department/asset',
   approve: '/api/department/approve',
   blueprint: '/api/department/blueprint',
+  roles: '/api/department/roles',
   answer: '/api/department/answer',
   amend: '/api/department/amend',
   budget: '/api/department/budget',
@@ -70,6 +71,34 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.roles,
+    methods: ['GET', 'POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      if (request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const { root, taskId, role, model, reasoning } = body ?? {};
+        if (!root || !taskId || !role) return Response.json({ error: 'root, taskId, role required' }, { status: 400 });
+        const state = await readState(root, taskId);
+        if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+        try {
+          const next = await writeState(root, setRole(state, { role, model, reasoning }));
+          return Response.json({ roles: listRoles(next) });
+        } catch (error) {
+          return Response.json({ error: error.message }, { status: 400 });
+        }
+      }
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      return Response.json({ roles: listRoles(state) });
     },
   });
 

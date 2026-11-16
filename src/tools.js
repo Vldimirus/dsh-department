@@ -11,12 +11,14 @@ import {
   closeTask,
   isRepeatedFailure,
   listQuestions,
+  listRoles,
   resetGatesForNextStage,
   appendEvent,
   approveDocument,
   createState,
   readState,
   recordReview,
+  setRole,
   recordTestGate,
   summarize,
   taskDir,
@@ -77,6 +79,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(askTool()));
   disposers.push(ctx.tools.register(answerTool()));
   disposers.push(ctx.tools.register(reportTool(activity)));
+  disposers.push(ctx.tools.register(rolesTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -656,6 +659,43 @@ function reportTool(activity) {
       const last = (state.events ?? []).slice(-3).map((event) => `  - ${event.ts} ${event.action}`);
       if (last.length) lines.push('Последние события:', ...last);
       return { report: lines.join('\n'), openQuestions: open.length };
+    },
+  };
+}
+
+function rolesTool() {
+  return {
+    name: 'dept_roles',
+    description: 'Список ролей отдела и настройка модели/reasoning для роли. Используй перед делегированием, чтобы взять model из настроек.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        role: { type: 'string', description: 'Имя роли (coder, reviewer, ...). Пусто — только показать.' },
+        model: { type: 'string', description: 'Модель для роли (пусто — по умолчанию).' },
+        reasoning: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Уровень reasoning.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { roles: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['roles', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      if (typeof args?.role === 'string' && args.role.trim() !== '') {
+        state = await writeState(root, setRole(state, {
+          role: args.role.trim(),
+          model: args?.model,
+          reasoning: args?.reasoning,
+        }));
+      }
+      const roles = listRoles(state);
+      return { roles, summary: roles.map((role) => `${role.name}: ${role.model ?? 'default'}/${role.reasoning ?? 'default'}`).join(' · ') };
     },
   };
 }
