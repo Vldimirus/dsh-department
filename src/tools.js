@@ -11,6 +11,9 @@ import {
   closeTask,
   isRepeatedFailure,
   listQuestions,
+  addIdeas,
+  addSection,
+  critiqueIdea,
   listRoles,
   moduleConflicts,
   resetGatesForNextStage,
@@ -86,6 +89,9 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(healthTool(activity)));
   disposers.push(ctx.tools.register(modulesTool()));
   disposers.push(ctx.tools.register(artTool()));
+  disposers.push(ctx.tools.register(sectionTool()));
+  disposers.push(ctx.tools.register(ideasTool()));
+  disposers.push(ctx.tools.register(critiqueTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -896,6 +902,126 @@ function artTool() {
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, encodePng(outWidth, outHeight, output));
       return { path: rel, width: outWidth, height: outHeight, summary: `нарисовано: ${rel} ${outWidth}x${outHeight}` };
+    },
+  };
+}
+
+function sectionTool() {
+  return {
+    name: 'dept_section',
+    description: 'Раздел специалиста в документе (концепция/ТЗ/план): дизайнер — стиль, художник — что рисуем, исследователь — данные и т.п. Пишет файл и фиксирует раздел в состоянии.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        doc: { type: 'string', enum: ['concept', 'spec', 'plan'], description: 'Документ.' },
+        role: { type: 'string', description: 'Роль автора раздела.' },
+        title: { type: 'string', description: 'Заголовок раздела.' },
+        content: { type: 'string', description: 'Текст раздела в markdown.' },
+      },
+      required: ['root', 'taskId', 'doc', 'role', 'title', 'content'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, summary: { type: 'string' } }, required: ['path', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const doc = requireString(args, 'doc');
+      const role = requireString(args, 'role');
+      const title = requireString(args, 'title');
+      const content = requireString(args, 'content');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const rel = join('docs/department', taskId, 'sections', doc, role + '.md');
+      const target = join(root, rel);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, `# ${title}\n\n${content}\n`, 'utf8');
+      state = await writeState(root, addSection(state, { doc, role, title, content }));
+      return { path: rel, summary: `раздел ${doc}/${role}: ${title} (${content.length} символов)` };
+    },
+  };
+}
+
+function ideasTool() {
+  return {
+    name: 'dept_ideas',
+    description: 'Идеи архитектора на рецензию специалистам. Идея не идёт в работу, пока её не одобрили специалисты (минимум два) и нет жёсткой критики.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        problem: { type: 'string', description: 'Какую проблему решаем.' },
+        ideas: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: { title: { type: 'string' }, description: { type: 'string' }, risks: { type: 'string' } },
+            required: ['title'],
+          },
+          description: 'Идеи. Если не переданы — вернуть список и статусы.',
+        },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { ideas: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['ideas', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      if (Array.isArray(args?.ideas) && args.ideas.length > 0) {
+        const result = addIdeas(state, { problem: args?.problem ?? '', ideas: args.ideas });
+        state = await writeState(root, result.state);
+      }
+      const ideas = state.ideas ?? [];
+      const lines = ideas.map((idea) => `${idea.id} [${idea.status}] ${idea.title} (рецензий: ${idea.critiques.length})`);
+      return { ideas, summary: lines.join('\n') || 'идей нет' };
+    },
+  };
+}
+
+function critiqueTool() {
+  return {
+    name: 'dept_critique',
+    description: 'Рецензия специалиста на идею архитектора: approve/reject и severity. Жёсткое отклонение (high) убивает идею, два одобрения без жёсткой критики — принимают.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        ideaId: { type: 'string', description: 'Идентификатор идеи.' },
+        role: { type: 'string', description: 'Кто рецензирует.' },
+        verdict: { type: 'string', enum: ['approve', 'reject'], description: 'Вердикт.' },
+        comment: { type: 'string', description: 'Замечания.' },
+        severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Насколько критично.' },
+      },
+      required: ['root', 'taskId', 'ideaId', 'role', 'verdict'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { status: { type: 'string' }, summary: { type: 'string' } }, required: ['status', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, critiqueIdea(state, {
+        ideaId: requireString(args, 'ideaId'),
+        role: requireString(args, 'role'),
+        verdict: requireString(args, 'verdict'),
+        comment: args?.comment ?? '',
+        severity: args?.severity,
+      }));
+      const idea = (next.ideas ?? []).find((item) => item.id === args.ideaId);
+      return { status: idea?.status ?? 'unknown', summary: `${args.ideaId}: ${idea?.status}` };
     },
   };
 }

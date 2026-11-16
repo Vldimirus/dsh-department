@@ -4,9 +4,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  addIdeas,
   addQuestion,
+  addSection,
   amendDocument,
   answerQuestion,
+  critiqueIdea,
   listQuestions,
   resetGatesForNextStage,
   approveDocument,
@@ -142,4 +145,23 @@ test('answerQuestion: повторный ответ — ошибка', () => {
   const { state: asked, question } = addQuestion(state, { text: 'x' });
   const answered = answerQuestion(asked, { id: question.id, answer: 'y', by: 'vladimir' });
   assert.throws(() => answerQuestion(answered, { id: question.id, answer: 'z', by: 'vladimir' }), /already answered/);
+});
+
+test('addSection: раздел специалиста пишется в состояние', () => {
+  const state = createState({ root: '/tmp/x', taskId: 's1' });
+  const next = addSection(state, { doc: 'concept', role: 'designer', title: 'Стиль', content: 'минимализм' });
+  assert.equal(next.sections.length, 1);
+  assert.equal(next.events.at(-1).action, 'section_added');
+});
+
+test('addIdeas + critiqueIdea: две похвалы принимают, жёсткая критика отклоняет', () => {
+  let state = createState({ root: '/tmp/x', taskId: 'i1' });
+  const proposed = addIdeas(state, { problem: 'граф', ideas: [{ title: 'A' }, { title: 'B' }] });
+  state = proposed.state;
+  const [first, second] = proposed.ideas;
+  state = critiqueIdea(state, { ideaId: first.id, role: 'tester', verdict: 'approve' });
+  state = critiqueIdea(state, { ideaId: first.id, role: 'reviewer', verdict: 'approve' });
+  assert.equal(state.ideas.find((idea) => idea.id === first.id).status, 'accepted');
+  state = critiqueIdea(state, { ideaId: second.id, role: 'tester', verdict: 'reject', severity: 'high' });
+  assert.equal(state.ideas.find((idea) => idea.id === second.id).status, 'rejected');
 });

@@ -601,3 +601,84 @@ export function moduleConflicts(modules) {
     .filter(([, ids]) => ids.length > 1)
     .map(([file, ids]) => ({ file, modules: ids }));
 }
+
+/**
+ * Добавляет раздел специалиста в документ (концепция/ТЗ/план).
+ *
+ * @param {object} state Состояние.
+ * @param {{ doc: string, role: string, title: string, content: string }} input Раздел.
+ * @returns {object} Новое состояние.
+ */
+export function addSection(state, input) {
+  const now = new Date().toISOString();
+  const section = {
+    doc: String(input.doc),
+    role: String(input.role),
+    title: String(input.title),
+    content: String(input.content),
+    ts: now,
+  };
+  return appendEvent({ ...state, sections: [...(state.sections ?? []), section], updatedAt: now }, {
+    actor: section.role,
+    action: 'section_added',
+    detail: `${section.doc}: ${section.title}`,
+  });
+}
+
+/**
+ * Добавляет идеи архитектора на рецензию специалистам.
+ *
+ * @param {object} state Состояние.
+ * @param {{ problem: string, ideas: Array<{ title: string, description?: string, risks?: string }> }} input Идеи.
+ * @returns {{ state: object, ideas: object[] }}
+ */
+export function addIdeas(state, input) {
+  const now = new Date().toISOString();
+  const created = (input.ideas ?? []).map((idea, index) => ({
+    id: `idea-${(state.ideas?.length ?? 0) + index + 1}`,
+    problem: String(input.problem ?? ''),
+    title: String(idea.title ?? 'идея ' + (index + 1)),
+    description: String(idea.description ?? ''),
+    risks: String(idea.risks ?? ''),
+    status: 'review',
+    critiques: [],
+    ts: now,
+  }));
+  const next = { ...state, ideas: [...(state.ideas ?? []), ...created], updatedAt: now };
+  return {
+    state: appendEvent(next, { actor: 'architect', action: 'ideas_proposed', detail: created.map((idea) => idea.id + ': ' + idea.title).join('; ') }),
+    ideas: created,
+  };
+}
+
+/**
+ * Рецензия специалиста на идею. Идея отклоняется при жёсткой критике,
+ * принимается при двух одобрениях и отсутствии жёстких отклонений.
+ *
+ * @param {object} state Состояние.
+ * @param {{ ideaId: string, role: string, verdict: 'approve'|'reject', comment?: string, severity?: 'low'|'medium'|'high' }} input Рецензия.
+ * @returns {object} Новое состояние.
+ */
+export function critiqueIdea(state, input) {
+  const now = new Date().toISOString();
+  const ideas = state.ideas ?? [];
+  const index = ideas.findIndex((idea) => idea.id === input.ideaId);
+  if (index < 0) throw new Error(`idea not found: ${input.ideaId}`);
+  const critique = {
+    role: String(input.role),
+    verdict: input.verdict === 'approve' ? 'approve' : 'reject',
+    comment: String(input.comment ?? ''),
+    severity: ['low', 'medium', 'high'].includes(input.severity) ? input.severity : 'medium',
+    ts: now,
+  };
+  const updated = { ...ideas[index], critiques: [...ideas[index].critiques, critique] };
+  const hardReject = updated.critiques.some((item) => item.verdict === 'reject' && item.severity === 'high');
+  const approvals = updated.critiques.filter((item) => item.verdict === 'approve').length;
+  updated.status = hardReject ? 'rejected' : approvals >= 2 ? 'accepted' : 'review';
+  const next = { ...state, ideas: ideas.map((idea, position) => (position === index ? updated : idea)), updatedAt: now };
+  return appendEvent(next, {
+    actor: critique.role,
+    action: 'idea_reviewed',
+    detail: `${updated.id}: ${critique.verdict}/${critique.severity} → ${updated.status}`,
+  });
+}
