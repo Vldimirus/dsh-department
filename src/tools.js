@@ -482,6 +482,7 @@ function stageTool() {
       const target = requireString(args, 'stage');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      assertActive(state, 'переход стадии');
 
       // Переход разрешён только когда артефакты целевой стадии на месте.
       const files = await collectArtifacts(root, taskId);
@@ -591,6 +592,7 @@ function amendTool() {
       }
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      assertActive(state, 'поправка');
       const next = await writeState(root, amendDocument(state, {
         doc: requireString(args, 'doc'),
         summary: requireString(args, 'summary'),
