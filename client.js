@@ -1003,6 +1003,71 @@ window.__ModuleLoader__.load({
       )
     }
 
+    /* ---------------- Графики ---------------- */
+
+    function ChartsView({ tasks }) {
+      const [current, setCurrent] = useState(tasks[0] ?? null)
+      const [detail, setDetail] = useState(null)
+      const [error, setError] = useState(null)
+
+      useEffect(() => {
+        if (!current) return
+        api(ROUTES.task + '?root=' + encodeURIComponent(current.root) + '&taskId=' + encodeURIComponent(current.taskId))
+          .then((payload) => { setDetail(payload); setError(null) })
+          .catch((problem) => setError(problem.message))
+      }, [current?.root, current?.taskId])
+
+      if (!current) return h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Нет задач.'))
+
+      const history = detail?.history ?? []
+      const totalTokens = history.reduce((sum, item) => sum + item.tokens, 0)
+      const totalCost = history.reduce((sum, item) => sum + item.costUSD, 0)
+      const totalMs = history.reduce((sum, item) => sum + item.durationMs, 0)
+      const maxTokens = Math.max(1, ...history.map((item) => item.tokens))
+      const maxCost = Math.max(0.0001, ...history.map((item) => item.costUSD))
+      const maxMs = Math.max(1, ...history.map((item) => item.durationMs))
+      const hours = Math.floor(totalMs / 3600000)
+      const minutes = Math.round((totalMs % 3600000) / 60000)
+
+      const rows = (items, max, format) => h('div', { className: 'dept-events' }, ...items.map((item) =>
+        h('div', { key: item.stage, className: 'dept-event', style: { alignItems: 'center' } },
+          h('span', { style: { minWidth: '64px' } }, 'этап ' + item.stage),
+          h('div', { style: { flex: '1 1 auto', height: '10px', background: '#1b2438', borderRadius: '6px', overflow: 'hidden' } },
+            h('div', { style: { width: Math.max(2, Math.round((item.value / max) * 100)) + '%', height: '100%', background: item.color } })),
+          h('span', { className: 'dept-sub', style: { minWidth: '84px', textAlign: 'right' } }, format(item)))))
+
+      return h('div', { className: 'dept-root' },
+        h('div', { className: 'dept-head' },
+          h('div', null,
+            h('div', { className: 'dept-title' }, 'Графики по этапам'),
+            h('div', { className: 'dept-sub' }, 'токенов: ' + totalTokens.toLocaleString('ru-RU') + ' · $' + totalCost.toFixed(2) + ' · время: ' + hours + ' ч ' + minutes + ' мин')),
+          tasks.length > 1
+            ? h('select', { className: 'dept-input', value: current.taskId, onChange: (event) => setCurrent(tasks.find((task) => task.taskId === event.target.value) ?? tasks[0]) },
+                ...tasks.map((task) => h('option', { key: task.root + task.taskId, value: task.taskId }, task.taskId)))
+            : null),
+        error ? h('div', { className: 'dept-badge fail' }, error) : null,
+        history.length === 0
+          ? h('div', { className: 'dept-block' }, h('div', { className: 'dept-sub' }, 'Этапов ещё нет — графики появятся после первых коммитов.'))
+          : h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' } },
+              h('div', { className: 'dept-block' },
+                h('div', { className: 'dept-block-title' }, 'Токены'),
+                rows(history.map((item) => ({ ...item, value: item.tokens, color: '#4b8bff' })), maxTokens, (item) => item.tokens.toLocaleString('ru-RU'))),
+              h('div', { className: 'dept-block' },
+                h('div', { className: 'dept-block-title' }, 'Стоимость'),
+                rows(history.map((item) => ({ ...item, value: item.costUSD, color: '#7fdc9a' })), maxCost, (item) => '$' + item.costUSD.toFixed(3))),
+              h('div', { className: 'dept-block' },
+                h('div', { className: 'dept-block-title' }, 'Длительность'),
+                rows(history.map((item) => ({ ...item, value: item.durationMs, color: '#d8c07a' })), maxMs, (item) => Math.round(item.durationMs / 60000) + ' мин'))),
+        h('div', { className: 'dept-block' },
+          h('div', { className: 'dept-block-title' }, 'Гейты по этапам'),
+          ...history.map((item) =>
+            h('div', { key: item.stage, className: 'dept-kv' },
+              h('span', null, 'этап ' + item.stage),
+              h('span', { className: 'dept-row' },
+                h('span', { className: 'dept-badge ' + (item.tests === 'pass' ? 'ok' : item.tests === 'fail' ? 'fail' : 'wait') }, 'тесты: ' + item.tests),
+                h('span', { className: 'dept-badge ' + (item.review === 'pass' ? 'ok' : item.review === 'fail' ? 'fail' : 'wait') }, 'ревью: ' + item.review))))))
+    }
+
     /* ---------------- Панель ---------------- */
 
     function DepartmentPanel() {
@@ -1049,6 +1114,18 @@ window.__ModuleLoader__.load({
           : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Загрузка задачи…'))
       }
 
+      if (view === 'charts') {
+        return h('div', { className: 'dept-root' },
+          h('div', { className: 'dept-head' },
+            h('div', { className: 'dept-tabs' },
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
+              h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
+              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
+              h('button', { className: 'dept-btn active' }, 'Графики')),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+          h(ChartsView, { tasks }))
+      }
+
       if (view === 'blueprint') {
         return h('div', { className: 'dept-root' },
           h('div', { className: 'dept-head' },
@@ -1066,7 +1143,8 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-tabs' },
               h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
               h('button', { className: 'dept-btn active', onClick: () => setView('office') }, 'Офис'),
-              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема')),
+              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
           h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) } }),
         )
@@ -1084,6 +1162,7 @@ window.__ModuleLoader__.load({
             h('button', { className: 'dept-btn active', onClick: () => setView('board') }, 'Доска'),
             h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
             h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
+            h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики'),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
         ),
         h(ActivityBlock, { items: activity.items, error: activity.error }),
@@ -1116,6 +1195,6 @@ window.__ModuleLoader__.load({
       ))
     }
 
-    return { PANEL_ID, apply, inject, styleOnce, DepartmentPanel, TaskDetail, BlueprintView, OfficeView }
+    return { PANEL_ID, apply, inject, styleOnce, DepartmentPanel, TaskDetail, BlueprintView, OfficeView, ChartsView }
   },
 })

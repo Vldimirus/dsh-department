@@ -120,6 +120,7 @@ export async function taskPayload(root, taskId) {
     tags: tags.code === 0 ? tags.stdout.trim().split('\n').filter(Boolean) : [],
     events: (state.events ?? []).slice(-30).reverse(),
     questions: (state.questions ?? []).slice(-20).reverse(),
+    history: stageHistory(state),
     currentBranch: branch,
   };
 }
@@ -174,4 +175,35 @@ export async function rootsWithTasks(roots) {
     }
   }
   return result;
+}
+
+/**
+ * История этапов: длительность, стоимость и гейты по каждому коммиту.
+ *
+ * @param {object} state Состояние задачи.
+ * @returns {object[]}
+ */
+export function stageHistory(state) {
+  const events = state.events ?? [];
+  const commits = events.filter((event) => event.action === 'commit_pushed');
+  const budgetHistory = state.gates?.budget?.history ?? [];
+  let previous = events.length > 0 ? Date.parse(events[0].ts) : Date.now();
+  return commits.map((commit, index) => {
+    const time = Date.parse(commit.ts);
+    const before = events.filter((event) => Date.parse(event.ts) <= time);
+    const lastTests = [...before].reverse().find((event) => event.action === 'tests_passed' || event.action === 'tests_failed');
+    const lastReview = [...before].reverse().find((event) => event.action === 'review_passed' || event.action === 'review_failed');
+    const budget = budgetHistory.find((item) => item.stage === index + 1) ?? {};
+    const row = {
+      stage: index + 1,
+      ts: commit.ts,
+      durationMs: Math.max(0, time - previous),
+      tokens: budget.tokens ?? 0,
+      costUSD: budget.costUSD ?? 0,
+      tests: lastTests ? (lastTests.action === 'tests_passed' ? 'pass' : 'fail') : 'none',
+      review: lastReview ? (lastReview.action === 'review_passed' ? 'pass' : 'fail') : 'none',
+    };
+    previous = time;
+    return row;
+  });
 }
