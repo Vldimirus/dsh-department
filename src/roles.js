@@ -98,7 +98,7 @@ export const DEFAULT_ROLES = Object.freeze({
     title: 'Бета-тестер',
     model: null,
     reasoning: 'medium',
-    tools: ['bash', 'read', 'write', 'dept_bug', 'dept_report'],
+    tools: ['bash', 'read', 'write', 'dept_bug', 'dept_browse', 'dept_report'],
     maxAttempts: 2,
   }),
   reviewer: Object.freeze({

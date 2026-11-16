@@ -34,6 +34,7 @@ import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, runG
 import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
+import { runBrowse } from './browse.js';
 import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
@@ -94,6 +95,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
   disposers.push(ctx.tools.register(bugTool()));
+  disposers.push(ctx.tools.register(browseTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -1074,6 +1076,64 @@ function bugTool() {
       const bugs = state.bugs ?? [];
       const summary = bugs.map((bug) => `${bug.id} [${bug.severity}/${bug.status}] ${bug.title}`).join('\n') || 'багов нет';
       return { bugs, id, summary };
+    },
+  };
+}
+
+function browseTool() {
+  return {
+    name: 'dept_browse',
+    description: 'Браузер для бета-тестера: открыть localhost/file, кликать, вводить, снимать скриншот в evidence. Возвращает текст страницы и лог действий.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        url: { type: 'string', description: 'Адрес (localhost, 127.0.0.1 или file://).' },
+        name: { type: 'string', description: 'Имя скриншота, например map-open.png.' },
+        fullPage: { type: 'boolean', description: 'Скриншот всей страницы.' },
+        actions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['goto', 'click', 'fill', 'press', 'wait', 'text', 'screenshot'] },
+              url: { type: 'string' },
+              selector: { type: 'string' },
+              text: { type: 'string' },
+              value: { type: 'string' },
+              key: { type: 'string' },
+              ms: { type: 'integer' },
+            },
+            required: ['type'],
+          },
+          description: 'Сценарий действий по порядку.',
+        },
+      },
+      required: ['root', 'taskId', 'url'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { screenshot: { type: 'string' }, text: { type: 'string' }, summary: { type: 'string' } }, required: ['screenshot', 'text', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const name = String(args?.name ?? 'screen.png').replace(/[^a-z0-9._-]/gi, '-');
+      const shot = join(taskDir(root, taskId), 'evidence', name);
+      await mkdir(dirname(shot), { recursive: true });
+      const result = await runBrowse({
+        url: requireString(args, 'url'),
+        actions: Array.isArray(args?.actions) ? args.actions : [],
+        screenshotPath: shot,
+        fullPage: Boolean(args?.fullPage),
+      });
+      const rel = join('docs/department', taskId, 'evidence', name);
+      return {
+        screenshot: rel,
+        text: result.text,
+        summary: `browse: ${result.log.length} действий · скриншот ${rel}\nТекст: ${result.text.replace(/\s+/g, ' ').slice(0, 300)}`,
+      };
     },
   };
 }

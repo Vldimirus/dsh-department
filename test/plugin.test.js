@@ -40,12 +40,12 @@ function fakeContext() {
   return { ctx, registered };
 }
 
-test('apply: регистрирует девятнадцать инструментов и команду', () => {
+test('apply: регистрирует двадцать инструментов и команду', () => {
   const { ctx, registered } = fakeContext();
   apply(ctx, {});
   assert.deepEqual(
     registered.tools.map((tool) => tool.name).sort(),
-    ['dept_start', 'dept_status', 'dept_approve', 'dept_gate', 'dept_stage', 'dept_commit', 'dept_verify', 'dept_amend', 'dept_ask', 'dept_answer', 'dept_report', 'dept_roles', 'dept_health', 'dept_modules', 'dept_art', 'dept_section', 'dept_ideas', 'dept_critique', 'dept_bug'].sort(),
+    ['dept_start', 'dept_status', 'dept_approve', 'dept_gate', 'dept_stage', 'dept_commit', 'dept_verify', 'dept_amend', 'dept_ask', 'dept_answer', 'dept_report', 'dept_roles', 'dept_health', 'dept_modules', 'dept_art', 'dept_section', 'dept_ideas', 'dept_critique', 'dept_bug', 'dept_browse'].sort(),
   );
   assert.equal(registered.commands.length, 1);
   assert.equal(registered.commands[0].name, 'dept');

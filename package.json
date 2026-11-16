@@ -40,5 +40,8 @@
     "assets",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "dependencies": {
+    "playwright": "^1.65.1"
+  }
 }
