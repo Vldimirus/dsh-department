@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { pendingHumanInput } from '../src/watchdog.js';
 import {
   addIdeas,
   addQuestion,
@@ -216,4 +217,14 @@ test('setBudget: лимит меняется и пишется событие', 
   const next = setBudget(state, { limitTokens: 5000000, reason: 'решение человека', by: 'manager' });
   assert.equal(next.gates.budget.limitTokens, 5000000);
   assert.equal(next.events.at(-1).action, 'budget_updated');
+});
+
+test('pendingHumanInput: собирает новые корректировки и ответы', () => {
+  const state = {
+    corrections: [{ id: 'corr-1', status: 'new', doc: 'spec', subject: 'темнее', text: 'x' }],
+    questions: [{ id: 'q1', status: 'answered', answer: 'да' }, { id: 'q2', status: 'open' }],
+  };
+  const result = pendingHumanInput(state);
+  assert.equal(result.items.length, 2);
+  assert.match(result.signature, /corr-1/);
 });

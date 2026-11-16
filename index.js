@@ -8,6 +8,7 @@ import { registerCommands } from './src/commands.js';
 import { registerTools } from './src/tools.js';
 import { registerDepartmentRoutes } from './src/routes.js';
 import { createActivityTracker } from './src/activity.js';
+import { createWatchdog } from './src/watchdog.js';
 
 /** Имя плагина в композиции. */
 export const name = 'department';
@@ -39,6 +40,8 @@ export function apply(ctx, config) {
   void config;
   const activity = createActivityTracker(ctx);
   ctx.effect(() => () => activity.dispose(), 'department: activity tracker');
+  const watchdog = createWatchdog({ ctx });
+  ctx.effect(() => () => watchdog.dispose(), 'department: watchdog');
   ctx.effect(() => combine(registerTools(ctx, activity)), 'department: model tools');
   ctx.effect(() => combine(registerCommands(ctx)), 'department: slash command');
 
