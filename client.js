@@ -656,7 +656,7 @@ window.__ModuleLoader__.load({
       const [eventId, setEventId] = useState(null)
       const [corr, setCorr] = useState({ doc: 'spec', subject: '', text: '' })
       const [roles, setRoles] = useState([])
-      const [prices, setPrices] = useState({ limit: '', input: '', output: '', rate: '' })
+      const [prices, setPrices] = useState({ limit: '', input: '', output: '', cacheRead: '', cacheWrite: '', rate: '' })
       const [savingBudget, setSavingBudget] = useState(false)
       const [busy, setBusy] = useState(false)
       const [message, setMessage] = useState(null)
@@ -679,6 +679,8 @@ window.__ModuleLoader__.load({
           limit: String(budget.limitTokens ?? ''),
           input: String(budget.prices?.inputTokens ?? 0.27),
           output: String(budget.prices?.outputTokens ?? 1.1),
+          cacheRead: String(budget.prices?.cacheReadTokens ?? 0.07),
+          cacheWrite: String(budget.prices?.cacheWriteTokens ?? 0.27),
           rate: String(budget.rateRUB ?? 90),
         })
       }, [budget?.limitTokens, budget?.rateRUB])
@@ -697,8 +699,8 @@ window.__ModuleLoader__.load({
               prices: {
                 inputTokens: Number(prices.input) || 0,
                 outputTokens: Number(prices.output) || 0,
-                cacheReadTokens: Number(prices.input) / 3,
-                cacheWriteTokens: Number(prices.input) || 0,
+                cacheReadTokens: Number(prices.cacheRead) || 0,
+                cacheWriteTokens: Number(prices.cacheWrite) || 0,
               },
             }),
           })
@@ -944,8 +946,10 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'dept-block' },
             h('div', { className: 'dept-block-title' }, 'Бюджет и цены'),
             h('div', { className: 'dept-sub' }, 'Лимит и цены за 1M токенов; курс — для пересчёта в рубли.'),
-            h('div', { className: 'dept-kv' }, h('span', null, 'сейчас в памяти'), h('span', null, `${(budget?.usage?.inputTokens ?? 0) + (budget?.usage?.outputTokens ?? 0)} т.`)),
-            h('div', { className: 'dept-kv' }, h('span', null, 'снимок при коммите'), h('span', null, `${(budget?.usedTokens ?? 0).toLocaleString('ru-RU')} т.`)),
+            h('div', { className: 'dept-kv' }, h('span', null, 'сейчас (после перезапуска)'), h('span', null, `${((budget?.usage?.inputTokens ?? 0) + (budget?.usage?.outputTokens ?? 0)).toLocaleString('ru-RU')} т.`)),
+            h('div', { className: 'dept-kv' }, h('span', null, 'всего по этапам'), h('span', null, `${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.tokens ?? 0), 0).toLocaleString('ru-RU')} т.`)),
+            h('div', { className: 'dept-kv' }, h('span', null, 'стоимость по этапам'), h('span', null, `$${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.costUSD ?? 0), 0).toFixed(3)}`)),
+            h('div', { className: 'dept-kv' }, h('span', null, 'снимок при последнем коммите'), h('span', null, `${(budget?.usedTokens ?? 0).toLocaleString('ru-RU')} т.`)),
             budget?.humanSet ? h('div', { className: 'dept-badge ok' }, 'лимит установлен человеком') : null,
             h('div', { className: 'dept-row' },
               h('div', { className: 'dept-form-row' },
@@ -957,6 +961,12 @@ window.__ModuleLoader__.load({
               h('div', { className: 'dept-form-row' },
                 h('label', null, '$/1M выход'),
                 h('input', { className: 'dept-input', value: prices.output, onChange: (event) => setPrices({ ...prices, output: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, '$/1M кэш-чтение'),
+                h('input', { className: 'dept-input', value: prices.cacheRead, onChange: (event) => setPrices({ ...prices, cacheRead: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, '$/1M кэш-запись'),
+                h('input', { className: 'dept-input', value: prices.cacheWrite, onChange: (event) => setPrices({ ...prices, cacheWrite: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
                 h('label', null, 'курс ₽'),
                 h('input', { className: 'dept-input', value: prices.rate, onChange: (event) => setPrices({ ...prices, rate: event.target.value }) }))),
