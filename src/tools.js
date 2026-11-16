@@ -41,6 +41,7 @@ import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
 import { runBrowse } from './browse.js';
 import { runNative, runScreenshotCommand } from './gui.js';
+import { pixelize } from './pixelize.js';
 import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
@@ -97,6 +98,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(healthTool(activity)));
   disposers.push(ctx.tools.register(modulesTool()));
   disposers.push(ctx.tools.register(artTool()));
+  disposers.push(ctx.tools.register(pixelizeTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -1430,6 +1432,56 @@ function reworkTool() {
       await writeFile(target, `# Переработка по ${question.id}\n\n${args.summary}\n\n` + steps.map((step, index) => `${index + 1}. ${step}`).join(String.fromCharCode(10)) + String.fromCharCode(10), 'utf8');
       state = await writeState(root, addRework(state, { questionId: question.id, summary: args.summary, steps, path: rel }));
       return { path: rel, summary: `план переработки: ${rel}` };
+    },
+  };
+}
+
+function pixelizeTool() {
+  return {
+    name: 'dept_pixelize',
+    description: 'Превратить PNG/JPEG в пиксельную сетку и спрайт: уменьшает, квантует в палитру, возвращает rows+palette для ручной правки (dept_art) и сохраняет PNG.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        source: { type: 'string', description: 'Путь к исходному изображению относительно корня.' },
+        path: { type: 'string', description: 'Куда сохранить PNG-спрайт относительно корня.' },
+        width: { type: 'integer', description: 'Ширина сетки (4–96, по умолчанию 32).' },
+        height: { type: 'integer', description: 'Высота сетки (4–96, по пропорции).' },
+        colors: { type: 'integer', description: 'Число цветов (2–64).' },
+        scale: { type: 'integer', description: 'Масштаб выходного PNG (1–16).' },
+        palette: { type: 'object', additionalProperties: { type: 'string' }, description: 'Принудительная палитра: символ → #rrggbb.' },
+      },
+      required: ['root', 'taskId', 'source', 'path'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, width: { type: 'integer' }, height: { type: 'integer' }, rows: { type: 'array', items: { type: 'string' } }, palette: { type: 'object' }, summary: { type: 'string' } }, required: ['path', 'width', 'height', 'rows', 'palette', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      requireString(args, 'taskId');
+      const source = resolve(root, requireString(args, 'source'));
+      const output = resolve(root, requireString(args, 'path'));
+      if (!source.startsWith(resolve(root)) || !output.startsWith(resolve(root))) throw new Error('paths must be inside the project');
+      const result = await pixelize({
+        source,
+        outputPath: output,
+        width: args?.width,
+        height: args?.height,
+        colors: args?.colors,
+        scale: args?.scale,
+        palette: args?.palette,
+      });
+      return {
+        path: requireString(args, 'path'),
+        width: result.width,
+        height: result.height,
+        rows: result.rows,
+        palette: result.palette,
+        summary: `пикселизация: ${args.path} ${result.width}x${result.height}, цветов ${Object.keys(result.palette).length}`,
+      };
     },
   };
 }

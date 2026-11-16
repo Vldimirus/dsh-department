@@ -42,6 +42,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "playwright": "^1.65.1"
+    "playwright": "^1.65.1",
+    "sharp": "^0.35.5"
   }
 }
