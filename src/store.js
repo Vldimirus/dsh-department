@@ -654,6 +654,7 @@ export function addIdeas(state, input) {
   const now = new Date().toISOString();
   const created = (input.ideas ?? []).map((idea, index) => ({
     id: `idea-${(state.ideas?.length ?? 0) + index + 1}`,
+    questionId: input.questionId ? String(input.questionId) : null,
     problem: String(input.problem ?? ''),
     title: String(idea.title ?? 'идея ' + (index + 1)),
     description: String(idea.description ?? ''),
@@ -693,7 +694,13 @@ export function critiqueIdea(state, input) {
   const hardReject = updated.critiques.some((item) => item.verdict === 'reject' && item.severity === 'high');
   const approvals = updated.critiques.filter((item) => item.verdict === 'approve').length;
   updated.status = hardReject ? 'rejected' : approvals >= 2 ? 'accepted' : 'review';
-  const next = { ...state, ideas: ideas.map((idea, position) => (position === index ? updated : idea)), updatedAt: now };
+  let questions = state.questions ?? [];
+  if (updated.status === 'accepted' && updated.questionId) {
+    questions = questions.map((question) => question.id === updated.questionId
+      ? { ...question, status: 'decided', decision: updated.title + (updated.description ? ' — ' + updated.description : ''), decidedAt: now }
+      : question);
+  }
+  const next = { ...state, ideas: ideas.map((idea, position) => (position === index ? updated : idea)), questions, updatedAt: now };
   return appendEvent(next, {
     actor: critique.role,
     action: 'idea_reviewed',
@@ -759,5 +766,63 @@ export function removeWorktreeRecord(state, name) {
     actor: 'manager',
     action: 'worktree_removed',
     detail: String(name),
+  });
+}
+
+/**
+ * Фиксирует служебную записку по вопросу.
+ *
+ * @param {object} state Состояние.
+ * @param {{ questionId: string, path: string }} input Записка.
+ * @returns {object} Новое состояние.
+ */
+export function addMemo(state, input) {
+  const now = new Date().toISOString();
+  const questions = (state.questions ?? []).map((question) => question.id === input.questionId
+    ? { ...question, status: 'memo', memoPath: String(input.path), memoAt: now }
+    : question);
+  return appendEvent({ ...state, questions, updatedAt: now }, {
+    actor: 'archivist',
+    action: 'memo_created',
+    detail: `${input.questionId}: ${input.path}`,
+  });
+}
+
+/**
+ * Решение человека по служебной записке.
+ *
+ * @param {object} state Состояние.
+ * @param {{ questionId: string, verdict: 'approve'|'changes', remarks?: string, by: string }} input Решение.
+ * @returns {object} Новое состояние.
+ */
+export function reviewMemo(state, input) {
+  const now = new Date().toISOString();
+  const status = input.verdict === 'approve' ? 'answered' : 'changes_requested';
+  const questions = (state.questions ?? []).map((question) => question.id === input.questionId
+    ? { ...question, status, answer: String(input.remarks ?? ''), answeredBy: input.by, answeredAt: now }
+    : question);
+  return appendEvent({ ...state, questions, updatedAt: now }, {
+    actor: input.by,
+    action: status === 'answered' ? 'memo_approved' : 'memo_changes_requested',
+    detail: `${input.questionId}${input.remarks ? ': ' + String(input.remarks).slice(0, 120) : ''}`,
+  });
+}
+
+/**
+ * План переработки по замечаниям человека.
+ *
+ * @param {object} state Состояние.
+ * @param {{ questionId: string, summary: string, steps: string[], path: string }} input План.
+ * @returns {object} Новое состояние.
+ */
+export function addRework(state, input) {
+  const now = new Date().toISOString();
+  const questions = (state.questions ?? []).map((question) => question.id === input.questionId
+    ? { ...question, status: 'rework_planned', reworkPath: String(input.path), reworkSummary: String(input.summary) }
+    : question);
+  return appendEvent({ ...state, questions, updatedAt: now }, {
+    actor: 'architect',
+    action: 'rework_planned',
+    detail: `${input.questionId}: ${String(input.summary).slice(0, 120)}`,
   });
 }

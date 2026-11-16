@@ -5,6 +5,9 @@ import { access, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
+  addMemo,
+  addRework,
+  reviewMemo,
   advanceStage,
   amendDocument,
   answerQuestion,
@@ -101,6 +104,10 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(browseTool()));
   disposers.push(ctx.tools.register(guiTool()));
   disposers.push(ctx.tools.register(worktreeTool()));
+  disposers.push(ctx.tools.register(proposeTool()));
+  disposers.push(ctx.tools.register(memoTool()));
+  disposers.push(ctx.tools.register(reviewMemoTool()));
+  disposers.push(ctx.tools.register(reworkTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -1257,6 +1264,172 @@ function worktreeTool() {
         ? worktrees.map((item) => `${item.name}: ${item.branch} → ${item.path}`).join('\n')
         : 'worktree нет\n' + raw.split(String.fromCharCode(10)).filter(Boolean).join('\n');
       return { worktrees, summary };
+    },
+  };
+}
+
+function proposeTool() {
+  return {
+    name: 'dept_propose',
+    description: 'Супервайзер предлагает решение по вопросу к человеку, не останавливая работу. Предложения идут на критику специалистов (dept_critique).',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        questionId: { type: 'string', description: 'Идентификатор вопроса.' },
+        problem: { type: 'string', description: 'Формулировка проблемы.' },
+        ideas: {
+          type: 'array',
+          items: { type: 'object', properties: { title: { type: 'string' }, description: { type: 'string' }, risks: { type: 'string' } }, required: ['title'] },
+          description: 'Варианты решения.',
+        },
+      },
+      required: ['root', 'taskId', 'questionId', 'ideas'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { ideas: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['ideas', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const question = (state.questions ?? []).find((item) => item.id === args.questionId);
+      if (!question) throw new Error(`question not found: ${args.questionId}`);
+      const result = addIdeas(state, { questionId: question.id, problem: args?.problem ?? question.text, ideas: args.ideas });
+      const next = await writeState(root, result.state);
+      return { ideas: result.ideas, summary: `предложения по ${question.id}: ` + result.ideas.map((idea) => idea.id + ' ' + idea.title).join('; ') };
+    },
+  };
+}
+
+function memoTool() {
+  return {
+    name: 'dept_memo',
+    description: 'Сформировать служебную записку по вопросу: суть вопроса, варианты, критика, решение команды. Человек читает и утверждает или пишет замечания.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        questionId: { type: 'string', description: 'Идентификатор вопроса.' },
+      },
+      required: ['root', 'taskId', 'questionId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, summary: { type: 'string' } }, required: ['path', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const question = (state.questions ?? []).find((item) => item.id === args.questionId);
+      if (!question) throw new Error(`question not found: ${args.questionId}`);
+      const ideas = (state.ideas ?? []).filter((idea) => idea.questionId === question.id);
+      const accepted = ideas.find((idea) => idea.status === 'accepted');
+      const lines = [
+        `# Служебная записка: ${question.text}`,
+        '',
+        `- вопрос: ${question.id}`,
+        `- статус: ${question.status}`,
+        '',
+        '## Суть вопроса',
+        question.text,
+        '',
+        '## Предложения',
+      ];
+      for (const idea of ideas) {
+        lines.push(`### ${idea.id} — ${idea.title} (${idea.status})`);
+        if (idea.description) lines.push(idea.description);
+        if (idea.risks) lines.push('Риски: ' + idea.risks);
+        for (const critique of idea.critiques) lines.push(`- ${critique.role}: ${critique.verdict}/${critique.severity}${critique.comment ? ' — ' + critique.comment : ''}`);
+        lines.push('');
+      }
+      lines.push('## Решение команды', accepted ? `${accepted.id}: ${accepted.title}${accepted.description ? ' — ' + accepted.description : ''}` : 'решение ещё не принято', '');
+      lines.push('## Что нужно от человека', 'Утвердить решение или написать замечания (verdict=approve|changes).');
+      const rel = join('docs/department', taskId, 'memos', question.id + '.md');
+      const target = join(root, rel);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, lines.join(String.fromCharCode(10)), 'utf8');
+      state = await writeState(root, addMemo(state, { questionId: question.id, path: rel }));
+      return { path: rel, summary: `служебная записка: ${rel} (предложений: ${ideas.length})` };
+    },
+  };
+}
+
+function reviewMemoTool() {
+  return {
+    name: 'dept_review',
+    description: 'Решение человека по служебной записке: approve (утвердить) или changes (замечания).',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        questionId: { type: 'string', description: 'Идентификатор вопроса.' },
+        verdict: { type: 'string', enum: ['approve', 'changes'], description: 'Утвердить или замечания.' },
+        remarks: { type: 'string', description: 'Замечания (обязательны при changes).' },
+        by: { type: 'string', description: 'Кто решил.' },
+      },
+      required: ['root', 'taskId', 'questionId', 'verdict', 'by'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { status: { type: 'string' }, summary: { type: 'string' } }, required: ['status', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const by = requireString(args, 'by');
+      if (!isHumanApprover(by)) throw new Error('review must be signed by the human');
+      const verdict = requireString(args, 'verdict');
+      if (verdict === 'changes' && !String(args?.remarks ?? '').trim()) throw new Error('remarks required for changes');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, reviewMemo(state, { questionId: requireString(args, 'questionId'), verdict, remarks: args?.remarks ?? '', by }));
+      const question = (next.questions ?? []).find((item) => item.id === args.questionId);
+      return { status: question?.status ?? 'unknown', summary: `${args.questionId}: ${question?.status}` };
+    },
+  };
+}
+
+function reworkTool() {
+  return {
+    name: 'dept_rework',
+    description: 'Архитектор готовит план переработки по замечаниям человека: что менять в коде/концепции/данных и в каком порядке.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        questionId: { type: 'string', description: 'Идентификатор вопроса.' },
+        summary: { type: 'string', description: 'Суть переработки.' },
+        steps: { type: 'array', items: { type: 'string' }, description: 'Шаги.' },
+      },
+      required: ['root', 'taskId', 'questionId', 'summary', 'steps'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, summary: { type: 'string' } }, required: ['path', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const question = (state.questions ?? []).find((item) => item.id === args.questionId);
+      if (!question) throw new Error(`question not found: ${args.questionId}`);
+      const steps = Array.isArray(args?.steps) ? args.steps.map(String) : [];
+      const rel = join('docs/department', taskId, 'rework', question.id + '.md');
+      const target = join(root, rel);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, `# Переработка по ${question.id}\n\n${args.summary}\n\n` + steps.map((step, index) => `${index + 1}. ${step}`).join(String.fromCharCode(10)) + String.fromCharCode(10), 'utf8');
+      state = await writeState(root, addRework(state, { questionId: question.id, summary: args.summary, steps, path: rel }));
+      return { path: rel, summary: `план переработки: ${rel}` };
     },
   };
 }

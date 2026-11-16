@@ -10,6 +10,9 @@ import {
   amendDocument,
   answerQuestion,
   critiqueIdea,
+  addMemo,
+  addRework,
+  reviewMemo,
   listRoles,
   setRole,
   listQuestions,
@@ -186,4 +189,23 @@ test('setRole: лимит одновременных экземпляров ро
   state = setRole(state, { role: 'coder', maxInstances: 3 });
   assert.equal(listRoles(state).find((role) => role.name === 'coder').maxInstances, 3);
   assert.throws(() => setRole(state, { role: 'coder', maxInstances: 0 }), /1..10/);
+});
+
+test('жизненный цикл вопроса: предложение → критика → решение → записка → замечания → переработка', () => {
+  let state = createState({ root: '/tmp/x', taskId: 'life1' });
+  state = addQuestion(state, { text: 'Какой стиль?' }).state;
+  const qid = state.questions[0].id;
+  const proposed = addIdeas(state, { questionId: qid, ideas: [{ title: 'минимализм' }] });
+  state = proposed.state;
+  const idea = proposed.ideas[0];
+  state = critiqueIdea(state, { ideaId: idea.id, role: 'tester', verdict: 'approve' });
+  state = critiqueIdea(state, { ideaId: idea.id, role: 'reviewer', verdict: 'approve' });
+  assert.equal(state.questions[0].status, 'decided');
+  assert.match(state.questions[0].decision, /минимализм/);
+  state = addMemo(state, { questionId: qid, path: 'memos/' + qid + '.md' });
+  assert.equal(state.questions[0].status, 'memo');
+  state = reviewMemo(state, { questionId: qid, verdict: 'changes', remarks: 'нужен другой стиль', by: 'vladimir' });
+  assert.equal(state.questions[0].status, 'changes_requested');
+  state = addRework(state, { questionId: qid, summary: 'переделать стиль', steps: ['собрать референсы'], path: 'rework/' + qid + '.md' });
+  assert.equal(state.questions[0].status, 'rework_planned');
 });

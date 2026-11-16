@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
-import { amendDocument, answerQuestion, approveDocument, listRoles, readState, setRole, writeState } from './store.js';
+import { amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 
@@ -22,6 +22,7 @@ export const DEPARTMENT_ROUTES = {
   blueprint: '/api/department/blueprint',
   roles: '/api/department/roles',
   projects: '/api/department/projects',
+  review: '/api/department/review',
   answer: '/api/department/answer',
   amend: '/api/department/amend',
   budget: '/api/department/budget',
@@ -72,6 +73,26 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.review,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, questionId, verdict, remarks, by } = body ?? {};
+      if (!root || !taskId || !questionId || !verdict || !by) return Response.json({ error: 'root, taskId, questionId, verdict, by required' }, { status: 400 });
+      if (!isHumanApprover(by)) return Response.json({ error: 'review must be signed by the human' }, { status: 403 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      try {
+        const next = await writeState(root, reviewMemo(state, { questionId, verdict, remarks: remarks ?? '', by }));
+        return Response.json({ questions: next.questions });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
     },
   });
 

@@ -21,6 +21,7 @@ window.__ModuleLoader__.load({
       blueprint: '/api/department/blueprint',
       roles: '/api/department/roles',
       projects: '/api/department/projects',
+      review: '/api/department/review',
     }
 
     function styleOnce() {
@@ -542,6 +543,7 @@ window.__ModuleLoader__.load({
       const [name, setName] = useState(() => localStorage.getItem('dept-approver') || 'vladimir')
       const [budget, setBudget] = useState(detail.budget ?? null)
       const [drafts, setDrafts] = useState({})
+      const [remarks, setRemarks] = useState({})
       const [amend, setAmend] = useState({ doc: 'spec', summary: '', reason: '' })
       const [roles, setRoles] = useState([])
       const [prices, setPrices] = useState({ limit: '', input: '', output: '', rate: '' })
@@ -665,6 +667,22 @@ window.__ModuleLoader__.load({
                         disabled: busy || !(drafts[question.id] ?? '').trim(),
                         onClick: () => post(ROUTES.answer, { root: detail.root, taskId: detail.taskId, questionId: question.id, answer: (drafts[question.id] ?? '').trim() }),
                       }, 'Ответить'))))),
+            (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
+              ? h('div', null,
+                  h('div', { className: 'dept-block-title' }, 'Служебные записки (ждут решения человека)'),
+                  ...(detail.questions ?? []).filter((question) => question.status === 'memo').map((question) =>
+                    h('div', { key: question.id, className: 'dept-block', style: { gap: '6px' } },
+                      h('div', { className: 'dept-row' },
+                        h('span', { className: 'dept-badge wait' }, 'записка'),
+                        h('span', { className: 'dept-sub' }, question.id)),
+                      h('div', null, question.text),
+                      question.decision ? h('div', { className: 'dept-sub' }, 'решение команды: ' + question.decision) : null,
+                      question.memoPath ? h('div', { className: 'dept-sub' }, 'файл: ' + question.memoPath) : null,
+                      h('input', { className: 'dept-input', placeholder: 'замечания (если не устраивает)', value: remarks[question.id] ?? '', onChange: (event) => setRemarks({ ...remarks, [question.id]: event.target.value }) }),
+                      h('div', { className: 'dept-row' },
+                        h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.review, { root: detail.root, taskId: detail.taskId, questionId: question.id, verdict: 'approve' }) }, 'Утвердить'),
+                        h('button', { className: 'dept-btn', disabled: busy || !(remarks[question.id] ?? '').trim(), onClick: () => post(ROUTES.review, { root: detail.root, taskId: detail.taskId, questionId: question.id, verdict: 'changes', remarks: (remarks[question.id] ?? '').trim() }) }, 'Замечания')))))
+              : null,
             answeredQuestions.length > 0
               ? h('div', null,
                   h('div', { className: 'dept-block-title' }, 'Отвеченные'),
