@@ -1,7 +1,7 @@
 /**
  * Инструменты модели `dept_*`: запуск задачи, статус, утверждение, гейты, фиксация.
  */
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
@@ -35,6 +35,7 @@ import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
 import { runBrowse } from './browse.js';
+import { runNative, runScreenshotCommand } from './gui.js';
 import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
@@ -96,6 +97,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(critiqueTool()));
   disposers.push(ctx.tools.register(bugTool()));
   disposers.push(ctx.tools.register(browseTool()));
+  disposers.push(ctx.tools.register(guiTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -1134,6 +1136,61 @@ function browseTool() {
         text: result.text,
         summary: `browse: ${result.log.length} действий · скриншот ${rel}\nТекст: ${result.text.replace(/\s+/g, ' ').slice(0, 300)}`,
       };
+    },
+  };
+}
+
+function guiTool() {
+  return {
+    name: 'dept_gui',
+    description: 'Запуск нативной программы (C++/Qt и др.) для бета-теста: команда, аргументы, env, таймаут, перехват вывода, скриншот через хук приложения или внешнюю команду.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        command: { type: 'string', description: 'Команда, например ./build/app.' },
+        args: { type: 'array', items: { type: 'string' }, description: 'Аргументы.' },
+        env: { type: 'object', additionalProperties: { type: 'string' }, description: 'Переменные окружения (например, QT_QPA_PLATFORM=offscreen).' },
+        timeoutMs: { type: 'integer', description: 'Таймаут, мс (по умолчанию 60000).' },
+        screenshotFile: { type: 'string', description: 'Путь к файлу, который приложение создаст само (например, shot.png).' },
+        screenshotCommand: { type: 'string', description: 'Команда скриншота после запуска (например, import -window root shot.png).' },
+        name: { type: 'string', description: 'Имя скриншота в evidence.' },
+      },
+      required: ['root', 'taskId', 'command'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { code: { type: 'integer' }, screenshot: { type: 'string' }, stdout: { type: 'string' }, summary: { type: 'string' } }, required: ['code', 'screenshot', 'stdout', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const result = await runNative(root, {
+        command: requireString(args, 'command'),
+        args: Array.isArray(args?.args) ? args.args.map(String) : [],
+        env: args?.env && typeof args.env === 'object' ? args.env : {},
+        timeoutMs: args?.timeoutMs,
+      });
+      let screenshot = '';
+      const name = String(args?.name ?? 'native.png').replace(/[^a-z0-9._-]/gi, '-');
+      const evidence = join(taskDir(root, taskId), 'evidence', name);
+      await mkdir(dirname(evidence), { recursive: true });
+      if (typeof args?.screenshotCommand === 'string' && args.screenshotCommand.trim() !== '') {
+        await runScreenshotCommand(root, args.screenshotCommand, args?.env);
+      }
+      const produced = args?.screenshotFile ? join(root, String(args.screenshotFile)) : null;
+      if (produced) {
+        try {
+          await copyFile(produced, evidence);
+          screenshot = join('docs/department', taskId, 'evidence', name);
+        } catch {
+          // приложение не создало скриншот — не ошибка
+        }
+      }
+      const stdout = result.stdout.trim();
+      const summary = `gui: ${args.command} → код ${result.code ?? 'нет'}` + (result.timedOut ? ' (таймаут)' : '') + (screenshot ? ' · скриншот ' + screenshot : '') + '\nstdout: ' + stdout.replace(/\s+/g, ' ').slice(0, 400);
+      return { code: Number(result.code ?? -1), screenshot, stdout: stdout.slice(0, 4000), summary };
     },
   };
 }
