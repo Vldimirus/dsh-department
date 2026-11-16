@@ -40,12 +40,12 @@ function fakeContext() {
   return { ctx, registered };
 }
 
-test('apply: регистрирует двадцать семь инструментов и команду', () => {
+test('apply: регистрирует двадцать восемь инструментов и команду', () => {
   const { ctx, registered } = fakeContext();
   apply(ctx, {});
   assert.deepEqual(
     registered.tools.map((tool) => tool.name).sort(),
-    ['dept_start', 'dept_status', 'dept_approve', 'dept_gate', 'dept_stage', 'dept_commit', 'dept_verify', 'dept_amend', 'dept_ask', 'dept_answer', 'dept_report', 'dept_roles', 'dept_health', 'dept_modules', 'dept_art', 'dept_pixelize', 'dept_section', 'dept_ideas', 'dept_critique', 'dept_bug', 'dept_browse', 'dept_gui', 'dept_worktree', 'dept_propose', 'dept_memo', 'dept_review', 'dept_rework'].sort(),
+    ['dept_start', 'dept_status', 'dept_approve', 'dept_gate', 'dept_stage', 'dept_commit', 'dept_verify', 'dept_amend', 'dept_ask', 'dept_answer', 'dept_report', 'dept_roles', 'dept_health', 'dept_modules', 'dept_art', 'dept_pixelize', 'dept_compose', 'dept_section', 'dept_ideas', 'dept_critique', 'dept_bug', 'dept_browse', 'dept_gui', 'dept_worktree', 'dept_propose', 'dept_memo', 'dept_review', 'dept_rework'].sort(),
   );
   assert.equal(registered.commands.length, 1);
   assert.equal(registered.commands[0].name, 'dept');

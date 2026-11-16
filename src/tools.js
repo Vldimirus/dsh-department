@@ -42,6 +42,7 @@ import { encodePng } from './png.js';
 import { runBrowse } from './browse.js';
 import { runNative, runScreenshotCommand } from './gui.js';
 import { pixelize } from './pixelize.js';
+import { composeImage } from './compose.js';
 import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
@@ -99,6 +100,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(modulesTool()));
   disposers.push(ctx.tools.register(artTool()));
   disposers.push(ctx.tools.register(pixelizeTool()));
+  disposers.push(ctx.tools.register(composeTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -1483,6 +1485,63 @@ function pixelizeTool() {
         palette: result.palette,
         summary: `пикселизация: ${args.path} ${result.width}x${result.height}, цветов ${Object.keys(result.palette).length}`,
       };
+    },
+  };
+}
+
+function composeTool() {
+  return {
+    name: 'dept_compose',
+    description: 'Собрать большое PNG из маленьких спрайтов: холст, фон, слои с координатами. Художник рисует по частям, композиция собирает результат.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        path: { type: 'string', description: 'Куда сохранить PNG относительно корня.' },
+        width: { type: 'integer', description: 'Ширина холста.' },
+        height: { type: 'integer', description: 'Высота холста.' },
+        background: { type: 'string', description: 'Цвет фона #rrggbb (пусто — прозрачно).' },
+        layers: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              source: { type: 'string' },
+              x: { type: 'integer' },
+              y: { type: 'integer' },
+              width: { type: 'integer' },
+              height: { type: 'integer' },
+            },
+            required: ['source', 'x', 'y'],
+          },
+          description: 'Слои: путь к PNG, позиция, размер.',
+        },
+      },
+      required: ['root', 'taskId', 'path', 'width', 'height', 'layers'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, width: { type: 'integer' }, height: { type: 'integer' }, layers: { type: 'integer' }, summary: { type: 'string' } }, required: ['path', 'width', 'height', 'layers', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      requireString(args, 'taskId');
+      const output = resolve(root, requireString(args, 'path'));
+      if (!output.startsWith(resolve(root))) throw new Error('path must be inside the project');
+      const layers = (Array.isArray(args?.layers) ? args.layers : []).map((layer) => {
+        const source = resolve(root, String(layer.source));
+        if (!source.startsWith(resolve(root))) throw new Error('layer must be inside the project');
+        return { source, x: layer.x, y: layer.y, width: layer.width, height: layer.height };
+      });
+      const result = await composeImage({
+        width: args.width,
+        height: args.height,
+        background: args?.background,
+        layers,
+        outputPath: output,
+      });
+      return { ...result, path: requireString(args, 'path'), summary: `композиция: ${args.path} ${result.width}x${result.height}, слоёв ${result.layers}` };
     },
   };
 }

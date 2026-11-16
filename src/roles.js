@@ -76,9 +76,9 @@ export const DEFAULT_ROLES = Object.freeze({
   artist: Object.freeze({
     title: 'Художник',
     model: null,
-    reasoning: 'low',
-    tools: ['dept_art', 'dept_pixelize', 'read', 'write', 'bash'],
-    maxAttempts: 3,
+    reasoning: 'high',
+    tools: ['dept_art', 'dept_pixelize', 'dept_compose', 'read', 'write', 'bash'],
+    maxAttempts: 6,
   }),
   'senior-coder': Object.freeze({
     title: 'Сеньор-кодер',
