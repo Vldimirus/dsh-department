@@ -16,7 +16,7 @@ test('resolveRole: пользовательские переопределени
 });
 
 test('resolveRole: неизвестная роль — null', () => {
-  assert.equal(resolveRole('designer'), null);
+  assert.equal(resolveRole('wizard'), null);
 });
 
 test('roleOrder: руководитель первый, архивариус последний', () => {

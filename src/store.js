@@ -559,3 +559,45 @@ export function listRoles(state) {
     tools: base.tools,
   }));
 }
+
+/**
+ * Фиксирует план модулей для параллельной работы.
+ *
+ * @param {object} state Состояние.
+ * @param {Array<{ id: string, name?: string, files?: string[], owner?: string, status?: string }>} modules Модули.
+ * @returns {object} Новое состояние.
+ */
+export function setModules(state, modules) {
+  const normalized = (Array.isArray(modules) ? modules : []).map((module, index) => ({
+    id: String(module.id ?? 'm' + (index + 1)),
+    name: String(module.name ?? module.id ?? 'module ' + (index + 1)),
+    files: Array.isArray(module.files) ? module.files.map(String) : [],
+    owner: module.owner ? String(module.owner) : null,
+    status: module.status ? String(module.status) : 'planned',
+  }));
+  const now = new Date().toISOString();
+  return appendEvent({ ...state, modules: normalized, updatedAt: now }, {
+    actor: 'manager',
+    action: 'modules_planned',
+    detail: normalized.map((module) => module.id + ':' + module.files.length).join(', '),
+  });
+}
+
+/**
+ * Конфликты владения файлами между модулями.
+ *
+ * @param {Array<{ id: string, files: string[] }>} modules Модули.
+ * @returns {Array<{ file: string, modules: string[] }>}
+ */
+export function moduleConflicts(modules) {
+  const owners = new Map();
+  for (const module of modules ?? []) {
+    for (const file of module.files ?? []) {
+      if (!owners.has(file)) owners.set(file, []);
+      owners.get(file).push(module.id);
+    }
+  }
+  return [...owners.entries()]
+    .filter(([, ids]) => ids.length > 1)
+    .map(([file, ids]) => ({ file, modules: ids }));
+}

@@ -2,7 +2,7 @@
  * Инструменты модели `dept_*`: запуск задачи, статус, утверждение, гейты, фиксация.
  */
 import { access, mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
   advanceStage,
@@ -12,12 +12,14 @@ import {
   isRepeatedFailure,
   listQuestions,
   listRoles,
+  moduleConflicts,
   resetGatesForNextStage,
   appendEvent,
   approveDocument,
   createState,
   readState,
   recordReview,
+  setModules,
   setRole,
   recordTestGate,
   summarize,
@@ -27,6 +29,7 @@ import {
 import { amendCommit, currentBranch, ensureBranch, commitAll, isRepo, push, runGit, tag } from './git.js';
 import { isHumanApprover } from './roles.js';
 import { runTestGate } from './gates.js';
+import { encodePng } from './png.js';
 import { assertRetryReady, failurePath, hasSection, writeFailureData } from './attempts.js';
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
@@ -80,6 +83,9 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(answerTool()));
   disposers.push(ctx.tools.register(reportTool(activity)));
   disposers.push(ctx.tools.register(rolesTool()));
+  disposers.push(ctx.tools.register(healthTool(activity)));
+  disposers.push(ctx.tools.register(modulesTool()));
+  disposers.push(ctx.tools.register(artTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -709,6 +715,187 @@ function rolesTool() {
       }
       const roles = listRoles(state);
       return { roles, summary: roles.map((role) => `${role.name}: ${role.model ?? 'default'}/${role.reasoning ?? 'default'}`).join(' · ') };
+    },
+  };
+}
+
+function healthTool(activity) {
+  return {
+    name: 'dept_health',
+    description: 'Проверка «жив ли отдел»: работает, стоит, ждёт человека, готов к коммиту. Возвращает вердикт и рекомендованное действие. Вызывай регулярно, чтобы не стоять без дела.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { verdict: { type: 'string' }, recommended: { type: 'string' }, summary: { type: 'string' } }, required: ['verdict', 'recommended', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const agents = activity ? activity.list([root]) : [];
+      const busy = agents.filter((agent) => agent.busy).length;
+      const open = listQuestions(state, { status: 'open' });
+      const events = state.events ?? [];
+      const last = events.at(-1);
+      const ageMinutes = last ? Math.round((Date.now() - Date.parse(last.ts)) / 60000) : 999;
+      const stage = state.stage;
+      const gatesPass = state.gates?.tests?.status === 'pass' && state.gates?.review?.status === 'pass';
+      let verdict = 'idle';
+      if (stage === 'done') verdict = 'done';
+      else if (stage === 'blocked') verdict = 'blocked';
+      else if (busy > 0) verdict = 'working';
+      else if (open.length > 0 && ageMinutes >= 10) verdict = 'waiting_human';
+      else if (stage === 'executing' && gatesPass) verdict = 'ready_to_commit';
+      else if (ageMinutes >= 15) verdict = 'stalled';
+      const recommended = {
+        done: 'задача завершена; начни следующую через dept_start',
+        blocked: 'нужно решение человека: задай вопрос dept_ask и жди ответа',
+        working: 'работа идёт: не создавай дублирующих задач, дождись результата',
+        waiting_human: 'ответов нет: реши тактически сам по политике, вопрос оставь открытым, продолжай',
+        ready_to_commit: 'гейты зелёные: dept_verify → dept_commit с тегом этапа',
+        stalled: 'нет активности: продолжи следующий шаг по plan.md; если нужны данные — researcher, дизайн — designer, изображения — artist; модули можно распараллелить через dept_modules',
+        idle: 'сделай следующий шаг по плану и зафиксируй событие',
+      }[verdict];
+      const summary = `health: ${verdict} · активных: ${busy} · вопросов: ${open.length} · простоя: ${ageMinutes} мин\nРекомендация: ${recommended}`;
+      return { verdict, recommended, summary };
+    },
+  };
+}
+
+function modulesTool() {
+  return {
+    name: 'dept_modules',
+    description: 'План модулей для параллельной работы: кто владеет какими файлами. Проверяет конфликты. Используй, чтобы разделить этап на независимые модули и запустить нескольких кодеров.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        modules: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              files: { type: 'array', items: { type: 'string' } },
+              owner: { type: 'string' },
+              status: { type: 'string' },
+            },
+            required: ['id'],
+          },
+          description: 'Модули: id, files, owner. Если не передан — только показать текущий план.',
+        },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { modules: { type: 'array', items: { type: 'object' } }, conflicts: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['modules', 'conflicts', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      if (Array.isArray(args?.modules)) {
+        state = await writeState(root, setModules(state, args.modules));
+      }
+      const modules = state.modules ?? [];
+      const conflicts = moduleConflicts(modules);
+      const lines = modules.map((module) => `${module.id}: ${module.files.length} файлов, владелец ${module.owner ?? '—'}`);
+      if (conflicts.length > 0) lines.push('КОНФЛИКТЫ: ' + conflicts.map((item) => item.file + ' (' + item.modules.join(', ') + ')').join('; '));
+      return { modules, conflicts, summary: lines.join('\n') || 'модули не заданы' };
+    },
+  };
+}
+
+function artTool() {
+  return {
+    name: 'dept_art',
+    description: 'Нарисовать пиксельный спрайт и сохранить PNG. rows — строки, palette — цвет на символ (#rrggbb или #rrggbbaa, точка — прозрачность).',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        path: { type: 'string', description: 'Путь PNG относительно корня, например assets/ship.png.' },
+        palette: { type: 'object', additionalProperties: { type: 'string' }, description: 'Цвета: символ → #rrggbb.' },
+        rows: { type: 'array', items: { type: 'string' }, description: 'Строки пикселей.' },
+        scale: { type: 'integer', description: 'Масштаб (1–16).' },
+      },
+      required: ['root', 'taskId', 'path', 'palette', 'rows'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, width: { type: 'integer' }, height: { type: 'integer' }, summary: { type: 'string' } }, required: ['path', 'width', 'height', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      requireString(args, 'taskId');
+      const rel = requireString(args, 'path');
+      const rows = Array.isArray(args?.rows) ? args.rows.map(String) : [];
+      if (rows.length === 0) throw new Error('rows required');
+      const palette = args?.palette ?? {};
+      const scale = Math.min(16, Math.max(1, Number(args?.scale ?? 1)));
+      const width = Math.max(...rows.map((row) => row.length));
+      const height = rows.length;
+      const parse = (value) => {
+        const text = String(value ?? '').replace('#', '');
+        if (text.length !== 6 && text.length !== 8) throw new Error('bad color: ' + value);
+        return {
+          r: parseInt(text.slice(0, 2), 16),
+          g: parseInt(text.slice(2, 4), 16),
+          b: parseInt(text.slice(4, 6), 16),
+          a: text.length === 8 ? parseInt(text.slice(6, 8), 16) : 255,
+        };
+      };
+      const colors = new Map();
+      for (const [key, value] of Object.entries(palette)) colors.set(key, parse(value));
+      const rgba = new Uint8Array(width * height * 4);
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const symbol = rows[y][x] ?? '.';
+          const color = colors.get(symbol);
+          if (!color) continue;
+          const offset = (y * width + x) * 4;
+          rgba[offset] = color.r;
+          rgba[offset + 1] = color.g;
+          rgba[offset + 2] = color.b;
+          rgba[offset + 3] = color.a;
+        }
+      }
+      let output = rgba;
+      let outWidth = width;
+      let outHeight = height;
+      if (scale > 1) {
+        outWidth = width * scale;
+        outHeight = height * scale;
+        output = new Uint8Array(outWidth * outHeight * 4);
+        for (let y = 0; y < outHeight; y += 1) {
+          for (let x = 0; x < outWidth; x += 1) {
+            const src = (Math.floor(y / scale) * width + Math.floor(x / scale)) * 4;
+            const dst = (y * outWidth + x) * 4;
+            output[dst] = rgba[src];
+            output[dst + 1] = rgba[src + 1];
+            output[dst + 2] = rgba[src + 2];
+            output[dst + 3] = rgba[src + 3];
+          }
+        }
+      }
+      const target = resolve(root, rel);
+      if (!target.startsWith(resolve(root))) throw new Error('path must be inside the project');
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, encodePng(outWidth, outHeight, output));
+      return { path: rel, width: outWidth, height: outHeight, summary: `нарисовано: ${rel} ${outWidth}x${outHeight}` };
     },
   };
 }

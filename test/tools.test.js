@@ -64,3 +64,36 @@ test('dept_gate tests: провал пишет failure.md и блокирует 
     /retry blocked/,
   );
 });
+
+test('dept_art: пишет PNG с заданным масштабом', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'art1', testCommand: 'true', branch: 'dept/art1' });
+  const result = await tools.get('dept_art').execute({
+    root, taskId: 'art1', path: 'assets/pixel.png',
+    palette: { r: '#ff0000' },
+    rows: ['rr', 'rr'],
+    scale: 3,
+  });
+  assert.equal(result.width, 6);
+  assert.equal(result.height, 6);
+  const buffer = await readFile(join(root, 'assets/pixel.png'));
+  assert.equal(buffer.subarray(1, 4).toString(), 'PNG');
+  assert.equal(buffer.readUInt32BE(16), 6);
+  assert.equal(buffer.readUInt32BE(20), 6);
+});
+
+test('dept_modules: находит конфликты владения файлами', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'mod1', testCommand: 'true', branch: 'dept/mod1' });
+  const planned = await tools.get('dept_modules').execute({
+    root, taskId: 'mod1',
+    modules: [
+      { id: 'a', files: ['src/x.js', 'src/shared.js'], owner: 'coder-1' },
+      { id: 'b', files: ['src/y.js', 'src/shared.js'], owner: 'coder-2' },
+    ],
+  });
+  assert.equal(planned.conflicts.length, 1);
+  assert.equal(planned.conflicts[0].file, 'src/shared.js');
+});
