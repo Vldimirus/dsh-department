@@ -849,6 +849,7 @@ window.__ModuleLoader__.load({
       const [loading, setLoading] = useState(false)
       const [group, setGroup] = useState(null)
       const [file, setFile] = useState(null)
+      const [mode, setMode] = useState('dir')
 
       useEffect(() => {
         if (!root) return
@@ -865,15 +866,18 @@ window.__ModuleLoader__.load({
 
       const files = blueprint?.files ?? []
       const edges = blueprint?.edges ?? []
+      const groupKey = (item) => (mode === 'layer' ? item.layer : item.dir)
       const groups = new Map()
       for (const item of files) {
-        if (!groups.has(item.dir)) groups.set(item.dir, { dir: item.dir, files: [], loc: 0 })
-        const bucket = groups.get(item.dir)
+        const key = groupKey(item)
+        if (!groups.has(key)) groups.set(key, { dir: key, files: [], loc: 0 })
+        const bucket = groups.get(key)
         bucket.files.push(item)
         bucket.loc += item.loc
       }
       const groupList = [...groups.values()].sort((a, b) => b.files.length - a.files.length)
-      const groupName = (dir) => (dir === '.' ? '(корень)' : dir)
+      const LAYER_TITLES = { core: 'Ядро', ui: 'Интерфейс', tests: 'Тесты', docs: 'Документы' }
+      const groupName = (dir) => (mode === 'layer' ? (LAYER_TITLES[dir] ?? dir) : (dir === '.' ? '(корень)' : dir))
       const colorOf = (dir) => BLUEPRINT_COLORS[Math.max(0, groupList.findIndex((item) => item.dir === dir)) % BLUEPRINT_COLORS.length]
 
       // связи между группами
@@ -967,6 +971,8 @@ window.__ModuleLoader__.load({
               ? h('select', { className: 'dept-input', value: root, onChange: (event) => setRoot(event.target.value) },
                   ...roots.map((candidate) => h('option', { key: candidate, value: candidate }, candidate.split('/').pop())))
               : null,
+            h('button', { className: 'dept-btn' + (mode === 'dir' ? ' active' : ''), onClick: () => { setMode('dir'); setGroup(null); setFile(null) } }, 'По папкам'),
+            h('button', { className: 'dept-btn' + (mode === 'layer' ? ' active' : ''), onClick: () => { setMode('layer'); setGroup(null); setFile(null) } }, 'По слоям'),
             group ? h('button', { className: 'dept-btn', onClick: () => { setGroup(null); setFile(null) } }, '← Все группы') : null)),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         h('div', { style: { display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr) 300px', gap: '12px', alignItems: 'start' } },
@@ -988,6 +994,15 @@ window.__ModuleLoader__.load({
                   h('div', { className: 'dept-block-title' }, selectedFile.path.split('/').pop()),
                   h('div', { className: 'dept-sub' }, selectedFile.path),
                   h('div', { className: 'dept-kv' }, h('span', null, 'строк'), h('span', null, selectedFile.loc)),
+                  h('div', { className: 'dept-kv' }, h('span', null, 'слой'), h('span', null, LAYER_TITLES[selectedFile.layer] ?? selectedFile.layer)),
+                  h('div', { className: 'dept-block-title' }, 'Функции и классы'),
+                  (selectedFile.symbols ?? []).length === 0
+                    ? h('div', { className: 'dept-sub' }, '—')
+                    : h('div', { className: 'dept-events', style: { maxHeight: '180px', overflow: 'auto' } },
+                        ...(selectedFile.symbols ?? []).map((symbol) =>
+                          h('div', { key: symbol.name + symbol.line, className: 'dept-event' },
+                            h('span', { className: 'dept-sub', style: { minWidth: '34px' } }, symbol.line),
+                            h('span', null, symbol.name)))),
                   h('div', { className: 'dept-block-title' }, 'Импортирует'),
                   selectedFile.imports.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
                     ...selectedFile.imports.map((target) => h('div', { key: target, className: 'dept-event' }, h('span', null, target)))),

@@ -42,7 +42,14 @@ export async function buildBlueprint(root, options = {}) {
   }
   return {
     root,
-    files: files.map((file) => ({ path: file.rel, dir: file.rel.slice(0, Math.max(0, file.rel.lastIndexOf(sep))) || '.', loc: file.loc, imports: file.imports })),
+    files: files.map((file) => ({
+      path: file.rel,
+      dir: file.rel.slice(0, Math.max(0, file.rel.lastIndexOf(sep))) || '.',
+      layer: layerOf(file.rel),
+      loc: file.loc,
+      imports: file.imports,
+      symbols: symbolsOf(file.text, extname(file.rel)),
+    })),
     edges,
     stats: { files: files.length, loc: files.reduce((sum, file) => sum + file.loc, 0), dirs: [...dirs].map(([dir, count]) => ({ dir, count })) },
   };
@@ -109,4 +116,53 @@ function resolveImport(root, file, raw, known) {
     if (known.has(variant)) return variant;
   }
   return null;
+}
+
+/**
+ * Слой файла: тесты, интерфейс, ядро.
+ *
+ * @param {string} rel Путь относительно корня.
+ * @returns {string}
+ */
+function layerOf(rel) {
+  const lower = rel.toLowerCase();
+  if (lower.startsWith('test') || lower.includes('/test')) return 'tests';
+  if (lower.includes('/ui') || lower.startsWith('ui')) return 'ui';
+  if (lower.endsWith('.md')) return 'docs';
+  return 'core';
+}
+
+/**
+ * Извлекает объявления функций/классов с номерами строк.
+ *
+ * @param {string} text Текст файла.
+ * @param {string} ext Расширение.
+ * @returns {Array<{ name: string, line: number, kind: string }>}
+ */
+function symbolsOf(text, ext) {
+  const patterns = [];
+  if (['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx'].includes(ext)) {
+    patterns.push([/(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g, 'function']);
+    patterns.push([/(?:^|\n)\s*(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/g, 'class']);
+    patterns.push([/(?:^|\n)\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\(|function)/g, 'function']);
+  } else if (ext === '.py') {
+    patterns.push([/(?:^|\n)\s*def\s+(\w+)/g, 'function']);
+    patterns.push([/(?:^|\n)\s*class\s+(\w+)/g, 'class']);
+  } else if (['.cpp', '.cc', '.cxx', '.c', '.h', '.hpp'].includes(ext)) {
+    patterns.push([/(?:^|\n)[\w:<>,*&\s]+\s([A-Za-z_]\w*)\s*\([^;{}]*\)\s*\{/g, 'function']);
+  }
+  const found = [];
+  const seen = new Set();
+  for (const [pattern, kind] of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const name = match[1];
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      found.push({ name, kind, line: text.slice(0, match.index).split('\n').length });
+      if (found.length >= 60) break;
+    }
+    if (found.length >= 60) break;
+  }
+  return found;
 }
