@@ -682,3 +682,31 @@ export function critiqueIdea(state, input) {
     detail: `${updated.id}: ${critique.verdict}/${critique.severity} → ${updated.status}`,
   });
 }
+
+/**
+ * Записывает баг-репорт бета-тестера.
+ *
+ * @param {object} state Состояние.
+ * @param {{ title: string, steps?: string, expected?: string, actual?: string, severity?: string, evidence?: string, role?: string }} input Баг.
+ * @returns {{ state: object, bug: object }}
+ */
+export function addBug(state, input) {
+  const now = new Date().toISOString();
+  const bug = {
+    id: `bug-${(state.bugs?.length ?? 0) + 1}`,
+    title: String(input.title ?? ''),
+    steps: String(input.steps ?? ''),
+    expected: String(input.expected ?? ''),
+    actual: String(input.actual ?? ''),
+    severity: ['low', 'medium', 'high', 'critical'].includes(input.severity) ? input.severity : 'medium',
+    evidence: String(input.evidence ?? ''),
+    role: String(input.role ?? 'beta-tester'),
+    status: 'open',
+    ts: now,
+  };
+  const next = { ...state, bugs: [...(state.bugs ?? []), bug], updatedAt: now };
+  return {
+    state: appendEvent(next, { actor: bug.role, action: 'bug_reported', detail: `${bug.id}: ${bug.title} (${bug.severity})` }),
+    bug,
+  };
+}

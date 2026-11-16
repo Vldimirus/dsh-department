@@ -94,6 +94,13 @@ export const DEFAULT_ROLES = Object.freeze({
     tools: ['read', 'grep', 'dept_health', 'dept_report', 'dept_ask'],
     maxAttempts: 1,
   }),
+  'beta-tester': Object.freeze({
+    title: 'Бета-тестер',
+    model: null,
+    reasoning: 'medium',
+    tools: ['bash', 'read', 'write', 'dept_bug', 'dept_report'],
+    maxAttempts: 2,
+  }),
   reviewer: Object.freeze({
     title: 'Ревьюер',
     model: null,
@@ -143,6 +150,7 @@ export function roleOrder() {
     'artist',
     'senior-coder',
     'supervisor',
+    'beta-tester',
     'reviewer',
     'archivist',
   ];

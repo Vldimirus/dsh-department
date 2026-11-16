@@ -11,6 +11,7 @@ import {
   closeTask,
   isRepeatedFailure,
   listQuestions,
+  addBug,
   addIdeas,
   addSection,
   critiqueIdea,
@@ -92,6 +93,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
+  disposers.push(ctx.tools.register(bugTool()));
   disposers.push(ctx.tools.register(commitTool(activity)));
   return disposers;
 }
@@ -1022,6 +1024,56 @@ function critiqueTool() {
       }));
       const idea = (next.ideas ?? []).find((item) => item.id === args.ideaId);
       return { status: idea?.status ?? 'unknown', summary: `${args.ideaId}: ${idea?.status}` };
+    },
+  };
+}
+
+function bugTool() {
+  return {
+    name: 'dept_bug',
+    description: 'Баг-репорт бета-тестера: что сломалось, как повторить, что ожидалось. Пишет файл и фиксирует баг в состоянии.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        title: { type: 'string', description: 'Короткое описание бага. Без title — только список багов.' },
+        steps: { type: 'string', description: 'Шаги воспроизведения.' },
+        expected: { type: 'string', description: 'Ожидаемое поведение.' },
+        actual: { type: 'string', description: 'Фактическое поведение.' },
+        severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Критичность.' },
+        evidence: { type: 'string', description: 'Путь к скриншоту/логу.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { bugs: { type: 'array', items: { type: 'object' } }, id: { type: 'string' }, summary: { type: 'string' } }, required: ['bugs', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      let id = '';
+      if (typeof args?.title === 'string' && args.title.trim() !== '') {
+        const result = addBug(state, {
+          title: args.title.trim(),
+          steps: args?.steps,
+          expected: args?.expected,
+          actual: args?.actual,
+          severity: args?.severity,
+          evidence: args?.evidence,
+        });
+        state = await writeState(root, result.state);
+        id = result.bug.id;
+        const dir = join(taskDir(root, taskId), 'bugs');
+        await mkdir(dir, { recursive: true });
+        await writeFile(join(dir, id + '.md'), `# ${result.bug.title}\n\n- критичность: ${result.bug.severity}\n- шаги:\n${result.bug.steps}\n- ожидалось: ${result.bug.expected}\n- факт: ${result.bug.actual}\n- доказательство: ${result.bug.evidence}\n`, 'utf8');
+      }
+      const bugs = state.bugs ?? [];
+      const summary = bugs.map((bug) => `${bug.id} [${bug.severity}/${bug.status}] ${bug.title}`).join('\n') || 'багов нет';
+      return { bugs, id, summary };
     },
   };
 }

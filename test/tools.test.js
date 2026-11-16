@@ -97,3 +97,16 @@ test('dept_modules: находит конфликты владения файл�
   assert.equal(planned.conflicts.length, 1);
   assert.equal(planned.conflicts[0].file, 'src/shared.js');
 });
+
+test('dept_bug: пишет файл багрепорта и фиксирует баг', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'b1', testCommand: 'true', branch: 'dept/b1' });
+  const result = await tools.get('dept_bug').execute({
+    root, taskId: 'b1', title: 'карта не открывается', steps: 'нажать M', expected: 'карта', actual: 'ничего', severity: 'high',
+  });
+  assert.equal(result.id, 'bug-1');
+  assert.equal(result.bugs.length, 1);
+  const text = await readFile(join(root, 'docs/department/b1/bugs/bug-1.md'), 'utf8');
+  assert.match(text, /карта не открывается/);
+});
