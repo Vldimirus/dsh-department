@@ -60,6 +60,31 @@ window.__ModuleLoader__.load({
         .dept-events { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
         .dept-event { display: flex; gap: 8px; flex-wrap: wrap; }
         .dept-event time { color: var(--dsw-alias-label-tertiary, #8b98ad); min-width: 92px; }
+
+        .dept-md { font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+        .dept-md p { margin: 0 0 8px; }
+        .dept-md .md-h1 { font-size: 17px; margin: 10px 0 6px; }
+        .dept-md .md-h2 { font-size: 15px; margin: 10px 0 6px; }
+        .dept-md .md-h3, .dept-md .md-h4 { font-size: 13px; margin: 8px 0 4px; }
+        .dept-md ul, .dept-md ol { margin: 0 0 8px; padding-left: 18px; }
+        .dept-md li { margin: 2px 0; }
+        .dept-md blockquote { margin: 8px 0; padding: 4px 10px; border-left: 3px solid #3d4a63; color: #b8c4d6; background: #141c2b; }
+        .dept-md hr { border: none; border-top: 1px solid #24304a; margin: 10px 0; }
+        .dept-md a { color: #7fb8ff; }
+        .dept-inline-code { background: #1b2438; border: 1px solid #2a3446; border-radius: 4px; padding: 0 4px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+        .md-code { margin: 8px 0; border: 1px solid #232c3d; border-radius: 8px; overflow: hidden; }
+        .md-code-lang { padding: 2px 8px; background: #141c2b; color: #6f7f98; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+        .md-code pre { margin: 0; padding: 8px 10px; overflow: auto; background: #0d1320; }
+        .md-code code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; white-space: pre; }
+        .md-keyword { color: #c792ea; }
+        .md-string { color: #a5e075; }
+        .md-num { color: #f0a35e; }
+        .md-comment { color: #6f7f98; font-style: italic; }
+        .md-table { overflow: auto; margin: 8px 0; }
+        .dept-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+        .dept-table th, .dept-table td { border: 1px solid #26324a; padding: 4px 8px; text-align: left; vertical-align: top; }
+        .dept-table th { background: #182235; color: #c9d6ea; }
+        .dept-table tr:nth-child(even) td { background: #121a28; }
         .dept-pre { white-space: pre-wrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--dsw-alias-label-secondary, #b8c4d6); }
         .dept-empty { padding: 24px; text-align: center; color: var(--dsw-alias-label-tertiary, #8b98ad); }
         .dept-office-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
@@ -615,7 +640,7 @@ window.__ModuleLoader__.load({
           selected
             ? h('div', null,
                 h('div', { className: 'dept-block-title' }, selected),
-                h('pre', { className: 'dept-pre', style: { whiteSpace: 'pre-wrap', margin: 0 } }, content))
+                h(Markdown, { text: content }))
             : h('div', { className: 'dept-sub' }, 'Выбери документ слева — здесь появится содержимое.')))
     }
 
@@ -1272,6 +1297,127 @@ window.__ModuleLoader__.load({
                   h('span', { className: 'dept-sub' }, `токены: ${project.budgetUsed.toLocaleString('ru-RU')}`)),
                 h('div', { className: 'dept-sub' }, Object.entries(project.stages).map(([stage, count]) => `${stage}: ${count}`).join(' · ')),
                 project.lastEvent ? h('div', { className: 'dept-sub' }, `${project.lastEvent.action} · ${project.lastEvent.detail ?? ''}`) : null))) )
+    }
+
+
+    /* ---------------- Markdown ---------------- */
+
+    const MD_KEYWORDS = '(?:const|let|var|function|return|if|else|for|while|class|new|import|export|from|async|await|try|catch|throw|switch|case|break|continue|def|int|float|double|bool|void|struct|template|typename|public|private|protected|std|auto|null|true|false|None|True|False|and|or|not|in|is)'
+
+    function highlightCode(code) {
+      const pattern = new RegExp('(\\/\\/[^\\n]*|#[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/|\'(?:\\\\.|[^\'])*\'|"(?:\\\\.|[^"])*"|\\b\\d+(?:\\.\\d+)?\\b|\\b' + MD_KEYWORDS + '\\b)', 'g')
+      const nodes = []
+      let last = 0
+      let match
+      while ((match = pattern.exec(code)) !== null) {
+        if (match.index > last) nodes.push(code.slice(last, match.index))
+        const token = match[0]
+        let className = 'md-num'
+        if (token.startsWith('//') || token.startsWith('#') || token.startsWith('/*')) className = 'md-comment'
+        else if (token.startsWith("'") || token.startsWith('"')) className = 'md-string'
+        else if (/^\d/.test(token)) className = 'md-num'
+        else className = 'md-keyword'
+        nodes.push(h('span', { key: 'c' + nodes.length, className }, token))
+        last = pattern.lastIndex
+      }
+      if (last < code.length) nodes.push(code.slice(last))
+      return nodes
+    }
+
+    function inlineMarkdown(text) {
+      const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g
+      const nodes = []
+      let last = 0
+      let match
+      while ((match = pattern.exec(text)) !== null) {
+        if (match.index > last) nodes.push(text.slice(last, match.index))
+        const token = match[0]
+        if (token.startsWith('`')) nodes.push(h('code', { key: 'm' + nodes.length, className: 'dept-inline-code' }, token.slice(1, -1)))
+        else if (token.startsWith('**')) nodes.push(h('strong', { key: 'm' + nodes.length }, token.slice(2, -2)))
+        else if (token.startsWith('*')) nodes.push(h('em', { key: 'm' + nodes.length }, token.slice(1, -1)))
+        else {
+          const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+          nodes.push(h('a', { key: 'm' + nodes.length, href: link[2], target: '_blank', rel: 'noreferrer' }, link[1]))
+        }
+        last = pattern.lastIndex
+      }
+      if (last < text.length) nodes.push(text.slice(last))
+      return nodes
+    }
+
+    function parseTable(lines) {
+      const rows = lines.map((line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim()))
+      const header = rows[0] ?? []
+      const body = rows.slice(1).filter((row) => !row.every((cell) => /^:?-+:?$/.test(cell) || cell === ''))
+      return h('table', { className: 'dept-table' },
+        h('thead', null, h('tr', null, ...header.map((cell, index) => h('th', { key: index }, inlineMarkdown(cell))))),
+        h('tbody', null, ...body.map((row, rowIndex) =>
+          h('tr', { key: rowIndex }, ...row.map((cell, cellIndex) => h('td', { key: cellIndex }, inlineMarkdown(cell)))))))
+    }
+
+    function Markdown({ text }) {
+      const lines = String(text ?? '').split(/\r?\n/)
+      const blocks = []
+      let index = 0
+      const isTableStart = (line, next) => line.trim().startsWith('|') && next !== undefined && /^\s*\|?[\s:|-]+\|?\s*$/.test(next)
+      while (index < lines.length) {
+        const line = lines[index]
+        if (/^```/.test(line.trim())) {
+          const lang = line.trim().slice(3).trim()
+          const code = []
+          index += 1
+          while (index < lines.length && !/^```/.test(lines[index].trim())) { code.push(lines[index]); index += 1 }
+          index += 1
+          blocks.push(h('div', { key: 'b' + blocks.length, className: 'md-code' },
+            h('div', { className: 'md-code-lang' }, lang || 'code'),
+            h('pre', null, h('code', null, ...highlightCode(code.join('\n'))))))
+          continue
+        }
+        if (isTableStart(line, lines[index + 1])) {
+          const tableLines = []
+          while (index < lines.length && lines[index].trim().startsWith('|')) { tableLines.push(lines[index]); index += 1 }
+          blocks.push(h('div', { key: 'b' + blocks.length, className: 'md-table' }, parseTable(tableLines)))
+          continue
+        }
+        const heading = line.match(/^(#{1,6})\s+(.*)$/)
+        if (heading) {
+          const level = heading[1].length
+          blocks.push(h('h' + Math.min(4, level), { key: 'b' + blocks.length, className: 'md-h' + level }, inlineMarkdown(heading[2])))
+          index += 1
+          continue
+        }
+        if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
+          const items = []
+          while (index < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[index])) {
+            items.push(lines[index].replace(/^\s*([-*]|\d+\.)\s+/, ''))
+            index += 1
+          }
+          blocks.push(h('ul', { key: 'b' + blocks.length, className: 'md-list' }, ...items.map((item, itemIndex) => h('li', { key: itemIndex }, inlineMarkdown(item)))))
+          continue
+        }
+        if (/^\s*>\s?/.test(line)) {
+          const quote = []
+          while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+            quote.push(lines[index].replace(/^\s*>\s?/, ''))
+            index += 1
+          }
+          blocks.push(h('blockquote', { key: 'b' + blocks.length }, inlineMarkdown(quote.join(' '))))
+          continue
+        }
+        if (/^\s*(-{3,}|\*{3,})\s*$/.test(line)) {
+          blocks.push(h('hr', { key: 'b' + blocks.length }))
+          index += 1
+          continue
+        }
+        if (line.trim() === '') { index += 1; continue }
+        const paragraph = []
+        while (index < lines.length && lines[index].trim() !== '' && !/^```/.test(lines[index].trim()) && !/^#{1,6}\s/.test(lines[index]) && !isTableStart(lines[index], lines[index + 1])) {
+          paragraph.push(lines[index])
+          index += 1
+        }
+        blocks.push(h('p', { key: 'b' + blocks.length }, inlineMarkdown(paragraph.join('\n'))))
+      }
+      return h('div', { className: 'dept-md' }, ...blocks)
     }
 
     /* ---------------- Панель ---------------- */
