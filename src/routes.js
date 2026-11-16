@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
-import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setRole, writeState } from './store.js';
+import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 import { listDocuments, readDocument } from './documents.js';
@@ -25,6 +25,7 @@ export const DEPARTMENT_ROUTES = {
   projects: '/api/department/projects',
   review: '/api/department/review',
   correction: '/api/department/correction',
+  pause: '/api/department/pause',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -112,6 +113,22 @@ export function registerDepartmentRoutes(ctx, activity) {
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
       }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.pause,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, paused, reason, by } = body ?? {};
+      if (!root || !taskId || typeof paused !== 'boolean' || !by) return Response.json({ error: 'root, taskId, paused, by required' }, { status: 400 });
+      if (!isHumanApprover(by)) return Response.json({ error: 'pause must be signed by the human' }, { status: 403 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const next = await writeState(root, setPaused(state, { paused, reason: reason ?? '', by }));
+      return Response.json({ paused: Boolean(next.paused?.value) });
     },
   });
 

@@ -5,6 +5,8 @@ import { access, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
+  isPaused,
+  setPaused,
   setBudget,
   addCorrection,
   updateCorrection,
@@ -63,6 +65,12 @@ async function collectArtifacts(root, taskId) {
   return files;
 }
 
+function assertActive(state, action) {
+  if (isPaused(state)) {
+    throw new Error(`отдел на паузе (${state.paused?.reason || 'без причины'}); ${action} заблокировано — сними паузу dept_pause`);
+  }
+}
+
 function requireString(args, key) {
   const value = args?.[key];
   if (typeof value !== 'string' || value.trim() === '') {
@@ -106,6 +114,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(composeTool()));
   disposers.push(ctx.tools.register(correctionTool()));
   disposers.push(ctx.tools.register(budgetTool()));
+  disposers.push(ctx.tools.register(pauseTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -290,6 +299,7 @@ function gateTool() {
       const kind = requireString(args, 'kind');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      assertActive(state, 'гейт');
 
       let next;
       const stageNo = (state.stageIndex ?? 0) + 1;
@@ -356,6 +366,7 @@ function commitTool(activity) {
       const taskId = requireString(args, 'taskId');
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
+      assertActive(state, 'коммит');
       if (state.stage === 'blocked') {
         throw new Error('commit blocked: этап заблокирован (повторяющийся провал); нужно решение человека');
       }
@@ -1640,6 +1651,39 @@ function budgetTool() {
       }
       const budget = state.gates?.budget ?? {};
       return { budget, summary: `бюджет: лимит ${budget.limitTokens ?? '—'}, использовано ${budget.usedTokens ?? 0}, override=${Boolean(budget.override)}, курс ${budget.rateRUB ?? '—'}` };
+    },
+  };
+}
+
+function pauseTool() {
+  return {
+    name: 'dept_pause',
+    description: 'Пауза/возобновление задачи: работа останавливается, токены не тратятся, состояние сохраняется. После resume отдел продолжает с того же места.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        paused: { type: 'boolean', description: 'true — пауза, false — продолжить.' },
+        reason: { type: 'string', description: 'Причина.' },
+        by: { type: 'string', description: 'Кто поставил (человек или manager).' },
+      },
+      required: ['root', 'taskId', 'paused'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { paused: { type: 'boolean' }, summary: { type: 'string' } }, required: ['paused', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const paused = Boolean(args?.paused);
+      const by = String(args?.by ?? 'manager');
+      if (!paused && by !== 'manager' && !isHumanApprover(by)) throw new Error('resume must be signed by the human');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, setPaused(state, { paused, reason: args?.reason ?? '', by }));
+      return { paused: Boolean(next.paused?.value), summary: paused ? `задача на паузе: ${args?.reason ?? ''}` : 'работа продолжена' };
     },
   };
 }

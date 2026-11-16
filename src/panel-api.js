@@ -70,6 +70,8 @@ export function taskSummary(root, taskId, state, planStages = 0) {
     taskId,
     title: state.title ?? taskId,
     stage: state.stage,
+    paused: Boolean(state.paused?.value),
+    pauseReason: state.paused?.reason ?? '',
     progress: progressOf(state.stage, state.stageIndex, planStages),
     branch: state.branch,
     tests: state.gates?.tests?.status ?? 'pending',

@@ -23,6 +23,7 @@ window.__ModuleLoader__.load({
       documents: '/api/department/documents',
       document: '/api/department/document',
       correction: '/api/department/correction',
+      pause: '/api/department/pause',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -575,7 +576,7 @@ window.__ModuleLoader__.load({
         'div',
         { className: 'dept-card', onClick: () => onOpen(task), style: task.memos ? { borderColor: '#d8c07a' } : undefined },
         h('div', { className: 'dept-row' }, h('strong', null, task.title), h('span', { className: 'dept-sub' }, task.taskId)),
-        h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, task.stage), h('span', { className: 'dept-sub' }, `ветка ${task.branch}`)),
+        h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, task.stage), task.paused ? h('span', { className: 'dept-badge wait' }, '⏸ пауза') : null, h('span', { className: 'dept-sub' }, `ветка ${task.branch}`)),
         h('div', { className: 'dept-bar' }, h('i', { style: { width: `${task.progress}%` } })),
         h('div', { className: 'dept-row' }, h('span', { className: 'dept-sub' }, `${task.progress}%`), badge(`tests:${task.tests}`), badge(`review:${task.review}`),
           task.memos ? h('span', { className: 'dept-badge wait' }, '✍ ' + task.memos) : null),
@@ -774,6 +775,7 @@ window.__ModuleLoader__.load({
                         disabled: busy || !(drafts[question.id] ?? '').trim(),
                         onClick: () => post(ROUTES.answer, { root: detail.root, taskId: detail.taskId, questionId: question.id, answer: (drafts[question.id] ?? '').trim() }),
                       }, 'Ответить'))))),
+            detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, '⏸ на паузе' + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
             (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
               ? h('div', null,
                   h('div', { className: 'dept-block-title' }, 'Служебные записки (ждут решения человека)'),
@@ -1003,12 +1005,18 @@ window.__ModuleLoader__.load({
           h('div', null,
             h('div', { className: 'dept-title' }, detail.title),
             h('div', { className: 'dept-sub' }, `${detail.taskId} · ${detail.stage} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`),
+            detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, '⏸ на паузе' + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
             (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
               ? h('div', { className: 'dept-row', style: { marginTop: '4px' } },
                   h('span', { className: 'dept-badge wait' }, '✍ служебных записок: ' + (detail.questions ?? []).filter((question) => question.status === 'memo').length))
               : null),
           h('div', { className: 'dept-row' },
             h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: 'ваше имя', title: 'Имя для подписи' }),
+            h('button', {
+              className: 'dept-btn',
+              disabled: busy,
+              onClick: () => post(ROUTES.pause, { root: detail.root, taskId: detail.taskId, paused: !detail.paused, reason: 'по кнопке' }),
+            }, detail.paused ? 'Продолжить' : 'Пауза'),
             h('button', { className: 'dept-btn', onClick: onBack }, '← К доске'))),
         h('div', { className: 'dept-tabs' }, ...tabs.map(([key, label]) =>
           h('button', { key, className: 'dept-btn' + (tab === key ? ' active' : ''), onClick: () => setTab(key) }, label))),

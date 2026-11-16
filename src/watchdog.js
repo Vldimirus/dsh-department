@@ -88,7 +88,7 @@ export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
         const messages = [];
         for (const taskId of ids) {
           const state = await readTaskState(cwd, taskId);
-          if (!state) continue;
+          if (!state || state.paused?.value) continue;
           const { items } = pendingHumanInput(state);
           if (items.length === 0) continue;
           const key = (agent.id ?? cwd) + ':' + taskId;

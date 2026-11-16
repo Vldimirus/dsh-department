@@ -332,6 +332,7 @@ export function summarize(state) {
     `review: ${review?.status ?? 'pending'}`,
     `провалы: ${state.attempts?.current ?? 0}/${state.attempts?.max ?? 0}`,
     `budget: ${state.gates?.budget?.usedTokens ?? 0}/${state.gates?.budget?.limitTokens ?? 0}`,
+    state.paused?.value ? 'paused' : 'active',
     `events: ${state.events?.length ?? 0}`,
     `stats: tests ${state.stats?.testsRuns ?? 0}/${state.stats?.testsFails ?? 0} fail, review ${state.stats?.reviewRuns ?? 0}/${state.stats?.reviewFails ?? 0} fail`,
   ].join(' · ');
@@ -895,4 +896,36 @@ export function setBudget(state, input) {
     action: 'budget_updated',
     detail: `limit=${next.limitTokens ?? '—'} override=${next.override ?? false}${input.reason ? ' · ' + String(input.reason).slice(0, 120) : ''}`,
   });
+}
+
+/**
+ * Ставит задачу на паузу или снимает её.
+ *
+ * @param {object} state Состояние.
+ * @param {{ paused: boolean, reason?: string, by: string }} input Пауза.
+ * @returns {object} Новое состояние.
+ */
+export function setPaused(state, input) {
+  const now = new Date().toISOString();
+  const paused = Boolean(input.paused);
+  const next = {
+    ...state,
+    paused: { value: paused, reason: String(input.reason ?? ''), by: String(input.by ?? 'manager'), ts: now },
+    updatedAt: now,
+  };
+  return appendEvent(next, {
+    actor: String(input.by ?? 'manager'),
+    action: paused ? 'task_paused' : 'task_resumed',
+    detail: input.reason ? String(input.reason).slice(0, 140) : '',
+  });
+}
+
+/**
+ * Задача на паузе?
+ *
+ * @param {object} state Состояние.
+ * @returns {boolean}
+ */
+export function isPaused(state) {
+  return Boolean(state.paused?.value);
 }

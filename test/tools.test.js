@@ -123,3 +123,14 @@ test('dept_worktree: создаёт, показывает и удаляет work
   const removed = await tools.get('dept_worktree').execute({ root, taskId: 'w1', action: 'remove', name: 'module-a' });
   assert.equal(removed.worktrees.length, 0);
 });
+
+test('dept_pause: блокирует гейты и снимается', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'p1', testCommand: 'true', branch: 'dept/p1' });
+  await tools.get('dept_pause').execute({ root, taskId: 'p1', paused: true, reason: 'выключение сервера', by: 'vladimir' });
+  await assert.rejects(() => tools.get('dept_gate').execute({ root, taskId: 'p1', kind: 'tests' }), /паузе/);
+  await tools.get('dept_pause').execute({ root, taskId: 'p1', paused: false, by: 'vladimir' });
+  const gated = await tools.get('dept_gate').execute({ root, taskId: 'p1', kind: 'tests' });
+  assert.equal(gated.state.gates.tests.status, 'pass');
+});
