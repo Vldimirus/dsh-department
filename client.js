@@ -220,7 +220,7 @@ window.__ModuleLoader__.load({
       return points[points.length - 1] ?? from
     }
 
-    function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention }) {
+    function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention, party }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
@@ -441,6 +441,11 @@ window.__ModuleLoader__.load({
         h('div', { className: 'dept-row' },
           h('div', { className: 'dept-title' }, 'Офис отдела'),
           h('div', { className: 'dept-sub' }, items.length ? 'сотрудников: ' + items.length + ' из ' + DESKS.length : 'никого нет')),
+        party
+          ? h('div', { className: 'dept-block', style: { borderColor: '#7fdc9a', textAlign: 'center' } },
+              h('div', { className: 'dept-title' }, '🎉 Вечеринка!'),
+              h('div', { className: 'dept-sub' }, 'Все задачи отдела закрыты — можно отдыхать.'))
+          : null,
         h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'nowrap' } },
           h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
             h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': 'Офис ИИ-отдела', style: { imageRendering: 'pixelated' } },
@@ -1279,6 +1284,7 @@ window.__ModuleLoader__.load({
       const [projectFilter, setProjectFilter] = useState(null)
       const activity = useActivity()
       const attention = tasks.reduce((sum, task) => sum + (task.memos ?? 0), 0)
+      const party = tasks.length > 0 && tasks.every((task) => task.stage === 'done')
 
       async function loadTasks() {
         setLoading(true)
@@ -1357,7 +1363,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
               h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
-          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) } }),
+          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) }, party }),
         )
       }
 
