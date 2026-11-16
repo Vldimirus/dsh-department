@@ -252,7 +252,7 @@ window.__ModuleLoader__.load({
       return points[points.length - 1] ?? from
     }
 
-    function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention, party }) {
+    function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention, party, paused, pauseReason }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
       const settled = React.useRef(new Map())
@@ -466,11 +466,20 @@ window.__ModuleLoader__.load({
         }
       }
 
+      if (paused) {
+        const manager = actors.find((actor) => actor.role === 'manager')
+        if (manager) {
+          manager.mode = 'seat'
+          manager.spot = { x: 470, y: 210 }
+        }
+      }
+
       return h(
         'div',
         { className: 'dept-root' },
         h('div', { className: 'dept-row' },
           h('div', { className: 'dept-title' }, 'Офис отдела'),
+          paused ? h('span', { className: 'dept-badge wait' }, '⏸ отдел на паузе' + (pauseReason ? ': ' + pauseReason : '')) : null,
           h('div', { className: 'dept-sub' }, items.length ? 'сотрудников: ' + items.length + ' из ' + DESKS.length : 'никого нет')),
         party
           ? h('div', { className: 'dept-block', style: { borderColor: '#7fdc9a', textAlign: 'center' } },
@@ -1557,7 +1566,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
               h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
-          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) }, party }),
+          h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) }, party, paused: tasks.some((task) => task.paused), pauseReason: (tasks.find((task) => task.paused) ?? {}).pauseReason }),
         )
       }
 
