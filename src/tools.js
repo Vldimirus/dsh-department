@@ -319,6 +319,20 @@ function commitTool(activity) {
       if (state.stage === 'blocked') {
         throw new Error('commit blocked: этап заблокирован (повторяющийся провал); нужно решение человека');
       }
+      if (state.stage === 'executing') {
+        const blockers = [];
+        if (state.gates?.tests?.status !== 'pass') blockers.push('тесты не пройдены');
+        if (state.gates?.review?.status !== 'pass') blockers.push('ревью не пройдено');
+        const stageNo = String((state.stageIndex ?? 0) + 1).padStart(2, '0');
+        for (const name of ['review.md', 'report.md']) {
+          try {
+            await access(join(taskDir(root, taskId), 'stages', stageNo, name));
+          } catch {
+            blockers.push('нет stages/' + stageNo + '/' + name);
+          }
+        }
+        if (blockers.length > 0) throw new Error('commit blocked: ' + blockers.join('; '));
+      }
 
       const committed = await commitAll(root, requireString(args, 'message'));
       if (!committed.ok) throw new Error(`commit failed: ${committed.error ?? ''}`);
@@ -453,6 +467,21 @@ function verifyTool() {
           files[name] = true;
         } catch {
           files[name] = false;
+        }
+      }
+      try {
+        await access(join(root, 'README.md'));
+        files['README.md'] = true;
+      } catch {
+        files['README.md'] = false;
+      }
+      const stageNo = String((state.stageIndex ?? 0) + 1).padStart(2, '0');
+      for (const name of ['review.md', 'report.md']) {
+        try {
+          await access(join(taskDir(root, taskId), 'stages', stageNo, name));
+          files['stage:' + name.replace('.md', '')] = true;
+        } catch {
+          files['stage:' + name.replace('.md', '')] = false;
         }
       }
       const branch = await currentBranch(root);

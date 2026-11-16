@@ -10,7 +10,7 @@ const REQUIRED_ARTIFACTS = Object.freeze({
   concept_review: ['task.md', 'analysis.md', 'concept.md'],
   spec: ['task.md', 'concept.md'],
   spec_review: ['task.md', 'concept.md', 'spec.md'],
-  executing: ['task.md', 'concept.md', 'spec.md', 'plan.md'],
+  executing: ['task.md', 'concept.md', 'spec.md', 'plan.md', 'README.md'],
   done: ['task.md', 'concept.md', 'spec.md', 'plan.md'],
   blocked: ['task.md'],
 });
@@ -58,6 +58,8 @@ export function verifyChecklist({ state, files, currentBranch }) {
 
     // Гейты должны быть получены после последнего коммита этапа, иначе pass
     // предыдущего этапа «переезжает» на текущий.
+    check('stage:review', files['stage:review'] === true, files['stage:review'] ? 'present' : 'missing');
+    check('stage:report', files['stage:report'] === true, files['stage:report'] ? 'present' : 'missing');
     const lastCommit = lastEventTime(state, 'commit_pushed');
     const lastTests = lastEventTime(state, 'tests_passed');
     const lastReview = lastEventTime(state, 'review_passed');

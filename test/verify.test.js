@@ -40,7 +40,7 @@ test('verify: executing требует approvals и pass-гейт', () => {
       { action: 'review_passed', ts: '2026-11-15T10:07:00.000Z' },
     ],
   };
-  const files = { 'task.md': true, 'concept.md': true, 'spec.md': true, 'plan.md': true };
+  const files = { 'task.md': true, 'concept.md': true, 'spec.md': true, 'plan.md': true, 'README.md': true, 'stage:review': true, 'stage:report': true };
   assert.equal(verifyChecklist({ state, files, currentBranch: 'dept/v1' }).ok, true);
   const noTests = { ...state, gates: { ...state.gates, tests: { status: 'pending' } } };
   assert.equal(verifyChecklist({ state: noTests, files, currentBranch: 'dept/v1' }).ok, false);
@@ -60,7 +60,7 @@ test('formatReport: содержит PASS/FAIL и проверки', () => {
 test('requiredArtifacts: стадии требуют свои документы', () => {
   assert.deepEqual(requiredArtifacts('concept'), ['task.md', 'analysis.md']);
   assert.deepEqual(requiredArtifacts('concept_review'), ['task.md', 'analysis.md', 'concept.md']);
-  assert.deepEqual(requiredArtifacts('executing'), ['task.md', 'concept.md', 'spec.md', 'plan.md']);
+  assert.deepEqual(requiredArtifacts('executing'), ['task.md', 'concept.md', 'spec.md', 'plan.md', 'README.md']);
 });
 
 test('missingArtifacts: перехват отсутствующего analysis.md', () => {
