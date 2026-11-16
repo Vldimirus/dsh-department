@@ -5,6 +5,7 @@ import { access, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
+  setBudget,
   addCorrection,
   updateCorrection,
   addMemo,
@@ -104,6 +105,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(pixelizeTool()));
   disposers.push(ctx.tools.register(composeTool()));
   disposers.push(ctx.tools.register(correctionTool()));
+  disposers.push(ctx.tools.register(budgetTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -1583,6 +1585,57 @@ function correctionTool() {
       }
       const corrections = state.corrections ?? [];
       return { corrections, summary: corrections.map((item) => `${item.id} [${item.status}] ${item.doc}: ${item.subject || item.text.slice(0, 60)}`).join('\n') || 'корректировок нет' };
+    },
+  };
+}
+
+function budgetTool() {
+  return {
+    name: 'dept_budget',
+    description: 'Посмотреть или изменить бюджет задачи: лимит токенов, цены за 1M, курс, разрешение превышения. Применяй значение, которое назвал человек, и записывай причину.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        limitTokens: { type: 'integer', description: 'Новый лимит токенов.' },
+        rateRUB: { type: 'integer', description: 'Курс рубля за доллар.' },
+        override: { type: 'boolean', description: 'Разрешить коммит при превышении лимита.' },
+        reason: { type: 'string', description: 'Почему меняем (например, решение человека).' },
+        prices: {
+          type: 'object',
+          properties: {
+            inputTokens: { type: 'number' },
+            outputTokens: { type: 'number' },
+            cacheReadTokens: { type: 'number' },
+            cacheWriteTokens: { type: 'number' },
+          },
+          description: 'Цены за 1M токенов в долларах.',
+        },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { budget: { type: 'object' }, summary: { type: 'string' } }, required: ['budget', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      if (args?.limitTokens !== undefined || args?.rateRUB !== undefined || args?.override !== undefined || args?.prices !== undefined) {
+        state = await writeState(root, setBudget(state, {
+          limitTokens: args?.limitTokens,
+          rateRUB: args?.rateRUB,
+          override: args?.override,
+          prices: args?.prices,
+          reason: args?.reason,
+          by: 'manager',
+        }));
+      }
+      const budget = state.gates?.budget ?? {};
+      return { budget, summary: `бюджет: лимит ${budget.limitTokens ?? '—'}, использовано ${budget.usedTokens ?? 0}, override=${Boolean(budget.override)}, курс ${budget.rateRUB ?? '—'}` };
     },
   };
 }

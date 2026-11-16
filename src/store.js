@@ -870,3 +870,28 @@ export function updateCorrection(state, input) {
   const next = { ...state, corrections: corrections.map((item, position) => (position === index ? updated : item)), updatedAt: now };
   return appendEvent(next, { actor: input.by ?? 'manager', action: 'correction_' + input.status, detail: `${updated.id}: ${input.summary ?? ''}`.slice(0, 140) });
 }
+
+/**
+ * Меняет бюджет задачи: лимит, цены, курс, разрешение превышения.
+ *
+ * @param {object} state Состояние.
+ * @param {{ limitTokens?: number, prices?: object, rateRUB?: number, override?: boolean, reason?: string, by?: string }} input Правка.
+ * @returns {object} Новое состояние.
+ */
+export function setBudget(state, input) {
+  const now = new Date().toISOString();
+  const budget = state.gates?.budget ?? {};
+  const next = {
+    ...budget,
+    ...(Number.isFinite(Number(input.limitTokens)) ? { limitTokens: Number(input.limitTokens) } : {}),
+    ...(input.prices && typeof input.prices === 'object' ? { prices: { ...(budget.prices ?? {}), ...input.prices } } : {}),
+    ...(Number.isFinite(Number(input.rateRUB)) ? { rateRUB: Number(input.rateRUB) } : {}),
+    ...(input.override !== undefined ? { override: Boolean(input.override) } : {}),
+    updatedAt: now,
+  };
+  return appendEvent({ ...state, gates: { ...state.gates, budget: next }, updatedAt: now }, {
+    actor: input.by ?? 'manager',
+    action: 'budget_updated',
+    detail: `limit=${next.limitTokens ?? '—'} override=${next.override ?? false}${input.reason ? ' · ' + String(input.reason).slice(0, 120) : ''}`,
+  });
+}

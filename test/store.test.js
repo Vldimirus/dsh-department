@@ -15,6 +15,7 @@ import {
   reviewMemo,
   listRoles,
   setRole,
+  setBudget,
   listQuestions,
   resetGatesForNextStage,
   approveDocument,
@@ -208,4 +209,11 @@ test('жизненный цикл вопроса: предложение → к�
   assert.equal(state.questions[0].status, 'changes_requested');
   state = addRework(state, { questionId: qid, summary: 'переделать стиль', steps: ['собрать референсы'], path: 'rework/' + qid + '.md' });
   assert.equal(state.questions[0].status, 'rework_planned');
+});
+
+test('setBudget: лимит меняется и пишется событие', () => {
+  const state = createState({ root: '/tmp/x', taskId: 'b1' });
+  const next = setBudget(state, { limitTokens: 5000000, reason: 'решение человека', by: 'manager' });
+  assert.equal(next.gates.budget.limitTokens, 5000000);
+  assert.equal(next.events.at(-1).action, 'budget_updated');
 });
