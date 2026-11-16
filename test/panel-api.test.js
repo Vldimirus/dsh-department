@@ -20,3 +20,11 @@ test('taskSummary: собирает карточку из состояния', (
   assert.ok(card.progress > 0);
   assert.equal(card.lastEvent.action, 'task_created');
 });
+
+test('progressOf: executing растёт по этапам плана, а не стоит на 83', () => {
+  assert.equal(progressOf('executing', 0, 10), 50);
+  assert.equal(progressOf('executing', 5, 10), 73);
+  assert.equal(progressOf('executing', 10, 10), 95);
+  assert.equal(progressOf('done'), 100);
+  assert.equal(progressOf('spec'), 33);
+});

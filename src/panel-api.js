@@ -2,7 +2,7 @@
  * Данные для Web-панели отдела: список задач и карточка одной задачи.
  * Только чтение: панель ничего не меняет, все действия — через инструменты.
  */
-import { access, readdir } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { listQuestions, readState, summarize, DEPARTMENT_DIR } from './store.js';
 import { missingArtifacts, verifyChecklist } from './verify.js';
@@ -25,12 +25,34 @@ export const STAGE_ORDER = [
  * @param {string} stage Текущая стадия.
  * @returns {number} 0..100
  */
-export function progressOf(stage) {
-  if (stage === 'blocked') return 0;
+export function progressOf(stage, stageIndex = 0, planStages = 0) {
   if (stage === 'done') return 100;
+  if (stage === 'blocked') return 0;
+  if (stage === 'executing') {
+    const total = Math.max(1, Number(planStages) || 8);
+    const done = Math.min(total, Math.max(0, Number(stageIndex) || 0));
+    return Math.min(95, 50 + Math.round((done / total) * 45));
+  }
   const index = STAGE_ORDER.indexOf(stage);
   if (index < 0) return 0;
-  return Math.round((index / (STAGE_ORDER.length - 1)) * 100);
+  return Math.round((index / (STAGE_ORDER.length - 1)) * 50);
+}
+
+/**
+ * Сколько этапов в плане (по тегам stage-N).
+ *
+ * @param {string} root Корень.
+ * @param {string} taskId Задача.
+ * @returns {Promise<number>}
+ */
+export async function planStagesOf(root, taskId) {
+  try {
+    const text = await readFile(join(root, DEPARTMENT_DIR, taskId, 'plan.md'), 'utf8');
+    const tags = new Set(text.match(/stage-\d+/g) ?? []);
+    return Math.max(1, tags.size);
+  } catch {
+    return 8;
+  }
 }
 
 /**
@@ -41,14 +63,14 @@ export function progressOf(stage) {
  * @param {object} state Состояние.
  * @returns {object}
  */
-export function taskSummary(root, taskId, state) {
+export function taskSummary(root, taskId, state, planStages = 0) {
   const last = state.events?.[state.events.length - 1];
   return {
     root,
     taskId,
     title: state.title ?? taskId,
     stage: state.stage,
-    progress: progressOf(state.stage),
+    progress: progressOf(state.stage, state.stageIndex, planStages),
     branch: state.branch,
     tests: state.gates?.tests?.status ?? 'pending',
     review: state.gates?.review?.status ?? 'pending',
@@ -84,7 +106,8 @@ export async function listTasks(roots) {
       if (!entry.isDirectory()) continue;
       const state = await readState(root, entry.name);
       if (!state) continue;
-      tasks.push(taskSummary(root, entry.name, state));
+      const planStages = await planStagesOf(root, entry.name);
+      tasks.push(taskSummary(root, entry.name, state, planStages));
     }
   }
   tasks.sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')));
@@ -101,6 +124,7 @@ export async function listTasks(roots) {
 export async function taskPayload(root, taskId) {
   const state = await readState(root, taskId);
   if (!state) return null;
+  const planStages = await planStagesOf(root, taskId);
 
   const names = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md', 'backlog.md'];
   const files = {};
