@@ -102,6 +102,7 @@ export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
         if (messages.length > 0) {
           try {
             agent.followup({
+              role: 'user',
               content: [{
                 type: 'text',
                 text: `Новые данные от человека:\n\n${messages.join('\n\n')}\n\nОбработай: dept_correction (новые корректировки), dept_status, примени решения инструментами (dept_budget, dept_roles, dept_amend), закрой корректировки с итогом.`,
