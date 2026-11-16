@@ -706,6 +706,7 @@ function rolesTool() {
         role: { type: 'string', description: 'Имя роли (coder, reviewer, ...). Пусто — только показать.' },
         model: { type: 'string', description: 'Модель для роли (пусто — по умолчанию).' },
         reasoning: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Уровень reasoning.' },
+        enabled: { type: 'boolean', description: 'Включена ли роль (нельзя выключить manager/coder/tester).' },
       },
       required: ['root', 'taskId'],
     },
@@ -723,10 +724,11 @@ function rolesTool() {
           role: args.role.trim(),
           model: args?.model,
           reasoning: args?.reasoning,
+          enabled: args?.enabled,
         }));
       }
       const roles = listRoles(state);
-      return { roles, summary: roles.map((role) => `${role.name}: ${role.model ?? 'default'}/${role.reasoning ?? 'default'}`).join(' · ') };
+      return { roles, summary: roles.map((role) => `${role.name}: ${role.enabled ? 'on' : 'OFF'} ${role.model ?? 'default'}/${role.reasoning ?? 'default'}`).join(' · ') };
     },
   };
 }

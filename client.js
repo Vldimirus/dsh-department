@@ -697,7 +697,22 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-sub' }, 'Модель и reasoning для каждой роли. Пустая модель — по умолчанию.'),
             ...roles.map((role) =>
               h('div', { key: role.name, className: 'dept-kv', style: { alignItems: 'center', gap: '6px' } },
-                h('span', { style: { minWidth: '120px' } }, role.title),
+                h('input', {
+                  type: 'checkbox',
+                  checked: role.enabled !== false,
+                  disabled: role.core,
+                  title: role.core ? 'основная роль — всегда включена' : 'включить/выключить роль',
+                  onChange: async (event) => {
+                    const response = await fetch(ROUTES.roles, {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ root: detail.root, taskId: detail.taskId, role: role.name, model: role.model, reasoning: role.reasoning, enabled: event.target.checked }),
+                    })
+                    const data = await response.json().catch(() => ({}))
+                    if (response.ok) { setRoles(data.roles); setMessage(event.target.checked ? 'Роль включена' : 'Роль выключена') } else { setMessage(data.error || 'ошибка') }
+                  },
+                }),
+                h('span', { style: { minWidth: '120px' } }, role.title + (role.core ? ' · основная' : '')),
                 h('input', {
                   className: 'dept-input',
                   placeholder: 'model (default)',

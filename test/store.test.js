@@ -10,6 +10,8 @@ import {
   amendDocument,
   answerQuestion,
   critiqueIdea,
+  listRoles,
+  setRole,
   listQuestions,
   resetGatesForNextStage,
   approveDocument,
@@ -164,4 +166,16 @@ test('addIdeas + critiqueIdea: две похвалы принимают, жёс�
   assert.equal(state.ideas.find((idea) => idea.id === first.id).status, 'accepted');
   state = critiqueIdea(state, { ideaId: second.id, role: 'tester', verdict: 'reject', severity: 'high' });
   assert.equal(state.ideas.find((idea) => idea.id === second.id).status, 'rejected');
+});
+
+test('listRoles: beta-tester выключен по умолчанию, основные нельзя выключить', () => {
+  const state = createState({ root: '/tmp/x', taskId: 'r1' });
+  const roles = listRoles(state);
+  const beta = roles.find((role) => role.name === 'beta-tester');
+  const coder = roles.find((role) => role.name === 'coder');
+  assert.equal(beta.enabled, false);
+  assert.equal(coder.core, true);
+  assert.throws(() => setRole(state, { role: 'coder', enabled: false }), /core role/);
+  const enabled = setRole(state, { role: 'beta-tester', enabled: true });
+  assert.equal(listRoles(enabled).find((role) => role.name === 'beta-tester').enabled, true);
 });

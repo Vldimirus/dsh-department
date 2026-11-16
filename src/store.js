@@ -492,6 +492,12 @@ export function listQuestions(state, filter = {}) {
 import { createHash } from 'node:crypto';
 import { DEFAULT_ROLES } from './roles.js';
 
+/** Роли, которые нельзя выключить. */
+export const CORE_ROLES = Object.freeze(['manager', 'coder', 'tester']);
+
+/** Роли, выключенные по умолчанию из-за ресурсов. */
+const DISABLED_BY_DEFAULT = Object.freeze(['beta-tester']);
+
 /**
  * Подпись провала: нормализованный хвост вывода.
  *
@@ -535,6 +541,10 @@ export function setRole(state, input) {
   const next = { ...(roles[role] ?? {}) };
   if (input.model !== undefined) next.model = input.model || null;
   if (input.reasoning !== undefined) next.reasoning = input.reasoning || null;
+  if (input.enabled !== undefined) {
+    if (!input.enabled && CORE_ROLES.includes(role)) throw new Error(`cannot disable core role: ${role}`);
+    next.enabled = Boolean(input.enabled);
+  }
   roles[role] = next;
   const now = new Date().toISOString();
   return appendEvent({ ...state, roles, updatedAt: now }, {
@@ -556,6 +566,8 @@ export function listRoles(state) {
     title: base.title,
     model: state.roles?.[name]?.model ?? null,
     reasoning: state.roles?.[name]?.reasoning ?? base.reasoning ?? null,
+    enabled: state.roles?.[name]?.enabled ?? !DISABLED_BY_DEFAULT.includes(name),
+    core: CORE_ROLES.includes(name),
     tools: base.tools,
   }));
 }
