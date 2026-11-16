@@ -9,6 +9,7 @@ import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } fr
 import { amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
+import { listDocuments, readDocument } from './documents.js';
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 
@@ -23,6 +24,8 @@ export const DEPARTMENT_ROUTES = {
   roles: '/api/department/roles',
   projects: '/api/department/projects',
   review: '/api/department/review',
+  documents: '/api/department/documents',
+  document: '/api/department/document',
   answer: '/api/department/answer',
   amend: '/api/department/amend',
   budget: '/api/department/budget',
@@ -73,6 +76,41 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       const roots = resolveRoots(ctx, url.searchParams.get('root'));
       return Response.json({ roots, tasks: await listTasks(roots) });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.documents,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+      try {
+        return Response.json({ documents: await listDocuments(root, taskId) });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.document,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      const path = url.searchParams.get('path');
+      if (!root || !taskId || !path) return Response.json({ error: 'root, taskId, path required' }, { status: 400 });
+      try {
+        return Response.json({ path, content: await readDocument(root, taskId, path) });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
     },
   });
 

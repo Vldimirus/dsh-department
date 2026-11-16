@@ -20,6 +20,8 @@ window.__ModuleLoader__.load({
       budget: '/api/department/budget',
       blueprint: '/api/department/blueprint',
       roles: '/api/department/roles',
+      documents: '/api/department/documents',
+      document: '/api/department/document',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -537,6 +539,64 @@ window.__ModuleLoader__.load({
       )
     }
 
+    /* ---------------- Документы (почта отдела) ---------------- */
+
+    function DocumentsView({ root, taskId }) {
+      const [documents, setDocuments] = useState([])
+      const [query, setQuery] = useState('')
+      const [type, setType] = useState('all')
+      const [selected, setSelected] = useState(null)
+      const [content, setContent] = useState('')
+      const [error, setError] = useState(null)
+
+      useEffect(() => {
+        api(ROUTES.documents + '?root=' + encodeURIComponent(root) + '&taskId=' + encodeURIComponent(taskId))
+          .then((payload) => { setDocuments(payload.documents ?? []); setError(null) })
+          .catch((problem) => setError(problem.message))
+      }, [root, taskId])
+
+      useEffect(() => {
+        if (!selected) return
+        setContent('загрузка…')
+        api(ROUTES.document + '?root=' + encodeURIComponent(root) + '&taskId=' + encodeURIComponent(taskId) + '&path=' + encodeURIComponent(selected))
+          .then((payload) => setContent(payload.content ?? ''))
+          .catch((problem) => setContent('ошибка: ' + problem.message))
+      }, [selected, root, taskId])
+
+      const types = ['all', ...new Set(documents.map((item) => item.type))]
+      const filtered = documents.filter((item) => {
+        if (type !== 'all' && item.type !== type) return false
+        if (!query.trim()) return true
+        const haystack = (item.title + ' ' + item.path + ' ' + item.type).toLowerCase()
+        return haystack.includes(query.trim().toLowerCase())
+      })
+
+      return h('div', { style: { display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
+        h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
+          h('div', { className: 'dept-block-title' }, 'Документы'),
+          h('input', { className: 'dept-input', placeholder: 'поиск по названию', value: query, onChange: (event) => setQuery(event.target.value) }),
+          h('select', { className: 'dept-input', value: type, onChange: (event) => setType(event.target.value) },
+            ...types.map((item) => h('option', { key: item, value: item }, item === 'all' ? 'все типы' : item))),
+          error ? h('div', { className: 'dept-badge fail' }, error) : null,
+          filtered.length === 0
+            ? h('div', { className: 'dept-sub' }, 'ничего не найдено')
+            : h('div', { className: 'dept-events' }, ...filtered.map((item) =>
+                h('div', {
+                  key: item.path,
+                  className: 'dept-kv',
+                  style: { cursor: 'pointer', background: selected === item.path ? '#1b2438' : undefined, alignItems: 'flex-start', flexDirection: 'column', gap: '2px' },
+                  onClick: () => setSelected(item.path),
+                },
+                  h('span', null, item.title || item.path),
+                  h('span', { className: 'dept-sub' }, item.type + ' · ' + String(item.ts).replace('T', ' ').slice(0, 16)))))),
+        h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
+          selected
+            ? h('div', null,
+                h('div', { className: 'dept-block-title' }, selected),
+                h('pre', { className: 'dept-pre', style: { whiteSpace: 'pre-wrap', margin: 0 } }, content))
+            : h('div', { className: 'dept-sub' }, 'Выбери документ слева — здесь появится содержимое.')))
+    }
+
     function TaskDetail({ detail, onBack, onReload }) {
       const docs = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md', 'backlog.md']
       const [tab, setTab] = useState('overview')
@@ -544,6 +604,7 @@ window.__ModuleLoader__.load({
       const [budget, setBudget] = useState(detail.budget ?? null)
       const [drafts, setDrafts] = useState({})
       const [remarks, setRemarks] = useState({})
+      const [eventId, setEventId] = useState(null)
       const [amend, setAmend] = useState({ doc: 'spec', summary: '', reason: '' })
       const [roles, setRoles] = useState([])
       const [prices, setPrices] = useState({ limit: '', input: '', output: '', rate: '' })
@@ -638,10 +699,7 @@ window.__ModuleLoader__.load({
 
       const content = (() => {
         if (tab === 'docs') {
-          return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Документы задачи'),
-            h('div', { className: 'dept-grid' }, ...docs.map((file) =>
-              h('div', { key: file, className: `dept-doc ${detail.files?.[file] ? '' : 'missing'}` }, `${file}${detail.files?.[file] ? '' : ' — нет'}`))))
+          return h(DocumentsView, { root: detail.root, taskId: detail.taskId })
         }
         if (tab === 'questions') {
           return h('div', { className: 'dept-block' },
@@ -703,12 +761,27 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-sub' }, detail.audit?.ok ? 'Итог: PASS' : 'Итог: FAIL'))
         }
         if (tab === 'events') {
-          return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Журнал событий'),
-            h('div', { className: 'dept-events' }, ...(detail.events ?? []).map((event) =>
-              h('div', { key: event.id, className: 'dept-event' },
-                h('time', null, String(event.ts).replace('T', ' ').slice(0, 19)),
-                h('span', null, `${event.actor}: ${event.action}${event.detail ? ' — ' + event.detail : ''}`)))))
+          const selectedEvent = (detail.events ?? []).find((event) => event.id === eventId) ?? null
+          return h('div', { style: { display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
+            h('div', { className: 'dept-block', style: { maxHeight: '520px', overflow: 'auto' } },
+              h('div', { className: 'dept-block-title' }, 'События'),
+              ...(detail.events ?? []).map((event) =>
+                h('div', {
+                  key: event.id,
+                  className: 'dept-kv',
+                  style: { cursor: 'pointer', background: eventId === event.id ? '#1b2438' : undefined, flexDirection: 'column', alignItems: 'flex-start', gap: '2px' },
+                  onClick: () => setEventId(event.id),
+                },
+                  h('span', null, String(event.ts).replace('T', ' ').slice(5, 19)),
+                  h('span', { className: 'dept-sub' }, `${event.actor}: ${event.action}`)))),
+            h('div', { className: 'dept-block' },
+              selectedEvent
+                ? h('div', null,
+                    h('div', { className: 'dept-block-title' }, selectedEvent.action),
+                    h('div', { className: 'dept-kv' }, h('span', null, 'время'), h('span', null, String(selectedEvent.ts).replace('T', ' ').slice(0, 19))),
+                    h('div', { className: 'dept-kv' }, h('span', null, 'автор'), h('span', null, selectedEvent.actor)),
+                    h('div', { className: 'dept-sub' }, selectedEvent.detail ?? 'без подробностей'))
+                : h('div', { className: 'dept-sub' }, 'Выбери событие слева — здесь появятся подробности.')))
         }
         if (tab === 'roles') {
           return h('div', { className: 'dept-block' },
