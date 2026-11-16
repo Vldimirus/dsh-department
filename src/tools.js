@@ -876,6 +876,7 @@ function artTool() {
       const scale = Math.min(16, Math.max(1, Number(args?.scale ?? 1)));
       const width = Math.max(...rows.map((row) => row.length));
       const height = rows.length;
+      if (width * height > 65536) throw new Error(`grid too large: ${width}x${height} (max 256x256 = 65536 pixels)`);
       const parse = (value) => {
         const text = String(value ?? '').replace('#', '');
         if (text.length !== 6 && text.length !== 8) throw new Error('bad color: ' + value);
