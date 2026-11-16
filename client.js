@@ -714,6 +714,22 @@ window.__ModuleLoader__.load({
                 }),
                 h('span', { style: { minWidth: '120px' } }, role.title + (role.core ? ' · основная' : '')),
                 h('input', {
+                  type: 'number', min: 1, max: 10,
+                  className: 'dept-input', style: { width: '64px', minWidth: '64px' },
+                  title: 'сколько экземпляров роли можно запускать одновременно',
+                  value: role.maxInstances ?? 1,
+                  onChange: async (event) => {
+                    const value = Number(event.target.value)
+                    const response = await fetch(ROUTES.roles, {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ root: detail.root, taskId: detail.taskId, role: role.name, model: role.model, reasoning: role.reasoning, enabled: role.enabled, maxInstances: value }),
+                    })
+                    const data = await response.json().catch(() => ({}))
+                    if (response.ok) { setRoles(data.roles); setMessage('Лимит роли сохранён') } else { setMessage(data.error || 'ошибка') }
+                  },
+                }),
+                h('input', {
                   className: 'dept-input',
                   placeholder: 'model (default)',
                   value: role.model ?? '',

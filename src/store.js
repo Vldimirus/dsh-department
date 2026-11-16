@@ -545,6 +545,11 @@ export function setRole(state, input) {
     if (!input.enabled && CORE_ROLES.includes(role)) throw new Error(`cannot disable core role: ${role}`);
     next.enabled = Boolean(input.enabled);
   }
+  if (input.maxInstances !== undefined) {
+    const value = Number(input.maxInstances);
+    if (!Number.isInteger(value) || value < 1 || value > 10) throw new Error('maxInstances must be 1..10');
+    next.maxInstances = value;
+  }
   roles[role] = next;
   const now = new Date().toISOString();
   return appendEvent({ ...state, roles, updatedAt: now }, {
@@ -567,6 +572,7 @@ export function listRoles(state) {
     model: state.roles?.[name]?.model ?? null,
     reasoning: state.roles?.[name]?.reasoning ?? base.reasoning ?? null,
     enabled: state.roles?.[name]?.enabled ?? !DISABLED_BY_DEFAULT.includes(name),
+    maxInstances: state.roles?.[name]?.maxInstances ?? (name === 'coder' ? 2 : 1),
     core: CORE_ROLES.includes(name),
     tools: base.tools,
   }));

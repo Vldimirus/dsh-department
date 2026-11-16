@@ -179,3 +179,11 @@ test('listRoles: beta-tester выключен по умолчанию, осно�
   const enabled = setRole(state, { role: 'beta-tester', enabled: true });
   assert.equal(listRoles(enabled).find((role) => role.name === 'beta-tester').enabled, true);
 });
+
+test('setRole: лимит одновременных экземпляров роли', () => {
+  let state = createState({ root: '/tmp/x', taskId: 'm1' });
+  assert.equal(listRoles(state).find((role) => role.name === 'coder').maxInstances, 2);
+  state = setRole(state, { role: 'coder', maxInstances: 3 });
+  assert.equal(listRoles(state).find((role) => role.name === 'coder').maxInstances, 3);
+  assert.throws(() => setRole(state, { role: 'coder', maxInstances: 0 }), /1..10/);
+});

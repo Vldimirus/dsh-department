@@ -707,6 +707,7 @@ function rolesTool() {
         model: { type: 'string', description: 'Модель для роли (пусто — по умолчанию).' },
         reasoning: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Уровень reasoning.' },
         enabled: { type: 'boolean', description: 'Включена ли роль (нельзя выключить manager/coder/tester).' },
+        maxInstances: { type: 'integer', description: 'Сколько экземпляров роли можно запускать одновременно (1–10).' },
       },
       required: ['root', 'taskId'],
     },
@@ -725,10 +726,11 @@ function rolesTool() {
           model: args?.model,
           reasoning: args?.reasoning,
           enabled: args?.enabled,
+          maxInstances: args?.maxInstances,
         }));
       }
       const roles = listRoles(state);
-      return { roles, summary: roles.map((role) => `${role.name}: ${role.enabled ? 'on' : 'OFF'} ${role.model ?? 'default'}/${role.reasoning ?? 'default'}`).join(' · ') };
+      return { roles, summary: roles.map((role) => `${role.name}: ${role.enabled ? 'on' : 'OFF'} x${role.maxInstances} ${role.model ?? 'default'}/${role.reasoning ?? 'default'}`).join(' · ') };
     },
   };
 }

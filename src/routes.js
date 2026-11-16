@@ -82,12 +82,12 @@ export function registerDepartmentRoutes(ctx, activity) {
       const url = new URL(request.url);
       if (request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
-        const { root, taskId, role, model, reasoning, enabled } = body ?? {};
+        const { root, taskId, role, model, reasoning, enabled, maxInstances } = body ?? {};
         if (!root || !taskId || !role) return Response.json({ error: 'root, taskId, role required' }, { status: 400 });
         const state = await readState(root, taskId);
         if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
         try {
-          const next = await writeState(root, setRole(state, { role, model, reasoning, enabled }));
+          const next = await writeState(root, setRole(state, { role, model, reasoning, enabled, maxInstances }));
           return Response.json({ roles: listRoles(next) });
         } catch (error) {
           return Response.json({ error: error.message }, { status: 400 });
