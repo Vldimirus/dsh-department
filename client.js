@@ -22,6 +22,7 @@ window.__ModuleLoader__.load({
       roles: '/api/department/roles',
       documents: '/api/department/documents',
       document: '/api/department/document',
+      correction: '/api/department/correction',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -652,7 +653,7 @@ window.__ModuleLoader__.load({
       const [drafts, setDrafts] = useState({})
       const [remarks, setRemarks] = useState({})
       const [eventId, setEventId] = useState(null)
-      const [amend, setAmend] = useState({ doc: 'spec', summary: '', reason: '' })
+      const [corr, setCorr] = useState({ doc: 'spec', subject: '', text: '' })
       const [roles, setRoles] = useState([])
       const [prices, setPrices] = useState({ limit: '', input: '', output: '', rate: '' })
       const [savingBudget, setSavingBudget] = useState(false)
@@ -739,6 +740,7 @@ window.__ModuleLoader__.load({
         ['questions', `Вопросы${openQuestions.length ? ' (' + openQuestions.length + ')' : ''}`],
         ['audit', 'Аудит'],
         ['events', 'События'],
+        ['correction', 'Корректировка'],
         ['roles', 'Роли'],
         ['billing', 'Бюджет'],
         ['git', 'Git'],
@@ -829,6 +831,49 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'dept-kv' }, h('span', null, 'автор'), h('span', null, selectedEvent.actor)),
                     h('div', { className: 'dept-sub' }, selectedEvent.detail ?? 'без подробностей'))
                 : h('div', { className: 'dept-sub' }, 'Выбери событие слева — здесь появятся подробности.')))
+        }
+        if (tab === 'correction') {
+          const corrections = detail.corrections ?? []
+          return h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '12px', alignItems: 'start' } },
+            h('div', { className: 'dept-block' },
+              h('div', { className: 'dept-block-title' }, 'Новая корректировка'),
+              h('div', { className: 'dept-sub' }, 'Как письмо руководителю: что поменять и к чему это относится.'),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'К чему относится'),
+                h('select', { className: 'dept-input', value: corr.doc, onChange: (event) => setCorr({ ...corr, doc: event.target.value }) },
+                  h('option', { value: 'concept' }, 'Концепция'),
+                  h('option', { value: 'spec' }, 'ТЗ'),
+                  h('option', { value: 'plan' }, 'План'),
+                  h('option', { value: 'code' }, 'Код'),
+                  h('option', { value: 'data' }, 'Данные'),
+                  h('option', { value: 'interface' }, 'Интерфейс'))),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'Тема'),
+                h('input', { className: 'dept-input', value: corr.subject, onChange: (event) => setCorr({ ...corr, subject: event.target.value }) })),
+              h('div', { className: 'dept-form-row' },
+                h('label', null, 'Текст корректировки'),
+                h('textarea', { className: 'dept-input', rows: 8, value: corr.text, onChange: (event) => setCorr({ ...corr, text: event.target.value }) })),
+              h('div', { className: 'dept-row' },
+                h('button', {
+                  className: 'dept-btn',
+                  disabled: busy || !corr.text.trim(),
+                  onClick: async () => {
+                    const result = await post(ROUTES.correction, { root: detail.root, taskId: detail.taskId, doc: corr.doc, subject: corr.subject.trim(), text: corr.text.trim() })
+                    if (result) setCorr({ doc: corr.doc, subject: '', text: '' })
+                  },
+                }, 'Отправить корректировку'),
+                h('span', { className: 'dept-sub' }, 'Руководитель возьмёт в работу и соберёт специалистов.'))),
+            h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
+              h('div', { className: 'dept-block-title' }, 'История корректировок'),
+              corrections.length === 0
+                ? h('div', { className: 'dept-sub' }, 'пока нет')
+                : h('div', { className: 'dept-events' }, ...corrections.map((item) =>
+                    h('div', { key: item.id, className: 'dept-block', style: { gap: '4px' } },
+                      h('div', { className: 'dept-row' },
+                        h('span', { className: 'dept-badge ' + (item.status === 'done' ? 'ok' : item.status === 'in_progress' ? 'wait' : '') }, item.status),
+                        h('span', { className: 'dept-sub' }, item.id + ' · ' + item.doc)),
+                      h('div', null, item.subject || item.text.slice(0, 80)),
+                      h('div', { className: 'dept-sub' }, String(item.ts).replace('T', ' ').slice(0, 16) + (item.summary ? ' · ' + item.summary : '')))))))
         }
         if (tab === 'roles') {
           return h('div', { className: 'dept-block' },
@@ -982,29 +1027,7 @@ window.__ModuleLoader__.load({
                   detail.stage === 'concept'
                     ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, 'Утвердить концепцию')
                     : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, 'Утвердить ТЗ'))
-              : null,
-            h('div', { className: 'dept-block' },
-              h('div', { className: 'dept-block-title' }, 'Поправка к документу'),
-              h('div', { className: 'dept-form-row' },
-                h('label', null, 'Документ'),
-                h('select', { className: 'dept-input', value: amend.doc, onChange: (event) => setAmend({ ...amend, doc: event.target.value }) },
-                  h('option', { value: 'concept' }, 'Концепция'),
-                  h('option', { value: 'spec' }, 'ТЗ'),
-                  h('option', { value: 'plan' }, 'План'))),
-              h('div', { className: 'dept-form-row' },
-                h('label', null, 'Что меняется'),
-                h('input', { className: 'dept-input', value: amend.summary, onChange: (event) => setAmend({ ...amend, summary: event.target.value }) })),
-              h('div', { className: 'dept-form-row' },
-                h('label', null, 'Почему'),
-                h('input', { className: 'dept-input', value: amend.reason, onChange: (event) => setAmend({ ...amend, reason: event.target.value }) })),
-              h('button', {
-                className: 'dept-btn',
-                disabled: busy || !amend.summary.trim(),
-                onClick: async () => {
-                  const result = await post(ROUTES.amend, { root: detail.root, taskId: detail.taskId, doc: amend.doc, summary: amend.summary.trim(), reason: amend.reason.trim() })
-                  if (result) setAmend({ ...amend, summary: '', reason: '' })
-                },
-              }, 'Подписать поправку'))),
+              : null),
           content,
         ),
         message ? h('div', { className: 'dept-sub' }, message) : null,

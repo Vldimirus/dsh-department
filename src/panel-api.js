@@ -122,6 +122,7 @@ export async function taskPayload(root, taskId) {
     tags: tags.code === 0 ? tags.stdout.trim().split('\n').filter(Boolean) : [],
     events: (state.events ?? []).slice(-30).reverse(),
     questions: (state.questions ?? []).slice(-20).reverse(),
+    corrections: (state.corrections ?? []).slice(-30).reverse(),
     history: stageHistory(state),
     currentBranch: branch,
   };

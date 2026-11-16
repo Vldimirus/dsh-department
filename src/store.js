@@ -826,3 +826,47 @@ export function addRework(state, input) {
     detail: `${input.questionId}: ${String(input.summary).slice(0, 120)}`,
   });
 }
+
+/**
+ * Новая корректировка от человека: что менять и почему.
+ *
+ * @param {object} state Состояние.
+ * @param {{ doc: string, subject?: string, text: string, by: string, priority?: string }} input Корректировка.
+ * @returns {{ state: object, correction: object }}
+ */
+export function addCorrection(state, input) {
+  const now = new Date().toISOString();
+  const correction = {
+    id: `corr-${(state.corrections?.length ?? 0) + 1}`,
+    doc: String(input.doc),
+    subject: String(input.subject ?? ''),
+    text: String(input.text),
+    priority: ['low', 'normal', 'high'].includes(input.priority) ? input.priority : 'normal',
+    by: String(input.by),
+    status: 'new',
+    summary: '',
+    ts: now,
+  };
+  const next = { ...state, corrections: [...(state.corrections ?? []), correction], updatedAt: now };
+  return {
+    state: appendEvent(next, { actor: correction.by, action: 'correction_created', detail: `${correction.id}: ${correction.doc} — ${(correction.subject || correction.text).slice(0, 100)}` }),
+    correction,
+  };
+}
+
+/**
+ * Обновляет статус корректировки (руководитель берёт в работу/закрывает).
+ *
+ * @param {object} state Состояние.
+ * @param {{ id: string, status: 'new'|'in_progress'|'done', summary?: string, by?: string }} input Правка.
+ * @returns {object} Новое состояние.
+ */
+export function updateCorrection(state, input) {
+  const now = new Date().toISOString();
+  const corrections = state.corrections ?? [];
+  const index = corrections.findIndex((item) => item.id === input.id);
+  if (index < 0) throw new Error(`correction not found: ${input.id}`);
+  const updated = { ...corrections[index], status: input.status, summary: input.summary ?? corrections[index].summary, updatedAt: now };
+  const next = { ...state, corrections: corrections.map((item, position) => (position === index ? updated : item)), updatedAt: now };
+  return appendEvent(next, { actor: input.by ?? 'manager', action: 'correction_' + input.status, detail: `${updated.id}: ${input.summary ?? ''}`.slice(0, 140) });
+}

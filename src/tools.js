@@ -5,6 +5,8 @@ import { access, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
+  addCorrection,
+  updateCorrection,
   addMemo,
   addRework,
   reviewMemo,
@@ -101,6 +103,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(artTool()));
   disposers.push(ctx.tools.register(pixelizeTool()));
   disposers.push(ctx.tools.register(composeTool()));
+  disposers.push(ctx.tools.register(correctionTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -1542,6 +1545,44 @@ function composeTool() {
         outputPath: output,
       });
       return { ...result, path: requireString(args, 'path'), summary: `композиция: ${args.path} ${result.width}x${result.height}, слоёв ${result.layers}` };
+    },
+  };
+}
+
+function correctionTool() {
+  return {
+    name: 'dept_correction',
+    description: 'Корректировки от человека: список или обновление статуса (new/in_progress/done) с итогом. По корректировке руководитель запускает доработку концепции/ТЗ/плана/кода.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        id: { type: 'string', description: 'Идентификатор корректировки. Пусто — только список.' },
+        status: { type: 'string', enum: ['new', 'in_progress', 'done'], description: 'Новый статус.' },
+        summary: { type: 'string', description: 'Что сделано по корректировке.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { corrections: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['corrections', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      let state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      if (typeof args?.id === 'string' && args.id.trim() !== '') {
+        state = await writeState(root, updateCorrection(state, {
+          id: args.id.trim(),
+          status: requireString(args, 'status'),
+          summary: args?.summary ?? '',
+          by: 'manager',
+        }));
+      }
+      const corrections = state.corrections ?? [];
+      return { corrections, summary: corrections.map((item) => `${item.id} [${item.status}] ${item.doc}: ${item.subject || item.text.slice(0, 60)}`).join('\n') || 'корректировок нет' };
     },
   };
 }

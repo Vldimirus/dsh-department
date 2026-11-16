@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
-import { amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setRole, writeState } from './store.js';
+import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 import { listDocuments, readDocument } from './documents.js';
@@ -24,6 +24,7 @@ export const DEPARTMENT_ROUTES = {
   roles: '/api/department/roles',
   projects: '/api/department/projects',
   review: '/api/department/review',
+  correction: '/api/department/correction',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -111,6 +112,32 @@ export function registerDepartmentRoutes(ctx, activity) {
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
       }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.correction,
+    methods: ['GET', 'POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      if (request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        const { root, taskId, doc, subject, text, by, priority } = body ?? {};
+        if (!root || !taskId || !doc || !text || !by) return Response.json({ error: 'root, taskId, doc, text, by required' }, { status: 400 });
+        if (!isHumanApprover(by)) return Response.json({ error: 'correction must be created by the human' }, { status: 403 });
+        const state = await readState(root, taskId);
+        if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+        const result = addCorrection(state, { doc, subject: subject ?? '', text, by, priority });
+        await writeState(root, result.state);
+        return Response.json({ correction: result.correction });
+      }
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      return Response.json({ corrections: state.corrections ?? [] });
     },
   });
 
