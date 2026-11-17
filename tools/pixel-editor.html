@@ -62,6 +62,9 @@
       <button id="select">Выделение</button>
     </div>
     <div class="row">
+      <label class="muted"><input type="checkbox" id="template"> шаблон персонажа</label>
+    </div>
+    <div class="row">
       <label class="muted"><input type="checkbox" id="filled"> залитый</label>
       <input type="color" id="color" value="#7fdc9a">
     </div>
@@ -123,6 +126,7 @@ let startPoint = null;
 let drawSnapshot = null;
 let selection = null;
 let clipboard = null;
+let showTemplate = false;
 
 function blank() {
   return Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
@@ -164,6 +168,27 @@ function render() {
       ctx.beginPath(); ctx.moveTo(i * zoom + 0.5, 0); ctx.lineTo(i * zoom + 0.5, canvas.height); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0, i * zoom + 0.5); ctx.lineTo(canvas.width, i * zoom + 0.5); ctx.stroke();
     }
+  }
+  if (showTemplate) {
+    const cx = Math.floor(gridSize / 2);
+    const bottom = gridSize - 1;
+    const zones = [
+      { x: cx - 8, y: bottom - 15, w: 16, h: 15, color: '#4b8bff33', label: 'ноги' },
+      { x: cx - 8, y: bottom - 34, w: 16, h: 18, color: '#7fdc9a33', label: 'туловище' },
+      { x: cx - 6, y: bottom - 45, w: 12, h: 12, color: '#f0c9a033', label: 'голова' },
+      { x: cx - 7, y: bottom - 48, w: 14, h: 5, color: '#c25a4a33', label: 'волосы' },
+    ];
+    ctx.save();
+    ctx.font = Math.max(9, zoom) + 'px sans-serif';
+    for (const zone of zones) {
+      ctx.fillStyle = zone.color;
+      ctx.fillRect(zone.x * zoom, zone.y * zoom, zone.w * zoom, zone.h * zoom);
+      ctx.strokeStyle = '#ffffff66';
+      ctx.strokeRect(zone.x * zoom, zone.y * zoom, zone.w * zoom, zone.h * zoom);
+      ctx.fillStyle = '#ffffffaa';
+      ctx.fillText(zone.label, zone.x * zoom + 2, zone.y * zoom + Math.max(10, zoom) + 2);
+    }
+    ctx.restore();
   }
   if (selection) {
     const { x0, y0, x1, y1 } = normalized(selection);
@@ -327,6 +352,11 @@ document.getElementById('color').oninput = (event) => { color = event.target.val
 document.getElementById('size').onchange = (event) => {
   gridSize = Number(event.target.value);
   reset();
+};
+
+document.getElementById('template').onchange = (event) => {
+  showTemplate = event.target.checked;
+  render();
 };
 
 document.getElementById('gridToggle').onclick = (event) => {
