@@ -467,11 +467,11 @@ window.__ModuleLoader__.load({
       }
 
       if (paused) {
-        const manager = actors.find((actor) => actor.role === 'manager')
-        if (manager) {
-          manager.mode = 'seat'
-          manager.spot = { x: 470, y: 210 }
-        }
+        // На паузе весь отдел отдыхает: никто не работает и не ходит.
+        actors.forEach((actor, index) => {
+          actor.mode = 'seat'
+          actor.spot = chairSeats[index % chairSeats.length]
+        })
       }
 
       return h(
@@ -548,7 +548,7 @@ window.__ModuleLoader__.load({
                 const busy = Boolean(entry?.busy)
                 const atDesk = actor?.mode === 'desk'
                 return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
-                  desk.label + (entry ? (atDesk ? ' · работает' : busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
+                  desk.label + (paused ? ' · пауза' : entry ? (atDesk ? ' · работает' : busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
               }),
             ),
           ),

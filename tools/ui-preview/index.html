@@ -93,7 +93,7 @@ function App() {
   return React.createElement('div', null,
     React.createElement(Frame, { title: 'КАРТОЧКА ЗАДАЧИ' }, React.createElement(mod.TaskDetail, { detail, onBack: () => {}, onReload: () => {} })),
     React.createElement(Frame, { title: 'СХЕМА ПРОЕКТА' }, React.createElement(mod.BlueprintView, { tasks })),
-    React.createElement(Frame, { title: 'ОФИС' }, React.createElement(mod.OfficeView, { items: activity.activity, selected: 's2', onSelect: () => {}, tasks, onOpenTask: () => {} })),
+    React.createElement(Frame, { title: 'ОФИС' }, React.createElement(mod.OfficeView, { items: activity.activity, selected: 's2', onSelect: () => {}, tasks, attention: 1, paused: true, pauseReason: 'человек: пауза', onOpenTask: () => {} })),
   );
 }
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
