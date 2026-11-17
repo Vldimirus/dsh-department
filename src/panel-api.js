@@ -133,6 +133,11 @@ export async function taskPayload(root, taskId) {
   for (const name of names) {
     files[name] = await fileExists(join(root, DEPARTMENT_DIR, taskId, name));
   }
+  files['README.md'] = await fileExists(join(root, 'README.md'));
+  const stageNo = String((state.stageIndex ?? 0) + 1).padStart(2, '0');
+  for (const name of ['review.md', 'report.md']) {
+    files['stage:' + name.replace('.md', '')] = await fileExists(join(root, DEPARTMENT_DIR, taskId, 'stages', stageNo, name));
+  }
   const branch = await currentBranch(root);
   const audit = verifyChecklist({ state, files, currentBranch: branch });
 
