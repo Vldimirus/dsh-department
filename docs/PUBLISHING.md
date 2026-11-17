@@ -53,3 +53,29 @@ dsh plugin --profile web add dsh-department
 ```
 
 Затем в чате: `dept_start` и панель «Отдел».
+
+## Trusted Publishing (публикация без токенов)
+
+После первого ручного релиза настрой доверенного издателя:
+
+1. npmjs.com → пакет `dsh-department` → **Settings → Trusted Publishing → Add publisher**
+2. Provider: **GitHub Actions**
+3. Organization/user: `Vldimirus`
+4. Repository: `dsh-department`
+5. Workflow filename: `publish.yml`
+6. Environment: оставить пустым
+7. Add.
+
+Затем в GitHub: **Settings → Actions → Allow all actions** (если Actions выключены).
+
+Дальше релиз делается так:
+
+1. Подними версию: `npm version patch --no-git-tag-version`, обнови `CHANGELOG.md`.
+2. Закоммить и запушь `main`.
+3. Создай GitHub Release с тегом `v<version>` и текстом из `docs/releases/v<version>.md`.
+4. Workflow `Publish` сам:
+   - прогонит тесты;
+   - проверит, не опубликована ли версия;
+   - выполнит `npm publish --provenance --access public` от имени доверенного издателя.
+
+Секреты и токены не нужны: GitHub Actions получает короткоживущий OIDC-токен от npm.
