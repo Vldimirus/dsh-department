@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { registerTools } from '../src/tools.js';
 import { runGit } from '../src/git.js';
+import { readState } from '../src/store.js';
 
 async function tempRepo(t) {
   const root = await mkdtemp(join(tmpdir(), 'dept-tools-'));
@@ -133,4 +134,18 @@ test('dept_pause: блокирует гейты и снимается', async (t
   await tools.get('dept_pause').execute({ root, taskId: 'p1', paused: false, by: 'vladimir' });
   const gated = await tools.get('dept_gate').execute({ root, taskId: 'p1', kind: 'tests' });
   assert.equal(gated.state.gates.tests.status, 'pass');
+});
+
+test('dept_pause: руководитель не может снять паузу сам', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'p2', testCommand: 'true', branch: 'dept/p2' });
+  await tools.get('dept_pause').execute({ root, taskId: 'p2', paused: true, reason: 'человек', by: 'vladimir' });
+  await assert.rejects(
+    () => tools.get('dept_pause').execute({ root, taskId: 'p2', paused: false, by: 'manager' }),
+    /только человек/,
+  );
+  await tools.get('dept_pause').execute({ root, taskId: 'p2', paused: false, by: 'vladimir' });
+  const state = await readState(root, 'p2');
+  assert.equal(state.paused.value, false);
 });

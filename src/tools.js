@@ -1705,7 +1705,9 @@ function pauseTool(ctx) {
       const taskId = requireString(args, 'taskId');
       const paused = Boolean(args?.paused);
       const by = String(args?.by ?? 'manager');
-      if (!paused && by !== 'manager' && !isHumanApprover(by)) throw new Error('resume must be signed by the human');
+      if (!paused && !isHumanApprover(by)) {
+        throw new Error('снять паузу может только человек: руководитель не имеет права возобновлять работу сам');
+      }
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       const next = await writeState(root, setPaused(state, { paused, reason: args?.reason ?? '', by }));
