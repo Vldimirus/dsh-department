@@ -8,7 +8,7 @@
   :root { --bg: #0b0f18; --panel: #141a28; --line: #26324a; --text: #e6edf7; --muted: #8b98ad; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; padding: 16px; }
+  .wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; padding: 16px; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
   h1 { font-size: 16px; margin: 0 0 4px; }
   .muted { color: var(--muted); font-size: 12px; }
@@ -21,9 +21,10 @@
   .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
   .swatch { width: 100%; aspect-ratio: 1; border-radius: 4px; border: 1px solid #0008; cursor: pointer; }
   .swatch.active { outline: 2px solid #fff; }
-  canvas { display: block; image-rendering: pixelated; background: #222; border-radius: 8px; cursor: crosshair; }
+  canvas { display: block; image-rendering: pixelated; background: #222; border-radius: 8px; cursor: crosshair; touch-action: none; }
   .canvas-wrap { background: #10151f; border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow: auto; display: flex; justify-content: center; }
   .status { font-size: 12px; color: var(--muted); }
+  .hint { font-size: 11px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -46,23 +47,37 @@
       <button id="fill">Заливка</button>
       <button id="picker">Пипетка</button>
     </div>
-
     <div class="row">
+      <button id="line">Линия</button>
+      <button id="rect">Прямоуг.</button>
+      <button id="circle">Круг</button>
+      <button id="select">Выделение</button>
+    </div>
+    <div class="row">
+      <label class="muted"><input type="checkbox" id="filled"> залитый</label>
       <input type="color" id="color" value="#7fdc9a">
-      <button id="undo">Отменить</button>
-      <button id="redo">Вернуть</button>
     </div>
 
     <div class="swatches" id="swatches"></div>
 
     <div class="row">
-      <button id="savePng">Скачать PNG</button>
-      <button id="saveJson">Скачать JSON</button>
+      <button id="copy">Копировать</button>
+      <button id="cut">Вырезать</button>
+      <button id="paste">Вставить</button>
+      <button id="del">Удалить</button>
+      <button id="deselect">Снять</button>
+    </div>
+
+    <div class="row">
+      <button id="undo">Отменить</button>
+      <button id="redo">Вернуть</button>
+      <button id="savePng">PNG</button>
+      <button id="saveJson">JSON</button>
       <button id="clear">Очистить</button>
     </div>
 
-    <div class="muted" id="status">32×32 · пиксель 12×</div>
-    <div class="muted">Подсказка: сохрани PNG — пришли его в чат, я встрою в офис. JSON-сетку можно отдать художнику.</div>
+    <div class="status" id="status">32×32</div>
+    <div class="hint">Ctrl+C / Ctrl+X / Ctrl+V, Delete — по выделению. Вставка ставится в левый верхний угол выделения.</div>
   </div>
 
   <div class="canvas-wrap"><canvas id="canvas"></canvas></div>
@@ -87,9 +102,10 @@ let showGrid = true;
 let undoStack = [];
 let redoStack = [];
 let drawing = false;
-
-const sizeSelect = document.getElementById('size');
-sizeSelect.value = String(gridSize);
+let startPoint = null;
+let drawSnapshot = null;
+let selection = null;
+let clipboard = null;
 
 function blank() {
   return Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
@@ -97,6 +113,7 @@ function blank() {
 
 function reset() {
   pixels = blank();
+  selection = null;
   undoStack = [];
   redoStack = [];
   render();
@@ -104,7 +121,7 @@ function reset() {
 
 function snapshot() {
   undoStack.push(pixels.map((row) => row.slice()));
-  if (undoStack.length > 60) undoStack.shift();
+  if (undoStack.length > 80) undoStack.shift();
   redoStack = [];
 }
 
@@ -130,7 +147,23 @@ function render() {
       ctx.beginPath(); ctx.moveTo(0, i * zoom + 0.5); ctx.lineTo(canvas.width, i * zoom + 0.5); ctx.stroke();
     }
   }
-  document.getElementById('status').textContent = gridSize + '×' + gridSize + ' · пиксель ' + zoom + '×';
+  if (selection) {
+    const { x0, y0, x1, y1 } = normalized(selection);
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(x0 * zoom + 1, y0 * zoom + 1, (x1 - x0 + 1) * zoom - 2, (y1 - y0 + 1) * zoom - 2);
+    ctx.restore();
+  }
+  document.getElementById('status').textContent = gridSize + '×' + gridSize + ' · ' + tool + (selection ? ' · выделение' : '');
+}
+
+function normalized(sel) {
+  return {
+    x0: Math.min(sel.x0, sel.x1), y0: Math.min(sel.y0, sel.y1),
+    x1: Math.max(sel.x0, sel.x1), y1: Math.max(sel.y0, sel.y1),
+  };
 }
 
 function cell(event) {
@@ -141,12 +174,47 @@ function cell(event) {
   return { x, y };
 }
 
-function paint(x, y) {
-  if (tool === 'eraser') pixels[y][x] = null;
-  else if (tool === 'fill') flood(x, y, pixels[y][x], color);
-  else if (tool === 'picker') {
-    if (pixels[y][x]) { color = pixels[y][x]; document.getElementById('color').value = color; }
-  } else pixels[y][x] = color;
+function put(x, y, value) {
+  if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) return;
+  pixels[y][x] = value;
+}
+
+function linePixels(x0, y0, x1, y1, paint) {
+  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    paint(x0, y0);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+
+function rectPixels(x0, y0, x1, y1, filled, paint) {
+  const { x0: ax, y0: ay, x1: bx, y1: by } = normalized({ x0, y0, x1, y1 });
+  if (filled) {
+    for (let y = ay; y <= by; y += 1) for (let x = ax; x <= bx; x += 1) paint(x, y);
+    return;
+  }
+  for (let x = ax; x <= bx; x += 1) { paint(x, ay); paint(x, by); }
+  for (let y = ay; y <= by; y += 1) { paint(ax, y); paint(bx, y); }
+}
+
+function circlePixels(x0, y0, x1, y1, filled, paint) {
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  const rx = Math.abs(x1 - x0) / 2;
+  const ry = Math.abs(y1 - y0) / 2;
+  for (let y = 0; y < gridSize; y += 1) {
+    for (let x = 0; x < gridSize; x += 1) {
+      const dx = rx === 0 ? (x - cx) : (x - cx) / rx;
+      const dy = ry === 0 ? (y - cy) : (y - cy) / ry;
+      const d = dx * dx + dy * dy;
+      if (filled ? d <= 1 : Math.abs(d - 1) < Math.max(0.15, 1 / Math.max(rx, ry, 1)) * 1.4) paint(x, y);
+    }
+  }
 }
 
 function flood(x, y, from, to) {
@@ -161,37 +229,85 @@ function flood(x, y, from, to) {
   }
 }
 
+function paintCell(x, y) {
+  if (tool === 'eraser') put(x, y, null);
+  else if (tool === 'fill') flood(x, y, pixels[y][x], color);
+  else if (tool === 'picker') {
+    if (pixels[y][x]) { color = pixels[y][x]; document.getElementById('color').value = color; }
+  } else put(x, y, color);
+}
+
 canvas.addEventListener('pointerdown', (event) => {
   const point = cell(event);
   if (!point) return;
+  if (tool === 'select') {
+    startPoint = point;
+    selection = { x0: point.x, y0: point.y, x1: point.x, y1: point.y };
+    drawing = true;
+    render();
+    return;
+  }
   snapshot();
   drawing = true;
-  paint(point.x, point.y);
+  startPoint = point;
+  if (tool === 'line' || tool === 'rect' || tool === 'circle') {
+    drawSnapshot = pixels.map((row) => row.slice());
+    render();
+    return;
+  }
+  paintCell(point.x, point.y);
   render();
 });
+
 canvas.addEventListener('pointermove', (event) => {
   if (!drawing) return;
   const point = cell(event);
   if (!point) return;
-  paint(point.x, point.y);
+  if (tool === 'select') {
+    selection.x1 = point.x;
+    selection.y1 = point.y;
+    render();
+    return;
+  }
+  if (tool === 'line' || tool === 'rect' || tool === 'circle') {
+    pixels = drawSnapshot.map((row) => row.slice());
+    const filled = document.getElementById('filled').checked;
+    const paint = (x, y) => put(x, y, color);
+    if (tool === 'line') linePixels(startPoint.x, startPoint.y, point.x, point.y, paint);
+    else if (tool === 'rect') rectPixels(startPoint.x, startPoint.y, point.x, point.y, filled, paint);
+    else circlePixels(startPoint.x, startPoint.y, point.x, point.y, filled, paint);
+    render();
+    return;
+  }
+  paintCell(point.x, point.y);
   render();
 });
-window.addEventListener('pointerup', () => { drawing = false; });
 
-document.getElementById('pencil').onclick = () => { tool = 'pencil'; mark('pencil'); };
-document.getElementById('eraser').onclick = () => { tool = 'eraser'; mark('eraser'); };
-document.getElementById('fill').onclick = () => { tool = 'fill'; mark('fill'); };
-document.getElementById('picker').onclick = () => { tool = 'picker'; mark('picker'); };
-function mark(id) {
-  for (const name of ['pencil', 'eraser', 'fill', 'picker']) {
-    document.getElementById(name).className = name === id ? 'active' : '';
-  }
+window.addEventListener('pointerup', () => {
+  drawing = false;
+  startPoint = null;
+  drawSnapshot = null;
+});
+
+function mark(id, ids) {
+  for (const name of ids) document.getElementById(name).className = name === id ? 'active' : '';
 }
+
+const basic = ['pencil', 'eraser', 'fill', 'picker'];
+const shapes = ['line', 'rect', 'circle', 'select'];
+document.getElementById('pencil').onclick = () => { tool = 'pencil'; mark('pencil', basic.concat(shapes)); };
+document.getElementById('eraser').onclick = () => { tool = 'eraser'; mark('eraser', basic.concat(shapes)); };
+document.getElementById('fill').onclick = () => { tool = 'fill'; mark('fill', basic.concat(shapes)); };
+document.getElementById('picker').onclick = () => { tool = 'picker'; mark('picker', basic.concat(shapes)); };
+document.getElementById('line').onclick = () => { tool = 'line'; mark('line', basic.concat(shapes)); };
+document.getElementById('rect').onclick = () => { tool = 'rect'; mark('rect', basic.concat(shapes)); };
+document.getElementById('circle').onclick = () => { tool = 'circle'; mark('circle', basic.concat(shapes)); };
+document.getElementById('select').onclick = () => { tool = 'select'; mark('select', basic.concat(shapes)); };
 
 document.getElementById('color').oninput = (event) => { color = event.target.value; };
 
-sizeSelect.onchange = () => {
-  gridSize = Number(sizeSelect.value);
+document.getElementById('size').onchange = (event) => {
+  gridSize = Number(event.target.value);
   zoom = Math.max(8, Math.floor(520 / gridSize));
   reset();
 };
@@ -217,6 +333,60 @@ document.getElementById('redo').onclick = () => {
   render();
 };
 document.getElementById('clear').onclick = () => { snapshot(); reset(); };
+
+function withSelection(action) {
+  if (!selection) return;
+  snapshot();
+  action(normalized(selection));
+  render();
+}
+
+function copySelection(cut) {
+  withSelection(({ x0, y0, x1, y1 }) => {
+    const width = x1 - x0 + 1;
+    const height = y1 - y0 + 1;
+    const data = [];
+    for (let y = 0; y < height; y += 1) {
+      const row = [];
+      for (let x = 0; x < width; x += 1) row.push(pixels[y0 + y][x0 + x]);
+      data.push(row);
+    }
+    clipboard = { width, height, data, x: x0, y: y0 };
+    if (cut) {
+      for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) pixels[y][x] = null;
+    }
+  });
+}
+
+function pasteSelection() {
+  if (!clipboard) return;
+  const at = selection ? normalized(selection) : { x0: clipboard.x, y0: clipboard.y };
+  snapshot();
+  for (let y = 0; y < clipboard.height; y += 1) {
+    for (let x = 0; x < clipboard.width; x += 1) {
+      put(at.x0 + x, at.y0 + y, clipboard.data[y][x]);
+    }
+  }
+  selection = { x0: at.x0, y0: at.y0, x1: at.x0 + clipboard.width - 1, y1: at.y0 + clipboard.height - 1 };
+  render();
+}
+
+document.getElementById('copy').onclick = () => copySelection(false);
+document.getElementById('cut').onclick = () => copySelection(true);
+document.getElementById('paste').onclick = pasteSelection;
+document.getElementById('del').onclick = () => withSelection(({ x0, y0, x1, y1 }) => {
+  for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) pixels[y][x] = null;
+});
+document.getElementById('deselect').onclick = () => { selection = null; render(); };
+
+window.addEventListener('keydown', (event) => {
+  if (event.ctrlKey && event.key.toLowerCase() === 'c') { event.preventDefault(); copySelection(false); }
+  else if (event.ctrlKey && event.key.toLowerCase() === 'x') { event.preventDefault(); copySelection(true); }
+  else if (event.ctrlKey && event.key.toLowerCase() === 'v') { event.preventDefault(); pasteSelection(); }
+  else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); document.getElementById('del').click(); }
+  else if (event.key === 'Escape') { selection = null; render(); }
+});
+
 document.getElementById('savePng').onclick = () => downloadPng();
 document.getElementById('saveJson').onclick = () => downloadJson();
 
