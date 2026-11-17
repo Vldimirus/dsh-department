@@ -270,12 +270,12 @@ window.__ModuleLoader__.load({
         return DESKS.find((desk) => desk.key === (assignments.current.get(entry?.sessionId) ?? ''))?.key ?? 'coder'
       }
       const SPRITES = {
-        manager: ['manager-1', 'manager-2'],
-        coder: ['coder-1', 'coder-2'],
-        tester: ['tester-1', 'tester-2'],
-        reviewer: ['reviewer-1', 'reviewer-2'],
-        analyst: ['analyst-1'],
-        artist: ['artist-1'],
+        manager: ['manager-1', 'manager-2', 'manager-3'],
+        coder: ['coder-1', 'coder-2', 'coder-3'],
+        tester: ['tester-1', 'tester-2', 'tester-3'],
+        reviewer: ['reviewer-1', 'reviewer-2', 'reviewer-3'],
+        analyst: ['analyst-1', 'analyst-2'],
+        artist: ['artist-1', 'artist-2'],
         archivist: ['analyst-1'],
         instrumenter: ['coder-1'],
       }
