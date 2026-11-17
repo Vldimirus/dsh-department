@@ -68,14 +68,26 @@ dsh plugin --profile web add dsh-department
 
 Затем в GitHub: **Settings → Actions → Allow all actions** (если Actions выключены).
 
+Настроить доверенного издателя можно и командой (на машине, где выполнен `npm login`):
+
+```bash
+npm trust github dsh-department \
+  --repo Vldimirus/dsh-department \
+  --file publish.yml \
+  --allow-publish --yes
+```
+
 Дальше релиз делается так:
 
 1. Подними версию: `npm version patch --no-git-tag-version`, обнови `CHANGELOG.md`.
 2. Закоммить и запушь `main`.
-3. Создай GitHub Release с тегом `v<version>` и текстом из `docs/releases/v<version>.md`.
-4. Workflow `Publish` сам:
-   - прогонит тесты;
-   - проверит, не опубликована ли версия;
-   - выполнит `npm publish --provenance --access public` от имени доверенного издателя.
+3. Поставь тег и запушь его:
+   ```bash
+   git tag v<version>
+   git push origin v<version>
+   ```
+4. GitHub Actions сам:
+   - создаст страницу релиза (`release.yml`, заметки из `docs/releases/v<version>.md`);
+   - прогонит тесты и опубликует пакет (`publish.yml`).
 
 Секреты и токены не нужны: GitHub Actions получает короткоживущий OIDC-токен от npm.

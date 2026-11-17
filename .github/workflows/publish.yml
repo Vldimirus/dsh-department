@@ -1,8 +1,8 @@
 name: Publish
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -33,7 +33,6 @@ jobs:
             echo "Version $VERSION is already published — skipping."
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "Publishing $VERSION."
           fi
 
       - name: Publish to npm (Trusted Publishing)
