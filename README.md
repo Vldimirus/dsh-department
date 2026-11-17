@@ -21,10 +21,6 @@ implementation with tests and independent review → commit, tag and push per st
 |---|---|
 | ![Paused](docs/screenshots/office-paused.png) | ![Characters](docs/screenshots/characters.png) |
 
-Pixel editor for preparing sprites:
-
-![Editor](docs/screenshots/pixel-editor.png)
-
 ## Features
 
 - Task board, task card (documents, questions, audit, events, corrections, roles, budget, git).

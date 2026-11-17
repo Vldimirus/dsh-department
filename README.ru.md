@@ -21,10 +21,6 @@
 |---|---|
 | ![Пауза](docs/screenshots/office-paused.png) | ![Персонажи](docs/screenshots/characters.png) |
 
-Пиксель-редактор для подготовки спрайтов:
-
-![Редактор](docs/screenshots/pixel-editor.png)
-
 ## Возможности
 
 - **Доска задач** по всем проектам: стадия, прогресс, гейты, последнее событие.
