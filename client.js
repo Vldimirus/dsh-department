@@ -194,6 +194,16 @@ window.__ModuleLoader__.load({
     const officeSettled = new Map()
     const officePlans = new Map()
 
+    const ROLE_STYLE = {
+      manager: { shirt: '#2a3448', hair: '#3a2a1a' },
+      coder: { shirt: '#3d7bff', hair: '#5a3a22' },
+      tester: { shirt: '#3f8a4f', hair: '#2a1a10' },
+      reviewer: { shirt: '#9b7bff', hair: '#4a2a10' },
+      analyst: { shirt: '#c9b48c', hair: '#5a3a22' },
+      artist: { shirt: '#c25a4a', hair: '#2a1a10' },
+      archivist: { shirt: '#5b6a90', hair: '#6a6a6a' },
+      instrumenter: { shirt: '#a8713a', hair: '#3a2a1a' },
+    }
     const DESKS = [
       { key: 'coder', x: 90, y: 112, label: 'Кодер' },
       { key: 'manager', x: 220, y: 112, label: 'Руководитель' },
@@ -255,6 +265,11 @@ window.__ModuleLoader__.load({
     function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention, party, paused, pauseReason }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
+      const styleOf = (entry) => {
+        if (entry?.kind === 'менеджер') return ROLE_STYLE.manager
+        const role = DESKS.find((desk) => desk.key === (assignments.current.get(entry?.sessionId) ?? ''))?.key
+        return ROLE_STYLE[role] ?? ROLE_STYLE.coder
+      }
       const settled = React.useRef(new Map())
       const plans = React.useRef(new Map())
       const [, setFrame] = React.useState(0)
@@ -357,6 +372,7 @@ window.__ModuleLoader__.load({
 
       const seatedPerson = (entry, desk, index) => {
         const isSelected = selected === entry.sessionId
+        const skin = styleOf(entry)
         const reading = (index % 2) === 0
         return h('g', {
           key: 'seat-' + entry.sessionId,
@@ -365,9 +381,9 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          box(-9, -28, 18, 17, '#c25a4a'),
+          box(-9, -28, 18, 17, skin.shirt),
           box(-6, -38, 12, 12, '#f0c9a0'),
-          box(-7, -40, 14, 4, '#5a3a22'),
+          box(-7, -40, 14, 4, skin.hair),
           reading ? h('g', { className: 'dept-reading' },
               box(-9, -24, 18, 12, '#ece6d0'),
               box(-7, -23, 6, 1, '#8e8873'),
@@ -385,6 +401,7 @@ window.__ModuleLoader__.load({
 
       const standingPerson = (entry, spot, looking) => {
         const isSelected = selected === entry.sessionId
+        const skin = styleOf(entry)
         return h('g', {
           key: 'stand-' + entry.sessionId,
           className: 'dept-avatar',
@@ -396,9 +413,9 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
         },
           h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
-          box(-8, -34, 16, 18, '#c25a4a'),
+          box(-8, -34, 16, 18, skin.shirt),
           box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, '#5a3a22'),
+          box(-7, -47, 14, 4, skin.hair),
           box(-8, -16, 6, 15, '#2a3448'),
           box(2, -16, 6, 15, '#2a3448'),
           looking === 'window' ? h('g', { className: 'dept-reading' }, box(-9, -40, 18, 8, '#cfe6ff'), box(-8, -39, 16, 6, '#8fd3ff'))
@@ -410,6 +427,7 @@ window.__ModuleLoader__.load({
 
       const walkingPerson = (entry, spot) => {
         const isSelected = selected === entry.sessionId
+        const skin = styleOf(entry)
         return h('g', {
           key: 'walk-' + entry.sessionId,
           className: 'dept-avatar walking',
@@ -421,9 +439,9 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
         },
           h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
-          box(-8, -34, 16, 18, '#c25a4a'),
+          box(-8, -34, 16, 18, skin.shirt),
           box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, '#5a3a22'),
+          box(-7, -47, 14, 4, skin.hair),
           h('g', { className: 'dept-legs' },
             box(-8, -16, 6, 15, '#2a3448'),
             box(2, -16, 6, 15, '#2a3448')))
