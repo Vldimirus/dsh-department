@@ -34,6 +34,14 @@
     <div class="muted">Рисуй спрайт, сохраняй PNG или JSON-сетку.</div>
 
     <div class="row">
+      <label class="muted">Зум</label>
+      <button id="zoomOut">−</button>
+      <span class="muted" id="zoomLabel">8×</span>
+      <button id="zoomIn">+</button>
+      <button id="zoomFit">Вписать</button>
+    </div>
+
+    <div class="row">
       <label class="muted">Размер</label>
       <select id="size">
         <option>16</option><option>32</option><option selected>32</option><option>64</option><option>96</option>
@@ -94,7 +102,16 @@ const PALETTE = [
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let gridSize = 32;
-let zoom = Math.max(8, Math.floor(520 / gridSize));
+let zoom = 12;
+function fitZoom() {
+  return Math.max(1, Math.min(32, Math.floor(520 / gridSize)));
+}
+function setZoom(value) {
+  zoom = Math.max(1, Math.min(40, value));
+  const label = document.getElementById('zoomLabel');
+  if (label) label.textContent = zoom + '×';
+  render();
+}
 let pixels = [];
 let tool = 'pencil';
 let color = '#7fdc9a';
@@ -113,6 +130,7 @@ function blank() {
 
 function reset() {
   pixels = blank();
+  setZoom(fitZoom());
   selection = null;
   undoStack = [];
   redoStack = [];
@@ -308,7 +326,6 @@ document.getElementById('color').oninput = (event) => { color = event.target.val
 
 document.getElementById('size').onchange = (event) => {
   gridSize = Number(event.target.value);
-  zoom = Math.max(8, Math.floor(520 / gridSize));
   reset();
 };
 
@@ -438,6 +455,22 @@ function downloadJson() {
   link.click();
   URL.revokeObjectURL(url);
 }
+
+document.getElementById('zoomIn').onclick = () => setZoom(zoom + 2);
+document.getElementById('zoomOut').onclick = () => setZoom(zoom - 2);
+document.getElementById('zoomFit').onclick = () => setZoom(fitZoom());
+
+canvas.addEventListener('wheel', (event) => {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  setZoom(zoom + (event.deltaY < 0 ? 1 : -1));
+}, { passive: false });
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === '+' || event.key === '=') { event.preventDefault(); setZoom(zoom + 1); }
+  if (event.key === '-') { event.preventDefault(); setZoom(zoom - 1); }
+  if (event.key === '0') { event.preventDefault(); setZoom(fitZoom()); }
+});
 
 const swatches = document.getElementById('swatches');
 for (const value of PALETTE) {
