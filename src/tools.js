@@ -65,6 +65,30 @@ async function collectArtifacts(root, taskId) {
   return files;
 }
 
+/**
+ * Будит агентов проекта followup-сообщением.
+ *
+ * @param {object} ctx Контекст плагина.
+ * @param {string} root Корень проекта.
+ * @param {string} message Текст.
+ */
+function wakeAgents(ctx, root, message) {
+  try {
+    const registry = typeof ctx?.get === 'function' ? ctx.get('agents') : null;
+    if (!registry || typeof registry.list !== 'function') return;
+    for (const agent of registry.list()) {
+      if (agent?.session?.header?.cwd !== root || typeof agent.followup !== 'function') continue;
+      try {
+        agent.followup({ role: 'user', content: [{ type: 'text', text: message }], source: { kind: 'dsh-department' } });
+      } catch {
+        // агент мог закрыться
+      }
+    }
+  } catch {
+    // сервис агентов недоступен
+  }
+}
+
 function assertActive(state, action) {
   if (isPaused(state)) {
     throw new Error(`отдел на паузе (${state.paused?.reason || 'без причины'}); ${action} заблокировано — сними паузу dept_pause`);
@@ -114,7 +138,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(composeTool()));
   disposers.push(ctx.tools.register(correctionTool()));
   disposers.push(ctx.tools.register(budgetTool()));
-  disposers.push(ctx.tools.register(pauseTool()));
+  disposers.push(ctx.tools.register(pauseTool(ctx)));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -1657,7 +1681,7 @@ function budgetTool() {
   };
 }
 
-function pauseTool() {
+function pauseTool(ctx) {
   return {
     name: 'dept_pause',
     description: 'Пауза/возобновление задачи: работа останавливается, токены не тратятся, состояние сохраняется. После resume отдел продолжает с того же места.',
@@ -1685,6 +1709,7 @@ function pauseTool() {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       const next = await writeState(root, setPaused(state, { paused, reason: args?.reason ?? '', by }));
+      if (!paused) wakeAgents(ctx, root, 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.');
       return { paused: Boolean(next.paused?.value), summary: paused ? `задача на паузе: ${args?.reason ?? ''}` : 'работа продолжена' };
     },
   };

@@ -128,6 +128,17 @@ export function registerDepartmentRoutes(ctx, activity) {
       const state = await readState(root, taskId);
       if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
       const next = await writeState(root, setPaused(state, { paused, reason: reason ?? '', by }));
+      if (!paused) {
+        try {
+          const registry = ctx.get('agents');
+          for (const agent of registry.list()) {
+            if (agent?.session?.header?.cwd !== root || typeof agent.followup !== 'function') continue;
+            agent.followup({ role: 'user', content: [{ type: 'text', text: 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.' }], source: { kind: 'dsh-department' } });
+          }
+        } catch {
+          // сервис агентов недоступен
+        }
+      }
       return Response.json({ paused: Boolean(next.paused?.value) });
     },
   });
