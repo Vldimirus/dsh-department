@@ -265,10 +265,26 @@ window.__ModuleLoader__.load({
     function OfficeView({ items, selected, onSelect, tasks, onOpenTask, attention, party, paused, pauseReason }) {
       const assignments = React.useRef(null)
       if (!assignments.current) assignments.current = new Map()
-      const styleOf = (entry) => {
-        if (entry?.kind === 'менеджер') return ROLE_STYLE.manager
-        const role = DESKS.find((desk) => desk.key === (assignments.current.get(entry?.sessionId) ?? ''))?.key
-        return ROLE_STYLE[role] ?? ROLE_STYLE.coder
+      const roleOf = (entry) => {
+        if (entry?.kind === 'менеджер') return 'manager'
+        return DESKS.find((desk) => desk.key === (assignments.current.get(entry?.sessionId) ?? ''))?.key ?? 'coder'
+      }
+      const SPRITES = {
+        manager: ['manager-1', 'manager-2'],
+        coder: ['coder-1', 'coder-2'],
+        tester: ['tester-1', 'tester-2'],
+        reviewer: ['reviewer-1', 'reviewer-2'],
+        analyst: ['analyst-1'],
+        artist: ['artist-1'],
+        archivist: ['analyst-1'],
+        instrumenter: ['coder-1'],
+      }
+      const spriteBase = typeof location !== 'undefined' && location.protocol === 'file:' ? '' : '/api/department/asset?name='
+      const spriteFor = (entry) => {
+        const role = roleOf(entry)
+        const list = SPRITES[role] ?? SPRITES.coder
+        const seed = String(entry?.sessionId ?? role).split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+        return spriteBase + 'char-' + list[seed % list.length] + '.png'
       }
       const settled = React.useRef(new Map())
       const plans = React.useRef(new Map())
@@ -372,7 +388,6 @@ window.__ModuleLoader__.load({
 
       const seatedPerson = (entry, desk, index) => {
         const isSelected = selected === entry.sessionId
-        const skin = styleOf(entry)
         const reading = (index % 2) === 0
         return h('g', {
           key: 'seat-' + entry.sessionId,
@@ -381,9 +396,11 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          box(-9, -28, 18, 17, skin.shirt),
-          box(-6, -38, 12, 12, '#f0c9a0'),
-          box(-7, -40, 14, 4, skin.hair),
+          h('defs', null,
+            h('clipPath', { id: 'seat-clip-' + entry.sessionId },
+              h('rect', { x: -12, y: -48, width: 24, height: 34 }))),
+          h('g', { clipPath: 'url(#seat-clip-' + entry.sessionId + ')' },
+            h('image', { href: spriteFor(entry), x: -12, y: -48, width: 24, height: 48 })),
           reading ? h('g', { className: 'dept-reading' },
               box(-9, -24, 18, 12, '#ece6d0'),
               box(-7, -23, 6, 1, '#8e8873'),
@@ -392,7 +409,6 @@ window.__ModuleLoader__.load({
             : h('g', { className: 'dept-coffee' },
                 box(6, -24, 6, 9, '#f2f2f2'),
                 box(7, -23, 4, 2, '#7a4a24'),
-                box(-12, -22, 4, 9, '#f0c9a0'),
                 h('rect', { className: 'dept-steam s1', x: 8, y: -29, width: 2, height: 3, fill: '#d8e6ff' }),
                 h('rect', { className: 'dept-steam s2', x: 10, y: -31, width: 2, height: 3, fill: '#d8e6ff' })),
           h('text', { x: 0, y: 18, fill: '#5f7392', fontSize: 8, textAnchor: 'middle' },
@@ -401,7 +417,6 @@ window.__ModuleLoader__.load({
 
       const standingPerson = (entry, spot, looking) => {
         const isSelected = selected === entry.sessionId
-        const skin = styleOf(entry)
         return h('g', {
           key: 'stand-' + entry.sessionId,
           className: 'dept-avatar',
@@ -413,21 +428,11 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
         },
           h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
-          box(-8, -34, 16, 18, skin.shirt),
-          box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, skin.hair),
-          box(-8, -16, 6, 15, '#2a3448'),
-          box(2, -16, 6, 15, '#2a3448'),
-          looking === 'window' ? h('g', { className: 'dept-reading' }, box(-9, -40, 18, 8, '#cfe6ff'), box(-8, -39, 16, 6, '#8fd3ff'))
-            : h('g', { className: 'dept-coffee' },
-                box(8, -30, 6, 8, '#f2f2f2'),
-                box(9, -29, 4, 2, '#7a4a24'),
-                h('rect', { className: 'dept-steam s1', x: 10, y: -34, width: 2, height: 3, fill: '#d8e6ff' })))
+          h('image', { href: spriteFor(entry), x: -12, y: -48, width: 24, height: 48 }))
       }
 
       const walkingPerson = (entry, spot) => {
         const isSelected = selected === entry.sessionId
-        const skin = styleOf(entry)
         return h('g', {
           key: 'walk-' + entry.sessionId,
           className: 'dept-avatar walking',
@@ -439,12 +444,7 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
         },
           h('ellipse', { cx: 0, cy: 1, rx: 9, ry: 3, fill: '#00000022' }),
-          box(-8, -34, 16, 18, skin.shirt),
-          box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, skin.hair),
-          h('g', { className: 'dept-legs' },
-            box(-8, -16, 6, 15, '#2a3448'),
-            box(2, -16, 6, 15, '#2a3448')))
+          h('image', { href: spriteFor(entry), x: -12, y: -48, width: 24, height: 48 }))
       }
 
       const actors = []
