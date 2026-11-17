@@ -37,6 +37,118 @@ window.__ModuleLoader__.load({
         'tabs.roles': 'Роли',
         'tabs.billing': 'Бюджет',
         'tabs.git': 'Git',
+
+        'stage.analysis': 'Анализ',
+        'stage.concept': 'Концепция',
+        'stage.concept_review': 'Проверка концепции',
+        'stage.spec': 'ТЗ',
+        'stage.spec_review': 'Проверка ТЗ',
+        'stage.executing': 'Исполнение',
+        'stage.done': 'Завершено',
+        'stage.blocked': 'Заблокировано',
+        'status.pass': 'Пройдено',
+        'status.fail': 'Провал',
+        'status.pending': 'Ожидание',
+        'role.manager': 'Руководитель',
+        'role.coder': 'Кодер',
+        'role.tester': 'Тестер',
+        'role.reviewer': 'Ревьюер',
+        'role.analyst': 'Аналитик',
+        'role.artist': 'Художник',
+        'role.archivist': 'Архивариус',
+        'role.instrumenter': 'Инструментатор',
+        'doc.task': 'Задача',
+        'doc.analysis': 'Анализ',
+        'doc.concept': 'Концепция',
+        'doc.spec': 'ТЗ',
+        'doc.plan': 'План',
+        'doc.report': 'Отчёт',
+        'doc.review': 'Ревью',
+        'doc.memo': 'Служебная записка',
+        'doc.backlog': 'Бэклог',
+        'doc.bugs': 'Баги',
+        'doc.rework': 'Переработка',
+        'block.status': 'Состояние',
+        'block.stage': 'Этап',
+        'block.attempts': 'Попытки (провалы)',
+        'block.tests': 'Тесты',
+        'block.review': 'Ревью',
+        'block.tokens': 'Токены',
+        'block.cost': 'Стоимость',
+        'block.calls': 'Вызовов модели',
+        'block.approval': 'Утверждение',
+        'block.openQuestions': 'Открытые вопросы',
+        'block.documents': 'Документы',
+        'block.recentEvents': 'Последние события',
+        'block.audit': 'Аудит dept_verify',
+        'block.events': 'События',
+        'block.questions': 'Открытые вопросы',
+        'block.commits': 'Коммиты',
+        'block.tags': 'Теги',
+        'block.branch': 'Ветка',
+        'block.roles': 'Роли и модели',
+        'doc.search': 'поиск по названию',
+        'doc.allTypes': 'все типы',
+        'doc.notFound': 'ничего не найдено',
+        'doc.choose': 'Выбери документ слева — здесь появится содержимое.',
+        'doc.loading': 'загрузка…',
+        'doc.error': 'ошибка: ',
+        'audit.pass': 'Итог: PASS',
+        'audit.fail': 'Итог: FAIL',
+        'event.time': 'время',
+        'event.author': 'автор',
+        'event.noDetails': 'без подробностей',
+        'event.choose': 'Выбери событие слева — здесь появятся подробности.',
+        'badge.paused': '⏸ пауза',
+        'badge.noBody': 'никого нет',
+        'office.roleTag': 'сотрудник',
+        'party.title': '🎉 Вечеринка!',
+        'party.text': 'Все задачи отдела закрыты — можно отдыхать.',
+        'office.fullTitle': 'Офис ИИ-отдела',
+        'event.unknown': 'событие',
+        'branch.prefix': 'ветка',
+
+        'block.newCorrection': 'Новая корректировка',
+        'block.correctionHistory': 'История корректировок',
+        'block.billing': 'Бюджет и цены',
+        'field.doc': 'К чему относится',
+        'field.subject': 'Тема',
+        'field.text': 'Текст корректировки',
+        'btn.sendCorrection': 'Отправить корректировку',
+        'btn.savePrices': 'Сохранить цены',
+        'nav.back': 'К доске',
+        'none': 'нет',
+        'doc.other': 'Документ',
+        'doc.reworkPlan': 'План переработки',
+        'doc.section': 'Раздел специалиста',
+        'doc.bug': 'Баг-репорт',
+        'doc.stageReport': 'Отчёт этапа',
+        'doc.stageReview': 'Ревью этапа',
+        'doc.failure': 'Анализ провала',
+        'doc.approach': 'Смена подхода',
+        'audit.present': 'есть',
+        'audit.missing': 'нет',
+        'audit.approved': 'утверждено',
+        'audit.notApproved': 'не утверждено',
+        'audit.closed': 'этап закрыт коммитом',
+        'event.tests_passed': 'Тесты пройдены',
+        'event.review_passed': 'Ревью пройдено',
+        'event.commit_pushed': 'Коммит отправлен',
+        'event.stage_done': 'Этап завершён',
+        'event.question_asked': 'Вопрос задан',
+        'event.question_answered': 'Ответ получен',
+        'event.amended_document': 'Документ поправлен',
+        'event.approved': 'Документ утверждён',
+        'event.correction_created': 'Корректировка отправлена',
+        'event.budget_updated': 'Бюджет изменён',
+        'event.task_paused': 'Пауза',
+        'event.task_resumed': 'Возобновлено',
+        'event.branch_ready': 'Ветка создана',
+        'event.roles_updated': 'Роли изменены',
+        'event.memo_ready': 'Записка готова',
+        'event.idea_critiqued': 'Идея оценена',
+        'event.module_planned': 'Модули спланированы',
+
       },
       en: {
         'nav.board': 'Board',
@@ -61,6 +173,118 @@ window.__ModuleLoader__.load({
         'tabs.roles': 'Roles',
         'tabs.billing': 'Budget',
         'tabs.git': 'Git',
+
+        'stage.analysis': 'Analysis',
+        'stage.concept': 'Concept',
+        'stage.concept_review': 'Concept review',
+        'stage.spec': 'Spec',
+        'stage.spec_review': 'Spec review',
+        'stage.executing': 'Execution',
+        'stage.done': 'Done',
+        'stage.blocked': 'Blocked',
+        'status.pass': 'Pass',
+        'status.fail': 'Fail',
+        'status.pending': 'Pending',
+        'role.manager': 'Manager',
+        'role.coder': 'Coder',
+        'role.tester': 'Tester',
+        'role.reviewer': 'Reviewer',
+        'role.analyst': 'Analyst',
+        'role.artist': 'Artist',
+        'role.archivist': 'Archivist',
+        'role.instrumenter': 'Instrumenter',
+        'doc.task': 'Task',
+        'doc.analysis': 'Analysis',
+        'doc.concept': 'Concept',
+        'doc.spec': 'Spec',
+        'doc.plan': 'Plan',
+        'doc.report': 'Report',
+        'doc.review': 'Review',
+        'doc.memo': 'Memo',
+        'doc.backlog': 'Backlog',
+        'doc.bugs': 'Bugs',
+        'doc.rework': 'Rework',
+        'block.status': 'Status',
+        'block.stage': 'Stage',
+        'block.attempts': 'Attempts (failures)',
+        'block.tests': 'Tests',
+        'block.review': 'Review',
+        'block.tokens': 'Tokens',
+        'block.cost': 'Cost',
+        'block.calls': 'Model calls',
+        'block.approval': 'Approval',
+        'block.openQuestions': 'Open questions',
+        'block.documents': 'Documents',
+        'block.recentEvents': 'Recent events',
+        'block.audit': 'Audit dept_verify',
+        'block.events': 'Events',
+        'block.questions': 'Open questions',
+        'block.commits': 'Commits',
+        'block.tags': 'Tags',
+        'block.branch': 'Branch',
+        'block.roles': 'Roles & models',
+        'doc.search': 'search by title',
+        'doc.allTypes': 'all types',
+        'doc.notFound': 'nothing found',
+        'doc.choose': 'Pick a document on the left — its content appears here.',
+        'doc.loading': 'loading…',
+        'doc.error': 'error: ',
+        'audit.pass': 'Result: PASS',
+        'audit.fail': 'Result: FAIL',
+        'event.time': 'time',
+        'event.author': 'author',
+        'event.noDetails': 'no details',
+        'event.choose': 'Pick an event on the left — details appear here.',
+        'badge.paused': '⏸ paused',
+        'badge.noBody': 'nobody here',
+        'office.roleTag': 'employee',
+        'party.title': '🎉 Party!',
+        'party.text': 'All department tasks are closed — time to rest.',
+        'office.fullTitle': 'AI department office',
+        'event.unknown': 'event',
+        'branch.prefix': 'branch',
+
+        'block.newCorrection': 'New correction',
+        'block.correctionHistory': 'Correction history',
+        'block.billing': 'Budget & prices',
+        'field.doc': 'Relates to',
+        'field.subject': 'Subject',
+        'field.text': 'Correction text',
+        'btn.sendCorrection': 'Send correction',
+        'btn.savePrices': 'Save prices',
+        'nav.back': 'Back to board',
+        'none': 'none',
+        'doc.other': 'Document',
+        'doc.reworkPlan': 'Rework plan',
+        'doc.section': 'Specialist section',
+        'doc.bug': 'Bug report',
+        'doc.stageReport': 'Stage report',
+        'doc.stageReview': 'Stage review',
+        'doc.failure': 'Failure analysis',
+        'doc.approach': 'Approach change',
+        'audit.present': 'present',
+        'audit.missing': 'missing',
+        'audit.approved': 'approved',
+        'audit.notApproved': 'not approved',
+        'audit.closed': 'stage closed by commit',
+        'event.tests_passed': 'Tests passed',
+        'event.review_passed': 'Review passed',
+        'event.commit_pushed': 'Commit pushed',
+        'event.stage_done': 'Stage done',
+        'event.question_asked': 'Question asked',
+        'event.question_answered': 'Answer received',
+        'event.amended_document': 'Document amended',
+        'event.approved': 'Document approved',
+        'event.correction_created': 'Correction created',
+        'event.budget_updated': 'Budget updated',
+        'event.task_paused': 'Paused',
+        'event.task_resumed': 'Resumed',
+        'event.branch_ready': 'Branch ready',
+        'event.roles_updated': 'Roles updated',
+        'event.memo_ready': 'Memo ready',
+        'event.idea_critiqued': 'Idea critiqued',
+        'event.module_planned': 'Modules planned',
+
       },
     }
     let deptLang = (() => {
@@ -79,6 +303,50 @@ window.__ModuleLoader__.load({
       for (const [name, replacement] of Object.entries(vars ?? {})) value = value.split('{' + name + '}').join(String(replacement))
       return value
     }
+
+    const stageLabel = (stage) => { const value = t('stage.' + stage); return value === 'stage.' + stage ? String(stage ?? '') : value }
+    const roleLabel = (role) => { const value = t('role.' + role); return value === 'role.' + role ? String(role ?? '') : value }
+    const DOC_KEY = {
+      'документ': 'doc.other',
+      'план переработки': 'doc.reworkPlan',
+      'раздел специалиста': 'doc.section',
+      'баг-репорт': 'doc.bug',
+      'отчёт этапа': 'doc.stageReport',
+      'ревью этапа': 'doc.stageReview',
+      'анализ провала': 'doc.failure',
+      'смена подхода': 'doc.approach',
+      'служебная записка': 'doc.memo',
+      'бэклог': 'doc.backlog',
+      'план': 'doc.plan',
+      'тз': 'doc.spec',
+      'концепция': 'doc.concept',
+      'анализ': 'doc.analysis',
+      'задача': 'doc.task',
+    }
+    const docLabel = (type) => {
+      const raw = String(type ?? '')
+      const key = DOC_KEY[raw.toLowerCase()] ?? ('doc.' + raw.toLowerCase())
+      const value = t(key)
+      return value === key ? raw : value
+    }
+    const auditDetail = (detail) => {
+      const raw = String(detail ?? '')
+      const simple = {
+        present: 'audit.present', missing: 'audit.missing',
+        approved: 'audit.approved', 'not approved': 'audit.notApproved',
+        'этап закрыт коммитом': 'audit.closed',
+      }[raw]
+      if (simple) return t(simple)
+      if (raw.startsWith('status=')) return raw.replace('status=', 'status: ')
+      return raw
+    }
+    const eventLabel = (action) => {
+      const key = 'event.' + action
+      const value = t(key)
+      if (value !== key) return value
+      return String(action ?? '').replace(/_/g, ' ')
+    }
+    const actorLabel = (actor) => { const value = t('role.' + actor); return value === 'role.' + actor ? String(actor ?? '') : value }
     const setDeptLang = (lang) => {
       deptLang = lang === 'en' ? 'en' : 'ru'
       try { localStorage.setItem('dept-lang', deptLang) } catch { /* приватный режим */ }
@@ -586,8 +854,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-sub' }, items.length ? t('office.staff', { n: items.length, m: DESKS.length }) : t('office.empty'))),
         party
           ? h('div', { className: 'dept-block', style: { borderColor: '#7fdc9a', textAlign: 'center' } },
-              h('div', { className: 'dept-title' }, '🎉 Вечеринка!'),
-              h('div', { className: 'dept-sub' }, 'Все задачи отдела закрыты — можно отдыхать.'))
+              h('div', { className: 'dept-title' }, t('party.title')),
+              h('div', { className: 'dept-sub' }, t('party.text')))
           : null,
         h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'nowrap' } },
           h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
@@ -658,7 +926,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-office-side', style: { flex: '0 0 340px', width: '340px' } },
             selectedEntry
               ? [
-                  h('div', { className: 'dept-title' }, selectedEntry.kind === 'менеджер' ? 'Руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(selectedEntry.sessionId) ?? inferRole(selectedEntry)))?.label ?? 'Агент')),
+                  h('div', { className: 'dept-title' }, roleLabel(selectedEntry.kind === 'менеджер' ? 'manager' : (assignments.current.get(selectedEntry.sessionId) ?? inferRole(selectedEntry)))),
                   h('div', { className: 'dept-row' },
                     h('span', { className: (selectedEntry.busy && !paused) ? 'dept-badge ok' : 'dept-badge wait' }, paused ? '⏸ пауза' : selectedEntry.busy ? '● работает' : '○ перерыв'),
                     h('span', { className: 'dept-sub' }, formatElapsed(selectedEntry.elapsedMs))),
@@ -688,11 +956,11 @@ window.__ModuleLoader__.load({
         'div',
         { className: 'dept-card', onClick: () => onOpen(task), style: task.memos ? { borderColor: '#d8c07a' } : undefined },
         h('div', { className: 'dept-row' }, h('strong', null, task.title), h('span', { className: 'dept-sub' }, task.taskId)),
-        h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, task.stage), task.paused ? h('span', { className: 'dept-badge wait' }, '⏸ пауза') : null, h('span', { className: 'dept-sub' }, `ветка ${task.branch}`)),
+        h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, stageLabel(task.stage)), task.paused ? h('span', { className: 'dept-badge wait' }, t('badge.paused')) : null, h('span', { className: 'dept-sub' }, `${t('branch.prefix')} ${task.branch}`)),
         h('div', { className: 'dept-bar' }, h('i', { style: { width: `${task.progress}%` } })),
         h('div', { className: 'dept-row' }, h('span', { className: 'dept-sub' }, `${task.progress}%`), badge(`tests:${task.tests}`), badge(`review:${task.review}`),
           task.memos ? h('span', { className: 'dept-badge wait' }, '✍ ' + task.memos) : null),
-        task.lastEvent ? h('div', { className: 'dept-sub' }, `${task.lastEvent.action} · ${task.lastEvent.detail ?? ''}`) : null,
+        task.lastEvent ? h('div', { className: 'dept-sub' }, `${eventLabel(task.lastEvent.action)} · ${task.lastEvent.detail ?? ''}`) : null,
       )
     }
 
@@ -714,10 +982,10 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         if (!selected) return
-        setContent('загрузка…')
+        setContent(t('doc.loading'))
         api(ROUTES.document + '?root=' + encodeURIComponent(root) + '&taskId=' + encodeURIComponent(taskId) + '&path=' + encodeURIComponent(selected))
           .then((payload) => setContent(payload.content ?? ''))
-          .catch((problem) => setContent('ошибка: ' + problem.message))
+          .catch((problem) => setContent(t('doc.error') + problem.message))
       }, [selected, root, taskId])
 
       const types = ['all', ...new Set(documents.map((item) => item.type))]
@@ -734,13 +1002,13 @@ window.__ModuleLoader__.load({
 
       return h('div', { style: { display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
         h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
-          h('div', { className: 'dept-block-title' }, 'Документы'),
-          h('input', { className: 'dept-input', placeholder: 'поиск по названию', value: query, onChange: (event) => setQuery(event.target.value) }),
+          h('div', { className: 'dept-block-title' }, t('block.documents')),
+          h('input', { className: 'dept-input', placeholder: t('doc.search'), value: query, onChange: (event) => setQuery(event.target.value) }),
           h('select', { className: 'dept-input', value: type, onChange: (event) => setType(event.target.value) },
-            ...types.map((item) => h('option', { key: item, value: item }, item === 'all' ? 'все типы' : item))),
+            ...types.map((item) => h('option', { key: item, value: item }, item === 'all' ? t('doc.allTypes') : docLabel(item)))),
           error ? h('div', { className: 'dept-badge fail' }, error) : null,
           filtered.length === 0
-            ? h('div', { className: 'dept-sub' }, 'ничего не найдено')
+            ? h('div', { className: 'dept-sub' }, t('doc.notFound'))
             : h('div', { className: 'dept-events' }, ...filtered.map((item) =>
                 h('div', {
                   key: item.path,
@@ -749,13 +1017,13 @@ window.__ModuleLoader__.load({
                   onClick: () => setSelected(item.path),
                 },
                   h('span', null, item.title || item.path),
-                  h('span', { className: 'dept-sub' }, item.type + ' · ' + String(item.ts).replace('T', ' ').slice(0, 16)))))),
+                  h('span', { className: 'dept-sub' }, docLabel(item.type) + ' · ' + String(item.ts).replace('T', ' ').slice(0, 16)))))),
         h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
           selected
             ? h('div', null,
                 h('div', { className: 'dept-block-title' }, selected),
                 h(Markdown, { text: content }))
-            : h('div', { className: 'dept-sub' }, 'Выбери документ слева — здесь появится содержимое.')))
+            : h('div', { className: 'dept-sub' }, t('doc.choose'))))
     }
 
     function TaskDetail({ detail, onBack, onReload }) {
@@ -867,7 +1135,7 @@ window.__ModuleLoader__.load({
         }
         if (tab === 'questions') {
           return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Открытые вопросы'),
+            h('div', { className: 'dept-block-title' }, t('block.openQuestions')),
             openQuestions.length === 0
               ? h('div', { className: 'dept-sub' }, 'Открытых вопросов нет.')
               : h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
@@ -918,18 +1186,18 @@ window.__ModuleLoader__.load({
         }
         if (tab === 'audit') {
           return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Аудит dept_verify'),
+            h('div', { className: 'dept-block-title' }, t('block.audit')),
             ...(detail.audit?.checks ?? []).map((check) =>
               h('div', { key: check.id, className: 'dept-kv' },
-                h('span', null, check.id),
+                h('span', null, check.id + (check.detail ? ' · ' + auditDetail(check.detail) : '')),
                 h('span', { className: check.ok ? 'dept-badge ok' : 'dept-badge fail' }, check.ok ? 'OK' : 'FAIL'))),
-            h('div', { className: 'dept-sub' }, detail.audit?.ok ? 'Итог: PASS' : 'Итог: FAIL'))
+            h('div', { className: 'dept-sub' }, detail.audit?.ok ? t('audit.pass') : t('audit.fail')))
         }
         if (tab === 'events') {
           const selectedEvent = (detail.events ?? []).find((event) => event.id === eventId) ?? null
           return h('div', { style: { display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
             h('div', { className: 'dept-block', style: { maxHeight: '520px', overflow: 'auto' } },
-              h('div', { className: 'dept-block-title' }, 'События'),
+              h('div', { className: 'dept-block-title' }, t('block.events')),
               ...(detail.events ?? []).map((event) =>
                 h('div', {
                   key: event.id,
@@ -938,24 +1206,24 @@ window.__ModuleLoader__.load({
                   onClick: () => setEventId(event.id),
                 },
                   h('span', null, String(event.ts).replace('T', ' ').slice(5, 19)),
-                  h('span', { className: 'dept-sub' }, `${event.actor}: ${event.action}`)))),
+                  h('span', { className: 'dept-sub' }, `${actorLabel(event.actor)}: ${eventLabel(event.action)}`)))),
             h('div', { className: 'dept-block' },
               selectedEvent
                 ? h('div', null,
-                    h('div', { className: 'dept-block-title' }, selectedEvent.action),
-                    h('div', { className: 'dept-kv' }, h('span', null, 'время'), h('span', null, String(selectedEvent.ts).replace('T', ' ').slice(0, 19))),
-                    h('div', { className: 'dept-kv' }, h('span', null, 'автор'), h('span', null, selectedEvent.actor)),
-                    h('div', { className: 'dept-sub' }, selectedEvent.detail ?? 'без подробностей'))
-                : h('div', { className: 'dept-sub' }, 'Выбери событие слева — здесь появятся подробности.')))
+                    h('div', { className: 'dept-block-title' }, eventLabel(selectedEvent.action)),
+                    h('div', { className: 'dept-kv' }, h('span', null, t('event.time')), h('span', null, String(selectedEvent.ts).replace('T', ' ').slice(0, 19))),
+                    h('div', { className: 'dept-kv' }, h('span', null, t('event.author')), h('span', null, selectedEvent.actor)),
+                    h('div', { className: 'dept-sub' }, selectedEvent.detail ?? t('event.noDetails')))
+                : h('div', { className: 'dept-sub' }, t('event.choose'))))
         }
         if (tab === 'correction') {
           const corrections = detail.corrections ?? []
           return h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '12px', alignItems: 'start' } },
             h('div', { className: 'dept-block' },
-              h('div', { className: 'dept-block-title' }, 'Новая корректировка'),
+              h('div', { className: 'dept-block-title' }, t('block.newCorrection')),
               h('div', { className: 'dept-sub' }, 'Как письмо руководителю: что поменять и к чему это относится.'),
               h('div', { className: 'dept-form-row' },
-                h('label', null, 'К чему относится'),
+                h('label', null, t('field.doc')),
                 h('select', { className: 'dept-input', value: corr.doc, onChange: (event) => setCorr({ ...corr, doc: event.target.value }) },
                   h('option', { value: 'concept' }, 'Концепция'),
                   h('option', { value: 'spec' }, 'ТЗ'),
@@ -964,10 +1232,10 @@ window.__ModuleLoader__.load({
                   h('option', { value: 'data' }, 'Данные'),
                   h('option', { value: 'interface' }, 'Интерфейс'))),
               h('div', { className: 'dept-form-row' },
-                h('label', null, 'Тема'),
+                h('label', null, t('field.subject')),
                 h('input', { className: 'dept-input', value: corr.subject, onChange: (event) => setCorr({ ...corr, subject: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
-                h('label', null, 'Текст корректировки'),
+                h('label', null, t('field.text')),
                 h('textarea', { className: 'dept-input', rows: 8, value: corr.text, onChange: (event) => setCorr({ ...corr, text: event.target.value }) })),
               h('div', { className: 'dept-row' },
                 h('button', {
@@ -977,10 +1245,10 @@ window.__ModuleLoader__.load({
                     const result = await post(ROUTES.correction, { root: detail.root, taskId: detail.taskId, doc: corr.doc, subject: corr.subject.trim(), text: corr.text.trim() })
                     if (result) setCorr({ doc: corr.doc, subject: '', text: '' })
                   },
-                }, 'Отправить корректировку'),
+                }, t('btn.sendCorrection')),
                 h('span', { className: 'dept-sub' }, 'Руководитель возьмёт в работу и соберёт специалистов.'))),
             h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
-              h('div', { className: 'dept-block-title' }, 'История корректировок'),
+              h('div', { className: 'dept-block-title' }, t('block.correctionHistory')),
               corrections.length === 0
                 ? h('div', { className: 'dept-sub' }, 'пока нет')
                 : h('div', { className: 'dept-events' }, ...corrections.map((item) =>
@@ -993,7 +1261,7 @@ window.__ModuleLoader__.load({
         }
         if (tab === 'roles') {
           return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Роли и модели'),
+            h('div', { className: 'dept-block-title' }, t('block.roles')),
             h('div', { className: 'dept-sub' }, 'Модель и reasoning для каждой роли. Пустая модель — по умолчанию.'),
             ...roles.map((role) =>
               h('div', { key: role.name, className: 'dept-kv', style: { alignItems: 'center', gap: '6px' } },
@@ -1056,7 +1324,7 @@ window.__ModuleLoader__.load({
         }
         if (tab === 'billing') {
           return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Бюджет и цены'),
+            h('div', { className: 'dept-block-title' }, t('block.billing')),
             h('div', { className: 'dept-sub' }, 'Лимит и цены за 1M токенов; курс — для пересчёта в рубли.'),
             h('div', { className: 'dept-kv' }, h('span', null, 'сейчас (после перезапуска)'), h('span', null, `${((budget?.usage?.inputTokens ?? 0) + (budget?.usage?.outputTokens ?? 0)).toLocaleString('ru-RU')} т.`)),
             h('div', { className: 'dept-kv' }, h('span', null, 'всего по этапам'), h('span', null, `${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.tokens ?? 0), 0).toLocaleString('ru-RU')} т.`)),
@@ -1083,7 +1351,7 @@ window.__ModuleLoader__.load({
                 h('label', null, 'курс ₽'),
                 h('input', { className: 'dept-input', value: prices.rate, onChange: (event) => setPrices({ ...prices, rate: event.target.value }) }))),
             h('div', { className: 'dept-row' },
-              h('button', { className: 'dept-btn', disabled: savingBudget, onClick: savePrices }, 'Сохранить цены'),
+              h('button', { className: 'dept-btn', disabled: savingBudget, onClick: savePrices }, t('btn.savePrices')),
               h('span', { className: 'dept-sub' }, message ?? '')),
             (budget?.history ?? []).length > 0
               ? h('div', null,
@@ -1096,37 +1364,37 @@ window.__ModuleLoader__.load({
         }
         if (tab === 'git') {
           return h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Коммиты'),
+            h('div', { className: 'dept-block-title' }, t('block.commits')),
             h('div', { className: 'dept-pre' }, (detail.recentCommits ?? []).join('\n') || 'нет коммитов'),
-            h('div', { className: 'dept-block-title' }, 'Теги'),
+            h('div', { className: 'dept-block-title' }, t('block.tags')),
             h('div', { className: 'dept-sub' }, (detail.tags ?? []).join(', ') || '—'),
-            h('div', { className: 'dept-block-title' }, 'Ветка'),
+            h('div', { className: 'dept-block-title' }, t('block.branch')),
             h('div', { className: 'dept-sub' }, detail.currentBranch ?? detail.branch))
         }
         return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
           h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Открытые вопросы'),
+            h('div', { className: 'dept-block-title' }, t('block.openQuestions')),
             openQuestions.length === 0
               ? h('div', { className: 'dept-sub' }, 'нет')
               : h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
                   h('div', { key: question.id, className: 'dept-event' }, h('span', null, question.text))))),
           h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Документы'),
+            h('div', { className: 'dept-block-title' }, t('block.documents')),
             h('div', { className: 'dept-row' }, ...docs.map((file) =>
               h('span', { key: file, className: 'dept-badge ' + (detail.files?.[file] ? 'ok' : 'wait') }, file)))),
           h('div', { className: 'dept-block' },
-            h('div', { className: 'dept-block-title' }, 'Последние события'),
+            h('div', { className: 'dept-block-title' }, t('block.recentEvents')),
             h('div', { className: 'dept-events' }, ...(detail.events ?? []).slice(0, 8).map((event) =>
               h('div', { key: event.id, className: 'dept-event' },
                 h('time', null, String(event.ts).replace('T', ' ').slice(5, 19)),
-                h('span', null, event.actor + ': ' + event.action))))))
+                h('span', null, actorLabel(event.actor) + ': ' + eventLabel(event.action)))))))
       })()
 
       return h('div', { className: 'dept-root' },
         h('div', { className: 'dept-head' },
           h('div', null,
             h('div', { className: 'dept-title' }, detail.title),
-            h('div', { className: 'dept-sub' }, `${detail.taskId} · ${detail.stage} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`),
+            h('div', { className: 'dept-sub' }, `${detail.taskId} · ${stageLabel(detail.stage)} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`),
             detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, '⏸ на паузе' + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
             (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
               ? h('div', { className: 'dept-row', style: { marginTop: '4px' } },
@@ -1139,24 +1407,24 @@ window.__ModuleLoader__.load({
               disabled: busy,
               onClick: () => post(ROUTES.pause, { root: detail.root, taskId: detail.taskId, paused: !detail.paused, reason: 'по кнопке' }),
             }, detail.paused ? t('task.resume') : t('task.pause')),
-            h('button', { className: 'dept-btn', onClick: onBack }, '← К доске'))),
+            h('button', { className: 'dept-btn', onClick: onBack }, '← ' + t('nav.back')))),
         h('div', { className: 'dept-tabs' }, ...tabs.map(([key, label]) =>
           h('button', { key, className: 'dept-btn' + (tab === key ? ' active' : ''), onClick: () => setTab(key) }, label))),
         h('div', { style: { display: 'grid', gridTemplateColumns: '340px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
             h('div', { className: 'dept-block' },
-              h('div', { className: 'dept-block-title' }, 'Состояние'),
-              kv('Этап', detail.stage),
-              kv('Попытки (провалы)', detail.attempts),
-              kv('Тесты', detail.tests),
-              kv('Ревью', detail.review),
-              kv('Токены', `${tokens.toLocaleString('ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString('ru-RU')}`),
-              kv('Стоимость', `${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`),
-              kv('Вызовов модели', usage?.calls ?? 0),
+              h('div', { className: 'dept-block-title' }, t('block.status')),
+              kv(t('block.stage'), stageLabel(detail.stage)),
+              kv(t('block.attempts'), detail.attempts),
+              kv(t('block.tests'), detail.tests),
+              kv(t('block.review'), detail.review),
+              kv(t('block.tokens'), `${tokens.toLocaleString('ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString('ru-RU')}`),
+              kv(t('block.cost'), `${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`),
+              kv(t('block.calls'), usage?.calls ?? 0),
               h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } }))),
             (detail.stage === 'concept' && !approved.has('concept')) || (detail.stage === 'spec' && !approved.has('spec'))
               ? h('div', { className: 'dept-block' },
-                  h('div', { className: 'dept-block-title' }, 'Утверждение'),
+                  h('div', { className: 'dept-block-title' }, t('block.approval')),
                   detail.stage === 'concept'
                     ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, 'Утвердить концепцию')
                     : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, 'Утвердить ТЗ'))
