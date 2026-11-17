@@ -108,6 +108,65 @@ window.__ModuleLoader__.load({
         'event.unknown': 'событие',
         'branch.prefix': 'ветка',
 
+
+        'activity.title': 'Сейчас работают',
+        'activity.none': 'активности нет',
+        'office.lounge': 'КОМНАТА ОТДЫХА',
+        'office.status.paused': 'пауза',
+        'office.status.working': 'работает',
+        'office.status.walking': 'идёт',
+        'office.status.break': 'перерыв',
+        'office.status.free': 'свободно',
+        'side.project': 'Проект:',
+        'side.now': 'Сейчас',
+        'side.files': 'Файлы:',
+        'side.recent': 'Последние действия',
+        'side.openTask': 'Открыть задачу',
+        'side.choose': 'Выбери человечка на схеме — здесь появятся проект, файлы и история.',
+        'badge.onPause': '⏸ на паузе',
+        'msg.pricesSaved': 'Цены сохранены',
+        'msg.done': 'Готово',
+        'msg.error': 'ошибка',
+
+        'billing.hint': 'Лимит и цены за 1M токенов; курс — для пересчёта в рубли.',
+        'billing.live': 'сейчас (после перезапуска)',
+        'billing.total': 'всего по этапам',
+        'billing.totalCost': 'стоимость по этапам',
+        'billing.snapshot': 'снимок при последнем коммите',
+        'billing.humanSet': 'лимит установлен человеком',
+        'billing.limit': 'Лимит токенов',
+        'billing.input': '$/1M вход',
+        'billing.output': '$/1M выход',
+        'billing.cacheRead': '$/1M кэш-чтение',
+        'billing.cacheWrite': '$/1M кэш-запись',
+        'billing.rate': 'курс ₽',
+        'roles.hint': 'Модель и reasoning для каждой роли. Пустая модель — по умолчанию.',
+        'roles.core': 'основная роль — всегда включена',
+        'roles.toggle': 'включить/выключить роль',
+        'roles.saved': 'Лимит роли сохранён',
+        'git.noCommits': 'нет коммитов',
+        'none.short': 'нет',
+        'questions.empty': 'Открытых вопросов нет.',
+        'questions.waiting': 'ждёт ответа',
+        'questions.answer': 'ответ',
+        'questions.answerBtn': 'Ответить',
+        'questions.memos': 'Служебные записки (ждут решения человека)',
+        'questions.memo': 'записка',
+        'questions.decision': 'решение команды: ',
+        'questions.file': 'файл: ',
+        'questions.remarks': 'замечания (если не устраивает)',
+        'questions.approve': 'Утвердить',
+        'questions.changes': 'Замечания',
+        'questions.answered': 'Отвеченные',
+        'questions.answeredBadge': 'отвечен',
+        'correction.hint': 'Как письмо руководителю: что поменять и к чему это относится.',
+        'correction.toManager': 'Руководитель возьмёт в работу и соберёт специалистов.',
+        'correction.concept': 'Концепция',
+        'correction.spec': 'ТЗ',
+        'correction.plan': 'План',
+        'correction.code': 'Код',
+        'correction.data': 'Данные',
+        'correction.interface': 'Интерфейс',
         'block.newCorrection': 'Новая корректировка',
         'block.correctionHistory': 'История корректировок',
         'block.billing': 'Бюджет и цены',
@@ -244,6 +303,125 @@ window.__ModuleLoader__.load({
         'event.unknown': 'event',
         'branch.prefix': 'branch',
 
+
+        'activity.title': 'Working now',
+        'activity.none': 'no activity',
+        'office.lounge': 'LOUNGE',
+        'office.status.paused': 'paused',
+        'office.status.working': 'working',
+        'office.status.walking': 'walking',
+        'office.status.break': 'on break',
+        'office.status.free': 'free',
+        'side.project': 'Project:',
+        'side.now': 'Now',
+        'side.files': 'Files:',
+        'side.recent': 'Recent actions',
+        'side.openTask': 'Open task',
+        'side.choose': 'Pick a person on the map — project, files and history appear here.',
+        'badge.onPause': '⏸ paused',
+        'msg.pricesSaved': 'Prices saved',
+        'msg.done': 'Done',
+        'msg.error': 'error',
+
+
+
+
+
+        'projects.count': 'projects: {n}',
+        'projects.none': 'No projects with tasks.',
+        'btn.reset': 'Reset',
+        'btn.save': 'Save',
+        'title.textSize': 'Text size',
+        'pause.byButton': 'by button',
+        'roles.instances': 'how many instances of the role can run at once',
+        'roles.enabled': 'Role enabled',
+        'roles.disabled': 'Role disabled',
+        'roles.coreMark': ' · core',
+        'block.byStages': 'By stages',
+        'unit.tokens': ' k · $',
+        'chart.costTitle': 'Cost',
+        'form.name': 'your name',
+        'form.nameTitle': 'Signature name',
+        'empty.projects': 'No projects with tasks.',
+        'empty.tasks': 'No tasks.',
+        'empty.noTasksHint': 'No tasks yet. Create one with dept_start.',
+        'loading.task': 'Loading task…',
+        'title.department': 'AI development department',
+        'title.departmentShort': 'Department',
+        'count.tasks': 'tasks: {n}',
+        'count.refreshing': ' · refreshing…',
+        'charts.tokensLine': 'tokens: {t} · ${c} · time: {h}h {m}m',
+        'charts.duration': 'Duration',
+        'charts.gates': 'Gates by stages',
+        'minutesShort': 'min',
+        'status.workingBadge': '● working',
+        'status.breakBadge': '○ on break',
+        'status.pausedBadge': '⏸ paused',
+        'bp.filesCount': 'files: {n}',
+        'bp.linesCount': 'lines: {n}',
+        'bp.stats': 'files: {f} · lines: {l} · edges: {e}',
+        'bp.loading': 'loading…',
+        'bp.allGroups': '← All groups',
+        'bp.groups': 'Groups',
+        'bp.lines': 'lines',
+        'bp.layer': 'layer',
+        'bp.symbols': 'Functions and classes',
+        'bp.imports': 'Imports',
+        'bp.usedBy': 'Used by',
+        'bp.inner': 'inside group edges: {i} · outside: {o}',
+        'bp.root': '(root)',
+        'layer.core': 'Core',
+        'layer.ui': 'UI',
+        'layer.tests': 'Tests',
+        'layer.docs': 'Docs',
+        'bp.title': 'Project blueprint',
+        'bp.byDir': 'By folders',
+        'bp.byLayer': 'By layers',
+        'bp.choose': 'Pick a group on the left, then a file on the map.',
+        'charts.title': 'Charts by stages',
+        'stageNo': 'stage',
+        'none.yet': 'none yet',
+        'activity.manager': 'manager',
+        'activity.subagent': 'subagent',
+        'billing.hint': 'Token limit and prices per 1M tokens; rate converts to RUB.',
+        'billing.live': 'current (since restart)',
+        'billing.total': 'total by stages',
+        'billing.totalCost': 'cost by stages',
+        'billing.snapshot': 'snapshot at last commit',
+        'billing.humanSet': 'limit set by human',
+        'billing.limit': 'Token limit',
+        'billing.input': '$/1M input',
+        'billing.output': '$/1M output',
+        'billing.cacheRead': '$/1M cache read',
+        'billing.cacheWrite': '$/1M cache write',
+        'billing.rate': 'rate RUB',
+        'roles.hint': 'Model and reasoning per role. Empty model means default.',
+        'roles.core': 'core role — always enabled',
+        'roles.toggle': 'enable/disable role',
+        'roles.saved': 'Role limit saved',
+        'git.noCommits': 'no commits',
+        'none.short': 'none',
+        'questions.empty': 'No open questions.',
+        'questions.waiting': 'waiting for answer',
+        'questions.answer': 'answer',
+        'questions.answerBtn': 'Answer',
+        'questions.memos': 'Memos (waiting for human decision)',
+        'questions.memo': 'memo',
+        'questions.decision': 'team decision: ',
+        'questions.file': 'file: ',
+        'questions.remarks': 'remarks (if not satisfied)',
+        'questions.approve': 'Approve',
+        'questions.changes': 'Remarks',
+        'questions.answered': 'Answered',
+        'questions.answeredBadge': 'answered',
+        'correction.hint': 'Like a letter to the manager: what to change and what it relates to.',
+        'correction.toManager': 'The manager will take it and gather specialists.',
+        'correction.concept': 'Concept',
+        'correction.spec': 'Spec',
+        'correction.plan': 'Plan',
+        'correction.code': 'Code',
+        'correction.data': 'Data',
+        'correction.interface': 'Interface',
         'block.newCorrection': 'New correction',
         'block.correctionHistory': 'Correction history',
         'block.billing': 'Budget & prices',
@@ -516,14 +694,14 @@ window.__ModuleLoader__.load({
       return h(
         'div',
         null,
-        h('div', { className: 'dept-title' }, 'Сейчас работают'),
+        h('div', { className: 'dept-title' }, t('activity.title')),
         error ? h('div', { className: 'dept-sub' }, error) : null,
         items.length === 0
-          ? h('div', { className: 'dept-sub' }, 'активности нет')
+          ? h('div', { className: 'dept-sub' }, t('activity.none'))
           : h('div', { className: 'dept-events' }, ...items.map((entry) =>
               h('div', { key: entry.sessionId, className: 'dept-event' },
                 h('span', { className: entry.busy ? 'dept-badge ok' : 'dept-badge wait' }, entry.busy ? '●' : '○'),
-                h('span', null, `${entry.kind}: ${entry.lastAction}${entry.tool ? ' · ' + entry.tool : ''}`),
+                h('span', null, `${entry.kind === 'менеджер' ? t('activity.manager') : t('activity.subagent')}: ${entry.lastAction}${entry.tool ? ' · ' + entry.tool : ''}`),
                 h('span', { className: 'dept-sub' }, formatElapsed(entry.elapsedMs)),
               ))),
       )
@@ -850,7 +1028,7 @@ window.__ModuleLoader__.load({
         { className: 'dept-root' },
         h('div', { className: 'dept-row' },
           h('div', { className: 'dept-title' }, t('office.title')),
-          paused ? h('span', { className: 'dept-badge wait' }, '⏸ отдел на паузе' + (pauseReason ? ': ' + pauseReason : '')) : null,
+          paused ? h('span', { className: 'dept-badge wait' }, t('office.paused') + (pauseReason ? ': ' + pauseReason : '')) : null,
           h('div', { className: 'dept-sub' }, items.length ? t('office.staff', { n: items.length, m: DESKS.length }) : t('office.empty'))),
         party
           ? h('div', { className: 'dept-block', style: { borderColor: '#7fdc9a', textAlign: 'center' } },
@@ -859,7 +1037,7 @@ window.__ModuleLoader__.load({
           : null,
         h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'nowrap' } },
           h('div', { className: 'dept-office', style: { flex: '1 1 auto', minWidth: 0 } },
-            h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': 'Офис ИИ-отдела', style: { imageRendering: 'pixelated' } },
+            h('svg', { viewBox: '0 0 640 400', role: 'img', 'aria-label': t('office.fullTitle'), style: { imageRendering: 'pixelated' } },
               h('defs', null,
                 h('pattern', { id: 'dept-floor', width: 16, height: 16, patternUnits: 'userSpaceOnUse' },
                   box(0, 0, 16, 16, '#c9b48c'),
@@ -872,7 +1050,7 @@ window.__ModuleLoader__.load({
               wall(404, 14, 8, 128), door(404, 142, 8, 34), wall(404, 176, 8, 116),
               wall(412, 292, 216, 8), wall(12, 292, 172, 8), door(184, 292, 40, 8), door(470, 292, 40, 8), wall(510, 292, 118, 8),
               h('text', { x: 22, y: 34, fill: '#8a96ad', fontSize: 9 }, 'OPEN SPACE'),
-              h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, 'КОМНАТА ОТДЫХА'),
+              h('text', { x: 420, y: 34, fill: '#8a96ad', fontSize: 9 }, t('office.lounge')),
               plant(26, 268), plant(386, 24), plant(26, 24), plant(618, 276),
               cooler(366, 58),
               // диван вдоль стены комнаты отдыха
@@ -919,7 +1097,7 @@ window.__ModuleLoader__.load({
                 const busy = Boolean(entry?.busy)
                 const atDesk = actor?.mode === 'desk'
                 return h('text', { key: 'label-' + desk.key, x: desk.x, y: desk.y + 48, fill: atDesk ? '#9fd0ff' : '#6f7f98', fontSize: 8, textAnchor: 'middle' },
-                  desk.label + (paused ? ' · пауза' : entry ? (atDesk ? ' · работает' : busy ? ' · идёт' : ' · перерыв') : ' · свободно'))
+                  roleLabel(desk.key) + (paused ? ' · ' + t('office.status.paused') : entry ? (atDesk ? ' · ' + t('office.status.working') : busy ? ' · ' + t('office.status.walking') : ' · ' + t('office.status.break')) : ' · ' + t('office.status.free')))
               }),
             ),
           ),
@@ -928,22 +1106,22 @@ window.__ModuleLoader__.load({
               ? [
                   h('div', { className: 'dept-title' }, roleLabel(selectedEntry.kind === 'менеджер' ? 'manager' : (assignments.current.get(selectedEntry.sessionId) ?? inferRole(selectedEntry)))),
                   h('div', { className: 'dept-row' },
-                    h('span', { className: (selectedEntry.busy && !paused) ? 'dept-badge ok' : 'dept-badge wait' }, paused ? '⏸ пауза' : selectedEntry.busy ? '● работает' : '○ перерыв'),
+                    h('span', { className: (selectedEntry.busy && !paused) ? 'dept-badge ok' : 'dept-badge wait' }, paused ? t('status.pausedBadge') : selectedEntry.busy ? t('status.workingBadge') : t('status.breakBadge')),
                     h('span', { className: 'dept-sub' }, formatElapsed(selectedEntry.elapsedMs))),
-                  h('div', { className: 'dept-sub' }, 'Проект: ' + projectName(selectedEntry.cwd) + (selectedTask ? ' · ' + selectedTask.taskId + ' · ' + selectedTask.stage : '')),
-                  h('div', { className: 'dept-sub' }, 'Сейчас'),
+                  h('div', { className: 'dept-sub' }, t('side.project') + ' ' + projectName(selectedEntry.cwd) + (selectedTask ? ' · ' + selectedTask.taskId + ' · ' + selectedTask.stage : '')),
+                  h('div', { className: 'dept-sub' }, t('side.now')),
                   h('div', { className: 'dept-pre' }, `${selectedEntry.lastAction}${selectedEntry.tool ? '\n' + selectedEntry.tool : ''}${selectedEntry.args ? '\n' + selectedEntry.args : ''}`),
-                  (filesOf(selectedEntry).length ? h('div', { className: 'dept-sub' }, 'Файлы: ' + filesOf(selectedEntry).join(', ')) : null),
-                  h('div', { className: 'dept-sub' }, 'Последние действия'),
+                  (filesOf(selectedEntry).length ? h('div', { className: 'dept-sub' }, t('side.files') + ' ' + filesOf(selectedEntry).join(', ')) : null),
+                  h('div', { className: 'dept-sub' }, t('side.recent')),
                   (selectedEntry.recent ?? []).length === 0
-                    ? h('div', { className: 'dept-sub' }, 'пока нет')
+                    ? h('div', { className: 'dept-sub' }, t('none.yet'))
                     : h('div', { className: 'dept-events' }, ...selectedEntry.recent.map((event, index) =>
                         h('div', { key: index, className: 'dept-event' },
                           h('time', null, String(new Date(event.ts).toLocaleTimeString('ru-RU'))),
                           h('span', null, event.text)))),
-                  selectedTask ? h('button', { className: 'dept-btn', onClick: () => onOpenTask(selectedEntry.cwd) }, 'Открыть задачу') : null,
+                  selectedTask ? h('button', { className: 'dept-btn', onClick: () => onOpenTask(selectedEntry.cwd) }, t('side.openTask')) : null,
                 ]
-              : h('div', { className: 'dept-sub' }, 'Выбери человечка на схеме — здесь появятся проект, файлы и история.'),
+              : h('div', { className: 'dept-sub' }, t('side.choose')),
           ),
         ),
       )
@@ -1085,7 +1263,7 @@ window.__ModuleLoader__.load({
             }),
           })
           const data = await response.json().catch(() => ({}))
-          setMessage(response.ok ? 'Цены сохранены' : (data.error || 'ошибка'))
+          setMessage(response.ok ? t('msg.pricesSaved') : (data.error || t('msg.error')))
         } finally {
           setSavingBudget(false)
         }
@@ -1098,7 +1276,7 @@ window.__ModuleLoader__.load({
           const response = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, by: name }) })
           const data = await response.json().catch(() => ({}))
           if (!response.ok) throw new Error(data.error || response.statusText)
-          setMessage('Готово')
+          setMessage(t('msg.done'))
           if (onReload) onReload()
           return data
         } catch (problem) {
@@ -1137,18 +1315,18 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'dept-block' },
             h('div', { className: 'dept-block-title' }, t('block.openQuestions')),
             openQuestions.length === 0
-              ? h('div', { className: 'dept-sub' }, 'Открытых вопросов нет.')
+              ? h('div', { className: 'dept-sub' }, t('questions.empty'))
               : h('div', { className: 'dept-events' }, ...openQuestions.map((question) =>
                   h('div', { key: question.id, className: 'dept-block', style: { gap: '6px' } },
                     h('div', { className: 'dept-row' },
-                      h('span', { className: 'dept-badge wait' }, 'ждёт ответа'),
+                      h('span', { className: 'dept-badge wait' }, t('questions.waiting')),
                       h('span', { className: 'dept-sub' }, question.id)),
                     h('div', null, question.text),
                     question.recommended ? h('div', { className: 'dept-sub' }, `отдел выбрал: ${question.recommended}`) : null,
                     h('div', { className: 'dept-row' },
                       h('input', {
                         className: 'dept-input',
-                        placeholder: question.options?.length ? question.options.join(' / ') : 'ответ',
+                        placeholder: question.options?.length ? question.options.join(' / ') : t('questions.answer'),
                         value: drafts[question.id] ?? '',
                         onChange: (event) => setDrafts({ ...drafts, [question.id]: event.target.value }),
                       }),
@@ -1156,30 +1334,30 @@ window.__ModuleLoader__.load({
                         className: 'dept-btn',
                         disabled: busy || !(drafts[question.id] ?? '').trim(),
                         onClick: () => post(ROUTES.answer, { root: detail.root, taskId: detail.taskId, questionId: question.id, answer: (drafts[question.id] ?? '').trim() }),
-                      }, 'Ответить'))))),
-            detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, '⏸ на паузе' + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
+                      }, t('questions.answerBtn')))))),
+            detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, t('badge.onPause') + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
             (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
               ? h('div', null,
-                  h('div', { className: 'dept-block-title' }, 'Служебные записки (ждут решения человека)'),
+                  h('div', { className: 'dept-block-title' }, t('questions.memos')),
                   ...(detail.questions ?? []).filter((question) => question.status === 'memo').map((question) =>
                     h('div', { key: question.id, className: 'dept-block', style: { gap: '6px' } },
                       h('div', { className: 'dept-row' },
-                        h('span', { className: 'dept-badge wait' }, 'записка'),
+                        h('span', { className: 'dept-badge wait' }, t('questions.memo')),
                         h('span', { className: 'dept-sub' }, question.id)),
                       h('div', null, question.text),
-                      question.decision ? h('div', { className: 'dept-sub' }, 'решение команды: ' + question.decision) : null,
-                      question.memoPath ? h('div', { className: 'dept-sub' }, 'файл: ' + question.memoPath) : null,
-                      h('input', { className: 'dept-input', placeholder: 'замечания (если не устраивает)', value: remarks[question.id] ?? '', onChange: (event) => setRemarks({ ...remarks, [question.id]: event.target.value }) }),
+                      question.decision ? h('div', { className: 'dept-sub' }, t('questions.decision') + question.decision) : null,
+                      question.memoPath ? h('div', { className: 'dept-sub' }, t('questions.file') + question.memoPath) : null,
+                      h('input', { className: 'dept-input', placeholder: t('questions.remarks'), value: remarks[question.id] ?? '', onChange: (event) => setRemarks({ ...remarks, [question.id]: event.target.value }) }),
                       h('div', { className: 'dept-row' },
-                        h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.review, { root: detail.root, taskId: detail.taskId, questionId: question.id, verdict: 'approve' }) }, 'Утвердить'),
-                        h('button', { className: 'dept-btn', disabled: busy || !(remarks[question.id] ?? '').trim(), onClick: () => post(ROUTES.review, { root: detail.root, taskId: detail.taskId, questionId: question.id, verdict: 'changes', remarks: (remarks[question.id] ?? '').trim() }) }, 'Замечания')))))
+                        h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.review, { root: detail.root, taskId: detail.taskId, questionId: question.id, verdict: 'approve' }) }, t('questions.approve')),
+                        h('button', { className: 'dept-btn', disabled: busy || !(remarks[question.id] ?? '').trim(), onClick: () => post(ROUTES.review, { root: detail.root, taskId: detail.taskId, questionId: question.id, verdict: 'changes', remarks: (remarks[question.id] ?? '').trim() }) }, t('questions.changes'))))))
               : null,
             answeredQuestions.length > 0
               ? h('div', null,
-                  h('div', { className: 'dept-block-title' }, 'Отвеченные'),
+                  h('div', { className: 'dept-block-title' }, t('questions.answered')),
                   h('div', { className: 'dept-events' }, ...answeredQuestions.map((question) =>
                     h('div', { key: question.id, className: 'dept-event' },
-                      h('span', { className: 'dept-badge ok' }, 'отвечен'),
+                      h('span', { className: 'dept-badge ok' }, t('questions.answeredBadge')),
                       h('span', null, question.answer),
                       h('span', { className: 'dept-sub' }, question.answeredBy)))))
               : null)
@@ -1221,16 +1399,16 @@ window.__ModuleLoader__.load({
           return h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '12px', alignItems: 'start' } },
             h('div', { className: 'dept-block' },
               h('div', { className: 'dept-block-title' }, t('block.newCorrection')),
-              h('div', { className: 'dept-sub' }, 'Как письмо руководителю: что поменять и к чему это относится.'),
+              h('div', { className: 'dept-sub' }, t('correction.hint')),
               h('div', { className: 'dept-form-row' },
                 h('label', null, t('field.doc')),
                 h('select', { className: 'dept-input', value: corr.doc, onChange: (event) => setCorr({ ...corr, doc: event.target.value }) },
-                  h('option', { value: 'concept' }, 'Концепция'),
-                  h('option', { value: 'spec' }, 'ТЗ'),
-                  h('option', { value: 'plan' }, 'План'),
-                  h('option', { value: 'code' }, 'Код'),
-                  h('option', { value: 'data' }, 'Данные'),
-                  h('option', { value: 'interface' }, 'Интерфейс'))),
+                  h('option', { value: 'concept' }, t('correction.concept')),
+                  h('option', { value: 'spec' }, t('correction.spec')),
+                  h('option', { value: 'plan' }, t('correction.plan')),
+                  h('option', { value: 'code' }, t('correction.code')),
+                  h('option', { value: 'data' }, t('correction.data')),
+                  h('option', { value: 'interface' }, t('correction.interface')))),
               h('div', { className: 'dept-form-row' },
                 h('label', null, t('field.subject')),
                 h('input', { className: 'dept-input', value: corr.subject, onChange: (event) => setCorr({ ...corr, subject: event.target.value }) })),
@@ -1246,11 +1424,11 @@ window.__ModuleLoader__.load({
                     if (result) setCorr({ doc: corr.doc, subject: '', text: '' })
                   },
                 }, t('btn.sendCorrection')),
-                h('span', { className: 'dept-sub' }, 'Руководитель возьмёт в работу и соберёт специалистов.'))),
+                h('span', { className: 'dept-sub' }, t('correction.toManager')))),
             h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
               h('div', { className: 'dept-block-title' }, t('block.correctionHistory')),
               corrections.length === 0
-                ? h('div', { className: 'dept-sub' }, 'пока нет')
+                ? h('div', { className: 'dept-sub' }, t('none.yet'))
                 : h('div', { className: 'dept-events' }, ...corrections.map((item) =>
                     h('div', { key: item.id, className: 'dept-block', style: { gap: '4px' } },
                       h('div', { className: 'dept-row' },
@@ -1262,14 +1440,14 @@ window.__ModuleLoader__.load({
         if (tab === 'roles') {
           return h('div', { className: 'dept-block' },
             h('div', { className: 'dept-block-title' }, t('block.roles')),
-            h('div', { className: 'dept-sub' }, 'Модель и reasoning для каждой роли. Пустая модель — по умолчанию.'),
+            h('div', { className: 'dept-sub' }, t('roles.hint')),
             ...roles.map((role) =>
               h('div', { key: role.name, className: 'dept-kv', style: { alignItems: 'center', gap: '6px' } },
                 h('input', {
                   type: 'checkbox',
                   checked: role.enabled !== false,
                   disabled: role.core,
-                  title: role.core ? 'основная роль — всегда включена' : 'включить/выключить роль',
+                  title: role.core ? t('roles.core') : t('roles.toggle'),
                   onChange: async (event) => {
                     const response = await fetch(ROUTES.roles, {
                       method: 'POST',
@@ -1284,7 +1462,7 @@ window.__ModuleLoader__.load({
                 h('input', {
                   type: 'number', min: 1, max: 10,
                   className: 'dept-input', style: { width: '64px', minWidth: '64px' },
-                  title: 'сколько экземпляров роли можно запускать одновременно',
+                  title: t('roles.instances'),
                   value: role.maxInstances ?? 1,
                   onChange: async (event) => {
                     const value = Number(event.target.value)
@@ -1294,7 +1472,7 @@ window.__ModuleLoader__.load({
                       body: JSON.stringify({ root: detail.root, taskId: detail.taskId, role: role.name, model: role.model, reasoning: role.reasoning, enabled: role.enabled, maxInstances: value }),
                     })
                     const data = await response.json().catch(() => ({}))
-                    if (response.ok) { setRoles(data.roles); setMessage('Лимит роли сохранён') } else { setMessage(data.error || 'ошибка') }
+                    if (response.ok) { setRoles(data.roles); setMessage(t('roles.saved')) } else { setMessage(data.error || 'ошибка') }
                   },
                 }),
                 h('input', {
@@ -1318,54 +1496,54 @@ window.__ModuleLoader__.load({
                   onClick: async () => {
                     const response = await fetch(ROUTES.roles, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ root: detail.root, taskId: detail.taskId, role: role.name, model: role.model, reasoning: role.reasoning }) })
                     const data = await response.json().catch(() => ({}))
-                    if (response.ok) { setRoles(data.roles); setMessage('Роль сохранена') } else { setMessage(data.error || 'ошибка') }
+                    if (response.ok) { setRoles(data.roles); setMessage(t('roles.saved')) } else { setMessage(data.error || 'ошибка') }
                   },
-                }, 'Сохранить'))))
+                }, t('btn.save')))))
         }
         if (tab === 'billing') {
           return h('div', { className: 'dept-block' },
             h('div', { className: 'dept-block-title' }, t('block.billing')),
-            h('div', { className: 'dept-sub' }, 'Лимит и цены за 1M токенов; курс — для пересчёта в рубли.'),
-            h('div', { className: 'dept-kv' }, h('span', null, 'сейчас (после перезапуска)'), h('span', null, `${((budget?.usage?.inputTokens ?? 0) + (budget?.usage?.outputTokens ?? 0)).toLocaleString('ru-RU')} т.`)),
-            h('div', { className: 'dept-kv' }, h('span', null, 'всего по этапам'), h('span', null, `${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.tokens ?? 0), 0).toLocaleString('ru-RU')} т.`)),
-            h('div', { className: 'dept-kv' }, h('span', null, 'стоимость по этапам'), h('span', null, `$${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.costUSD ?? 0), 0).toFixed(3)}`)),
-            h('div', { className: 'dept-kv' }, h('span', null, 'снимок при последнем коммите'), h('span', null, `${(budget?.usedTokens ?? 0).toLocaleString('ru-RU')} т.`)),
-            budget?.humanSet ? h('div', { className: 'dept-badge ok' }, 'лимит установлен человеком') : null,
+            h('div', { className: 'dept-sub' }, t('billing.hint')),
+            h('div', { className: 'dept-kv' }, h('span', null, t('billing.live')), h('span', null, `${((budget?.usage?.inputTokens ?? 0) + (budget?.usage?.outputTokens ?? 0)).toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU')} т.`)),
+            h('div', { className: 'dept-kv' }, h('span', null, t('billing.total')), h('span', null, `${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.tokens ?? 0), 0).toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU')} т.`)),
+            h('div', { className: 'dept-kv' }, h('span', null, t('billing.totalCost')), h('span', null, `$${(budget?.history ?? []).reduce((sum, item) => sum + Number(item.costUSD ?? 0), 0).toFixed(3)}`)),
+            h('div', { className: 'dept-kv' }, h('span', null, t('billing.snapshot')), h('span', null, `${(budget?.usedTokens ?? 0).toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU')} т.`)),
+            budget?.humanSet ? h('div', { className: 'dept-badge ok' }, t('billing.humanSet')) : null,
             h('div', { className: 'dept-row' },
               h('div', { className: 'dept-form-row' },
-                h('label', null, 'Лимит токенов'),
+                h('label', null, t('billing.limit')),
                 h('input', { className: 'dept-input', value: prices.limit, onChange: (event) => setPrices({ ...prices, limit: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
-                h('label', null, '$/1M вход'),
+                h('label', null, t('billing.input')),
                 h('input', { className: 'dept-input', value: prices.input, onChange: (event) => setPrices({ ...prices, input: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
-                h('label', null, '$/1M выход'),
+                h('label', null, t('billing.output')),
                 h('input', { className: 'dept-input', value: prices.output, onChange: (event) => setPrices({ ...prices, output: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
-                h('label', null, '$/1M кэш-чтение'),
+                h('label', null, t('billing.cacheRead')),
                 h('input', { className: 'dept-input', value: prices.cacheRead, onChange: (event) => setPrices({ ...prices, cacheRead: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
-                h('label', null, '$/1M кэш-запись'),
+                h('label', null, t('billing.cacheWrite')),
                 h('input', { className: 'dept-input', value: prices.cacheWrite, onChange: (event) => setPrices({ ...prices, cacheWrite: event.target.value }) })),
               h('div', { className: 'dept-form-row' },
-                h('label', null, 'курс ₽'),
+                h('label', null, t('billing.rate')),
                 h('input', { className: 'dept-input', value: prices.rate, onChange: (event) => setPrices({ ...prices, rate: event.target.value }) }))),
             h('div', { className: 'dept-row' },
               h('button', { className: 'dept-btn', disabled: savingBudget, onClick: savePrices }, t('btn.savePrices')),
               h('span', { className: 'dept-sub' }, message ?? '')),
             (budget?.history ?? []).length > 0
               ? h('div', null,
-                  h('div', { className: 'dept-block-title' }, 'По этапам'),
+                  h('div', { className: 'dept-block-title' }, t('block.byStages')),
                   ...(budget.history ?? []).map((item, index) =>
                     h('div', { key: index, className: 'dept-kv' },
-                      h('span', null, 'этап ' + item.stage),
-                      h('span', null, item.tokens.toLocaleString('ru-RU') + ' т. · $' + Number(item.costUSD).toFixed(2)))))
+                      h('span', null, t('stageNo') + ' ' + item.stage),
+                      h('span', null, item.tokens.toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU') + t('unit.tokens') + Number(item.costUSD).toFixed(2)))))
               : null)
         }
         if (tab === 'git') {
           return h('div', { className: 'dept-block' },
             h('div', { className: 'dept-block-title' }, t('block.commits')),
-            h('div', { className: 'dept-pre' }, (detail.recentCommits ?? []).join('\n') || 'нет коммитов'),
+            h('div', { className: 'dept-pre' }, (detail.recentCommits ?? []).join('\n') || t('git.noCommits')),
             h('div', { className: 'dept-block-title' }, t('block.tags')),
             h('div', { className: 'dept-sub' }, (detail.tags ?? []).join(', ') || '—'),
             h('div', { className: 'dept-block-title' }, t('block.branch')),
@@ -1395,17 +1573,17 @@ window.__ModuleLoader__.load({
           h('div', null,
             h('div', { className: 'dept-title' }, detail.title),
             h('div', { className: 'dept-sub' }, `${detail.taskId} · ${stageLabel(detail.stage)} · ${detail.progress}% · ${detail.currentBranch ?? detail.branch}`),
-            detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, '⏸ на паузе' + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
+            detail.paused ? h('div', { className: 'dept-row', style: { marginTop: '4px' } }, h('span', { className: 'dept-badge wait' }, t('badge.onPause') + (detail.pauseReason ? ': ' + detail.pauseReason : ''))) : null,
             (detail.questions ?? []).filter((question) => question.status === 'memo').length > 0
               ? h('div', { className: 'dept-row', style: { marginTop: '4px' } },
                   h('span', { className: 'dept-badge wait' }, '✍ служебных записок: ' + (detail.questions ?? []).filter((question) => question.status === 'memo').length))
               : null),
           h('div', { className: 'dept-row' },
-            h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: 'ваше имя', title: 'Имя для подписи' }),
+            h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: t('form.name'), title: t('form.nameTitle') }),
             h('button', {
               className: 'dept-btn',
               disabled: busy,
-              onClick: () => post(ROUTES.pause, { root: detail.root, taskId: detail.taskId, paused: !detail.paused, reason: 'по кнопке' }),
+              onClick: () => post(ROUTES.pause, { root: detail.root, taskId: detail.taskId, paused: !detail.paused, reason: t('pause.byButton') }),
             }, detail.paused ? t('task.resume') : t('task.pause')),
             h('button', { className: 'dept-btn', onClick: onBack }, '← ' + t('nav.back')))),
         h('div', { className: 'dept-tabs' }, ...tabs.map(([key, label]) =>
@@ -1418,7 +1596,7 @@ window.__ModuleLoader__.load({
               kv(t('block.attempts'), detail.attempts),
               kv(t('block.tests'), detail.tests),
               kv(t('block.review'), detail.review),
-              kv(t('block.tokens'), `${tokens.toLocaleString('ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString('ru-RU')}`),
+              kv(t('block.tokens'), `${tokens.toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU')} / ${(budget?.limitTokens ?? 0).toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU')}`),
               kv(t('block.cost'), `${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`),
               kv(t('block.calls'), usage?.calls ?? 0),
               h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } }))),
@@ -1460,7 +1638,7 @@ window.__ModuleLoader__.load({
           .finally(() => setLoading(false))
       }, [root])
 
-      if (!root) return h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Нет проектов с задачами.'))
+      if (!root) return h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, t('empty.projects')))
 
       const files = blueprint?.files ?? []
       const edges = blueprint?.edges ?? []
@@ -1474,8 +1652,8 @@ window.__ModuleLoader__.load({
         bucket.loc += item.loc
       }
       const groupList = [...groups.values()].sort((a, b) => b.files.length - a.files.length)
-      const LAYER_TITLES = { core: 'Ядро', ui: 'Интерфейс', tests: 'Тесты', docs: 'Документы' }
-      const groupName = (dir) => (mode === 'layer' ? (LAYER_TITLES[dir] ?? dir) : (dir === '.' ? '(корень)' : dir))
+      const LAYER_TITLES = { core: t('layer.core'), ui: t('layer.ui'), tests: t('layer.tests'), docs: t('layer.docs') }
+      const groupName = (dir) => (mode === 'layer' ? (LAYER_TITLES[dir] ?? dir) : (dir === '.' ? t('bp.root') : dir))
       const colorOf = (dir) => BLUEPRINT_COLORS[Math.max(0, groupList.findIndex((item) => item.dir === dir)) % BLUEPRINT_COLORS.length]
 
       // связи между группами
@@ -1517,8 +1695,8 @@ window.__ModuleLoader__.load({
             return h('g', { key: item.dir, style: { cursor: 'pointer' }, onClick: () => { setGroup(item.dir); setFile(null) } },
               h('rect', { x: position.x, y: position.y, width: 110, height: 62, rx: 10, fill: '#1b2438', stroke: color, strokeWidth: 1.5 }),
               h('text', { x: position.x + 8, y: position.y + 20, fill: '#e6edf7', fontSize: 9 }, groupName(item.dir).slice(0, 16)),
-              h('text', { x: position.x + 8, y: position.y + 36, fill: '#8b98ad', fontSize: 8 }, `файлов: ${item.files.length}`),
-              h('text', { x: position.x + 8, y: position.y + 50, fill: '#8b98ad', fontSize: 8 }, `строк: ${item.loc}`),
+              h('text', { x: position.x + 8, y: position.y + 36, fill: '#8b98ad', fontSize: 8 }, t('bp.filesCount', { n: item.files.length })),
+              h('text', { x: position.x + 8, y: position.y + 50, fill: '#8b98ad', fontSize: 8 }, t('bp.linesCount', { n: item.loc })),
               h('circle', { cx: position.x + 98, cy: position.y + 12, r: 4, fill: color }))
           }))
       }
@@ -1553,7 +1731,7 @@ window.__ModuleLoader__.load({
               h('circle', { cx: position.x, cy: position.y, r: isSelected ? 8 : 6, fill: colorOf(dir), stroke: isSelected ? '#fff' : '#0b1220', strokeWidth: 1 }),
               h('text', { x: position.x + 10, y: position.y + 3, fill: '#c9d6ea', fontSize: 8 }, item.path.split('/').pop().slice(0, 18)))
           }),
-          h('text', { x: 20, y: 400, fill: '#8b98ad', fontSize: 9 }, `внутри группы связей: ${inner.length} · наружу: ${outer.length}`))
+          h('text', { x: 20, y: 400, fill: '#8b98ad', fontSize: 9 }, t('bp.inner', { i: inner.length, o: outer.length })))
       }
 
       const selectedFile = file ? files.find((item) => item.path === file) : null
@@ -1562,20 +1740,20 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'dept-root' },
         h('div', { className: 'dept-head' },
           h('div', null,
-            h('div', { className: 'dept-title' }, 'Схема проекта'),
-            h('div', { className: 'dept-sub' }, blueprint ? `файлов: ${blueprint.stats.files} · строк: ${blueprint.stats.loc} · связей: ${edges.length}` : (loading ? 'загрузка…' : '—'))),
+            h('div', { className: 'dept-title' }, t('bp.title')),
+            h('div', { className: 'dept-sub' }, blueprint ? t('bp.stats', { f: blueprint.stats.files, l: blueprint.stats.loc, e: edges.length }) : (loading ? t('bp.loading') : '—'))),
           h('div', { className: 'dept-row' },
             roots.length > 1
               ? h('select', { className: 'dept-input', value: root, onChange: (event) => setRoot(event.target.value) },
                   ...roots.map((candidate) => h('option', { key: candidate, value: candidate }, candidate.split('/').pop())))
               : null,
-            h('button', { className: 'dept-btn' + (mode === 'dir' ? ' active' : ''), onClick: () => { setMode('dir'); setGroup(null); setFile(null) } }, 'По папкам'),
-            h('button', { className: 'dept-btn' + (mode === 'layer' ? ' active' : ''), onClick: () => { setMode('layer'); setGroup(null); setFile(null) } }, 'По слоям'),
-            group ? h('button', { className: 'dept-btn', onClick: () => { setGroup(null); setFile(null) } }, '← Все группы') : null)),
+            h('button', { className: 'dept-btn' + (mode === 'dir' ? ' active' : ''), onClick: () => { setMode('dir'); setGroup(null); setFile(null) } }, t('bp.byDir')),
+            h('button', { className: 'dept-btn' + (mode === 'layer' ? ' active' : ''), onClick: () => { setMode('layer'); setGroup(null); setFile(null) } }, t('bp.byLayer')),
+            group ? h('button', { className: 'dept-btn', onClick: () => { setGroup(null); setFile(null) } }, t('bp.allGroups')) : null)),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         h('div', { style: { display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr) 300px', gap: '12px', alignItems: 'start' } },
           h('div', { className: 'dept-block', style: { maxHeight: '460px', overflow: 'auto' } },
-            h('div', { className: 'dept-block-title' }, 'Группы'),
+            h('div', { className: 'dept-block-title' }, t('bp.groups')),
             ...groupList.map((item) =>
               h('div', {
                 key: item.dir,
@@ -1591,9 +1769,9 @@ window.__ModuleLoader__.load({
               ? [
                   h('div', { className: 'dept-block-title' }, selectedFile.path.split('/').pop()),
                   h('div', { className: 'dept-sub' }, selectedFile.path),
-                  h('div', { className: 'dept-kv' }, h('span', null, 'строк'), h('span', null, selectedFile.loc)),
-                  h('div', { className: 'dept-kv' }, h('span', null, 'слой'), h('span', null, LAYER_TITLES[selectedFile.layer] ?? selectedFile.layer)),
-                  h('div', { className: 'dept-block-title' }, 'Функции и классы'),
+                  h('div', { className: 'dept-kv' }, h('span', null, t('bp.lines')), h('span', null, selectedFile.loc)),
+                  h('div', { className: 'dept-kv' }, h('span', null, t('bp.layer')), h('span', null, LAYER_TITLES[selectedFile.layer] ?? selectedFile.layer)),
+                  h('div', { className: 'dept-block-title' }, t('bp.symbols')),
                   (selectedFile.symbols ?? []).length === 0
                     ? h('div', { className: 'dept-sub' }, '—')
                     : h('div', { className: 'dept-events', style: { maxHeight: '180px', overflow: 'auto' } },
@@ -1601,17 +1779,17 @@ window.__ModuleLoader__.load({
                           h('div', { key: symbol.name + symbol.line, className: 'dept-event' },
                             h('span', { className: 'dept-sub', style: { minWidth: '34px' } }, symbol.line),
                             h('span', null, symbol.name)))),
-                  h('div', { className: 'dept-block-title' }, 'Импортирует'),
+                  h('div', { className: 'dept-block-title' }, t('bp.imports')),
                   selectedFile.imports.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
                     ...selectedFile.imports.map((target) => h('div', { key: target, className: 'dept-event' }, h('span', null, target)))),
-                  h('div', { className: 'dept-block-title' }, 'Используется в'),
+                  h('div', { className: 'dept-block-title' }, t('bp.usedBy')),
                   (() => {
                     const dependents = edges.filter((edge) => edge.to === selectedFile.path).map((edge) => edge.from)
                     return dependents.length === 0 ? h('div', { className: 'dept-sub' }, '—') : h('div', { className: 'dept-events' },
                       ...dependents.map((source) => h('div', { key: source, className: 'dept-event' }, h('span', null, source))))
                   })(),
                 ]
-              : h('div', { className: 'dept-sub' }, 'Выбери группу слева, затем файл на схеме.')),
+              : h('div', { className: 'dept-sub' }, t('bp.choose'))),
         ),
       )
     }
@@ -1630,7 +1808,7 @@ window.__ModuleLoader__.load({
           .catch((problem) => setError(problem.message))
       }, [current?.root, current?.taskId])
 
-      if (!current) return h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Нет задач.'))
+      if (!current) return h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, t('empty.tasks')))
 
       const history = detail?.history ?? []
       const totalTokens = history.reduce((sum, item) => sum + item.tokens, 0)
@@ -1644,7 +1822,7 @@ window.__ModuleLoader__.load({
 
       const rows = (items, max, format) => h('div', { className: 'dept-events' }, ...items.map((item) =>
         h('div', { key: item.stage, className: 'dept-event', style: { alignItems: 'center' } },
-          h('span', { style: { minWidth: '64px' } }, 'этап ' + item.stage),
+          h('span', { style: { minWidth: '64px' } }, t('stageNo') + ' ' + item.stage),
           h('div', { style: { flex: '1 1 auto', height: '10px', background: '#1b2438', borderRadius: '6px', overflow: 'hidden' } },
             h('div', { style: { width: Math.max(2, Math.round((item.value / max) * 100)) + '%', height: '100%', background: item.color } })),
           h('span', { className: 'dept-sub', style: { minWidth: '84px', textAlign: 'right' } }, format(item)))))
@@ -1652,8 +1830,8 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'dept-root' },
         h('div', { className: 'dept-head' },
           h('div', null,
-            h('div', { className: 'dept-title' }, 'Графики по этапам'),
-            h('div', { className: 'dept-sub' }, 'токенов: ' + totalTokens.toLocaleString('ru-RU') + ' · $' + totalCost.toFixed(2) + ' · время: ' + hours + ' ч ' + minutes + ' мин')),
+            h('div', { className: 'dept-title' }, t('charts.title')),
+            h('div', { className: 'dept-sub' }, t('charts.tokensLine', { t: totalTokens.toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU'), c: totalCost.toFixed(2), h: hours, m: minutes }))),
           tasks.length > 1
             ? h('select', { className: 'dept-input', value: current.taskId, onChange: (event) => setCurrent(tasks.find((task) => task.taskId === event.target.value) ?? tasks[0]) },
                 ...tasks.map((task) => h('option', { key: task.root + task.taskId, value: task.taskId }, task.taskId)))
@@ -1664,18 +1842,18 @@ window.__ModuleLoader__.load({
           : h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' } },
               h('div', { className: 'dept-block' },
                 h('div', { className: 'dept-block-title' }, 'Токены'),
-                rows(history.map((item) => ({ ...item, value: item.tokens, color: '#4b8bff' })), maxTokens, (item) => item.tokens.toLocaleString('ru-RU'))),
+                rows(history.map((item) => ({ ...item, value: item.tokens, color: '#4b8bff' })), maxTokens, (item) => item.tokens.toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU'))),
               h('div', { className: 'dept-block' },
-                h('div', { className: 'dept-block-title' }, 'Стоимость'),
+                h('div', { className: 'dept-block-title' }, t('chart.costTitle')),
                 rows(history.map((item) => ({ ...item, value: item.costUSD, color: '#7fdc9a' })), maxCost, (item) => '$' + item.costUSD.toFixed(3))),
               h('div', { className: 'dept-block' },
-                h('div', { className: 'dept-block-title' }, 'Длительность'),
-                rows(history.map((item) => ({ ...item, value: item.durationMs, color: '#d8c07a' })), maxMs, (item) => Math.round(item.durationMs / 60000) + ' мин'))),
+                h('div', { className: 'dept-block-title' }, t('charts.duration')),
+                rows(history.map((item) => ({ ...item, value: item.durationMs, color: '#d8c07a' })), maxMs, (item) => Math.round(item.durationMs / 60000) + ' ' + t('minutesShort')))),
         h('div', { className: 'dept-block' },
-          h('div', { className: 'dept-block-title' }, 'Гейты по этапам'),
+          h('div', { className: 'dept-block-title' }, t('charts.gates')),
           ...history.map((item) =>
             h('div', { key: item.stage, className: 'dept-kv' },
-              h('span', null, 'этап ' + item.stage),
+              h('span', null, t('stageNo') + ' ' + item.stage),
               h('span', { className: 'dept-row' },
                 h('span', { className: 'dept-badge ' + (item.tests === 'pass' ? 'ok' : item.tests === 'fail' ? 'fail' : 'wait') }, 'тесты: ' + item.tests),
                 h('span', { className: 'dept-badge ' + (item.review === 'pass' ? 'ok' : item.review === 'fail' ? 'fail' : 'wait') }, 'ревью: ' + item.review))))))
@@ -1707,18 +1885,18 @@ window.__ModuleLoader__.load({
         h('div', { className: 'dept-head' },
           h('div', null,
             h('div', { className: 'dept-title' }, t('projects.title')),
-            h('div', { className: 'dept-sub' }, `проектов: ${projects.length}${loading ? ' · обновление…' : ''}`)),
+            h('div', { className: 'dept-sub' }, t('projects.count', { n: projects.length }) + (loading ? t('count.refreshing') : ''))),
           h('button', { className: 'dept-btn', onClick: load }, t('nav.refresh'))),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         projects.length === 0 && !loading
-          ? h('div', { className: 'dept-empty' }, 'Проектов с задачами нет.')
+          ? h('div', { className: 'dept-empty' }, t('projects.none'))
           : h('div', { className: 'dept-list' }, ...projects.map((project) =>
               h('div', { key: project.root, className: 'dept-card', onClick: () => onOpen(project.root) },
                 h('div', { className: 'dept-row' }, h('strong', null, project.name), h('span', { className: 'dept-sub' }, project.root)),
                 h('div', { className: 'dept-row' },
-                  h('span', { className: 'dept-badge' }, `задач: ${project.taskCount}`),
+                  h('span', { className: 'dept-badge' }, t('count.tasks', { n: project.taskCount })),
                   h('span', { className: 'dept-badge ' + (project.active > 0 ? 'ok' : 'wait') }, `в работе: ${project.active}`),
-                  h('span', { className: 'dept-sub' }, `токены: ${project.budgetUsed.toLocaleString('ru-RU')}`)),
+                  h('span', { className: 'dept-sub' }, `токены: ${project.budgetUsed.toLocaleString(deptLang === 'en' ? 'en-US' : 'ru-RU')}`)),
                 h('div', { className: 'dept-sub' }, Object.entries(project.stages).map(([stage, count]) => `${stage}: ${count}`).join(' · ')),
                 project.lastEvent ? h('div', { className: 'dept-sub' }, `${project.lastEvent.action} · ${project.lastEvent.detail ?? ''}`) : null))) )
     }
@@ -1899,7 +2077,7 @@ window.__ModuleLoader__.load({
       if (selected) {
         return detail
           ? h(TaskDetail, { detail, onBack: () => { setSelected(null); setDetail(null) }, onReload: () => { if (selected) openTask(selected) } })
-          : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, 'Загрузка задачи…'))
+          : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, t('loading.task')))
       }
 
       if (view === 'projects') {
@@ -1955,8 +2133,8 @@ window.__ModuleLoader__.load({
         { className: 'dept-root' },
         h('div', { className: 'dept-head' },
           h('div', null,
-            h('div', { className: 'dept-title' }, 'ИИ-отдел разработки'),
-            h('div', { className: 'dept-sub' }, `задач: ${tasks.length}${loading ? ' · обновление…' : ''}`),
+            h('div', { className: 'dept-title' }, t('title.department')),
+            h('div', { className: 'dept-sub' }, t('count.tasks', { n: tasks.length }) + (loading ? t('count.refreshing') : '')),
           ),
           h('div', { className: 'dept-tabs' },
             h('button', { className: 'dept-btn active', onClick: () => setView('board') }, t('nav.board')),
@@ -1972,7 +2150,7 @@ window.__ModuleLoader__.load({
               },
               title: 'Language / Язык',
             }, deptLang === 'en' ? 'RU' : 'EN'),
-            h('button', { className: 'dept-btn', onClick: () => setTextSize(textSize >= 19 ? 12 : textSize + 2), title: 'Размер текста' }, 'A+'),
+            h('button', { className: 'dept-btn', onClick: () => setTextSize(textSize >= 19 ? 12 : textSize + 2), title: t('title.textSize') }, 'A+'),
             h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
         ),
         attention > 0
@@ -1982,9 +2160,9 @@ window.__ModuleLoader__.load({
           : null,
         h(ActivityBlock, { items: activity.items, error: activity.error }),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
-        projectFilter ? h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, 'проект: ' + projectFilter.split('/').pop()), h('button', { className: 'dept-btn', onClick: () => setProjectFilter(null) }, 'Сбросить')) : null,
+        projectFilter ? h('div', { className: 'dept-row' }, h('span', { className: 'dept-badge' }, 'проект: ' + projectFilter.split('/').pop()), h('button', { className: 'dept-btn', onClick: () => setProjectFilter(null) }, t('btn.reset'))) : null,
         (projectFilter ? tasks.filter((task) => task.root === projectFilter) : tasks).length === 0 && !loading
-          ? h('div', { className: 'dept-empty' }, 'Задач пока нет. Создай задачу через dept_start.')
+          ? h('div', { className: 'dept-empty' }, t('empty.noTasksHint'))
           : h('div', { className: 'dept-list' }, ...tasks.map((task) => h(TaskCard, { key: `${task.root}:${task.taskId}`, task, onOpen: openTask }))),
       )
     }
@@ -2002,7 +2180,7 @@ window.__ModuleLoader__.load({
 
     function apply(ctx) {
       ctx.slots.inject('sidebar.panellist', () => ctx.slots.register(
-        { name: 'sidebar.panellist', id: PANEL_ID, order: 55, label: 'ИИ-отдел' },
+        { name: 'sidebar.panellist', id: PANEL_ID, order: 55, label: t('title.departmentShort') },
         DepartmentIcon,
       ))
       ctx.slots.inject('main', () => ctx.slots.register(
