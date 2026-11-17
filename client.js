@@ -287,7 +287,7 @@ window.__ModuleLoader__.load({
         const matches = text.match(/[\w./-]+\.(?:js|mjs|md|json|html|css)/g) ?? []
         return [...new Set(matches.map((file) => file.replace(/^\.\//, '')))].slice(0, 8)
       }
-      const chairSeats = [{ x: 446, y: 152 }, { x: 520, y: 152 }, { x: 594, y: 152 }, { x: 520, y: 198 }]
+      const chairSeats = [{ x: 446, y: 152 }, { x: 520, y: 152 }, { x: 594, y: 152 }, { x: 446, y: 198 }, { x: 520, y: 198 }, { x: 594, y: 198 }]
       const coolerSpot = { x: 570, y: 252 }
       const windowSpot = { x: 466, y: 66 }
       const loungeTargets = [...chairSeats.map((seat, index) => ({ kind: 'seat', spot: seat, index })), { kind: 'cooler', spot: coolerSpot }, { kind: 'window', spot: windowSpot }]
@@ -557,7 +557,7 @@ window.__ModuleLoader__.load({
               ? [
                   h('div', { className: 'dept-title' }, selectedEntry.kind === 'менеджер' ? 'Руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(selectedEntry.sessionId) ?? inferRole(selectedEntry)))?.label ?? 'Агент')),
                   h('div', { className: 'dept-row' },
-                    h('span', { className: selectedEntry.busy ? 'dept-badge ok' : 'dept-badge wait' }, selectedEntry.busy ? '● работает' : '○ перерыв'),
+                    h('span', { className: (selectedEntry.busy && !paused) ? 'dept-badge ok' : 'dept-badge wait' }, paused ? '⏸ пауза' : selectedEntry.busy ? '● работает' : '○ перерыв'),
                     h('span', { className: 'dept-sub' }, formatElapsed(selectedEntry.elapsedMs))),
                   h('div', { className: 'dept-sub' }, 'Проект: ' + projectName(selectedEntry.cwd) + (selectedTask ? ' · ' + selectedTask.taskId + ' · ' + selectedTask.stage : '')),
                   h('div', { className: 'dept-sub' }, 'Сейчас'),

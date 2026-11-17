@@ -42,6 +42,7 @@ const detail = {
   tags: ['stage-1', 'stage-2', 'stage-3', 'stage-4', 'stage-5', 'stage-6'],
 };
 const activity = { activity: [
+  { sessionId: 's3', cwd: '/home/agent/work/projects/space-game', kind: 'субагент', busy: true, lastAction: 'вызывает read', tool: 'read', args: '{"file_path":"src/main.js"}', elapsedMs: 300000, usage: { inputTokens: 5000, outputTokens: 800, calls: 4 }, recent: [{ ts: Date.now() - 20000, text: 'read src/main.js' }] },
   { sessionId: 's1', cwd: '/home/agent/work/projects/space-game', kind: 'менеджер', busy: false, lastAction: 'думает (шаг модели)', tool: 'subagent', args: '{"description":"Кодер этапа 5"}', elapsedMs: 4200, usage: { inputTokens: 21000, outputTokens: 3200, calls: 14 }, recent: [{ ts: Date.now() - 60000, text: 'прочитал plan.md' }, { ts: Date.now() - 30000, text: 'запустил кодера' }] },
   { sessionId: 's2', cwd: '/home/agent/work/projects/space-game', kind: 'субагент', busy: true, lastAction: 'вызывает write', tool: 'write', args: '{"file_path":"src/contracts.js"}', elapsedMs: 512000, usage: { inputTokens: 38000, outputTokens: 9100, calls: 22 }, recent: [{ ts: Date.now() - 90000, text: 'write src/contracts.js' }, { ts: Date.now() - 30000, text: 'read src/economy.js' }] },
 ]};
