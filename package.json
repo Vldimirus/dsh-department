@@ -42,9 +42,9 @@
     "assets",
     "templates",
     "README.md",
-    "README.en.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "README.ru.md"
   ],
   "dependencies": {
     "playwright": "^1.65.1",
