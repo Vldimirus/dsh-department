@@ -4,6 +4,20 @@ A department of AI agents with a manager and specialists that takes a task from 
 analysis → concept (human approval) → specification (human approval) → plan → per-stage
 implementation with tests and independent review → commit, tag and push per stage.
 
+## Screenshots
+
+| Department panel (EN) | Office: working |
+|---|---|
+| ![Panel](docs/screenshots/panel-en.png) | ![Office](docs/screenshots/office.png) |
+
+| Paused: everyone in the lounge | 16 characters |
+|---|---|
+| ![Paused](docs/screenshots/office-paused.png) | ![Characters](docs/screenshots/characters.png) |
+
+Pixel editor for preparing sprites:
+
+![Editor](docs/screenshots/pixel-editor.png)
+
 ## Features
 
 - Task board, task card (documents, questions, audit, events, corrections, roles, budget, git).
