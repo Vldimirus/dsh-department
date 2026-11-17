@@ -1,7 +1,7 @@
 /**
  * Инструменты модели `dept_*`: запуск задачи, статус, утверждение, гейты, фиксация.
  */
-import { access, copyFile, mkdir, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
@@ -173,6 +173,7 @@ function startTool() {
         origin: { type: 'string', description: 'Имя remote для push (по умолчанию origin).' },
         maxAttempts: { type: 'integer', description: 'Максимум попыток на этап (по умолчанию 4).' },
         budgetTokens: { type: 'integer', description: 'Лимит токенов на задачу (по умолчанию 60000).' },
+        release: { type: 'boolean', description: 'Задача подготовки к релизу: в бриф добавляется шаблон релиза (пакет, документация, QA, тег).' },
       },
       required: ['root', 'taskId'],
     },
@@ -191,6 +192,11 @@ function startTool() {
       if (!(await isRepo(root))) throw new Error(`not a git repository: ${root}`);
       const existing = await readState(root, taskId);
       if (existing) throw new Error(`task already exists: ${taskId}`);
+      let brief = typeof args?.brief === 'string' ? args.brief.trim() : '';
+      if (args?.release === true) {
+        const template = await readFile(new URL('../templates/release.md', import.meta.url), 'utf8');
+        brief = (brief ? brief + '\n\n' : '') + 'Подготовка к релизу (шаблон):\n\n' + template;
+      }
 
       let state = createState({
         root,
@@ -207,8 +213,8 @@ function startTool() {
       state = appendEvent(state, { actor: 'manager', action: 'branch_ready', detail: branch.branch });
 
       await mkdir(taskDir(root, taskId), { recursive: true });
-      if (typeof args?.brief === 'string' && args.brief.trim() !== '') {
-        await writeFile(join(taskDir(root, taskId), 'task.md'), `${args.brief.trim()}\n`, 'utf8');
+      if (brief !== '') {
+        await writeFile(join(taskDir(root, taskId), 'task.md'), `${brief}\n`, 'utf8');
       }
       state = await writeState(root, state);
       return summaryOutput(state);

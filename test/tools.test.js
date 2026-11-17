@@ -149,3 +149,15 @@ test('dept_pause: руководитель не может снять паузу
   const state = await readState(root, 'p2');
   assert.equal(state.paused.value, false);
 });
+
+test('dept_start release=true добавляет шаблон релиза в бриф', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({
+    root, taskId: 'rel-1', testCommand: 'true', branch: 'dept/rel-1', release: true,
+    title: 'Релиз 1.0.0', brief: 'Выпустить продукт.',
+  });
+  const task = await readFile(join(root, 'docs', 'department', 'rel-1', 'task.md'), 'utf8');
+  assert.match(task, /Подготовка к релизу/);
+  assert.match(task, /MANUAL-QA/);
+});
