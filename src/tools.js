@@ -66,28 +66,6 @@ async function collectArtifacts(root, taskId) {
 }
 
 
-/**
- * Останавливает всех агентов проекта: отменяет текущий ход и очередь.
- *
- * @param {object} ctx Контекст плагина.
- * @param {string} root Корень проекта.
- */
-function cancelAgents(ctx, root) {
-  try {
-    const registry = typeof ctx?.get === 'function' ? ctx.get('agents') : null;
-    if (!registry || typeof registry.list !== 'function') return;
-    for (const agent of registry.list()) {
-      if (agent?.session?.header?.cwd !== root || typeof agent.cancel !== 'function') continue;
-      try {
-        agent.cancel({ kind: 'user' }, { keepInbox: false });
-      } catch {
-        // агент уже простаивает
-      }
-    }
-  } catch {
-    // сервис агентов недоступен
-  }
-}
 
 /**
  * Будит агентов проекта followup-сообщением.
@@ -845,13 +823,15 @@ function healthTool(activity) {
       const stage = state.stage;
       const gatesPass = state.gates?.tests?.status === 'pass' && state.gates?.review?.status === 'pass';
       let verdict = 'idle';
-      if (stage === 'done') verdict = 'done';
+      if (state.paused?.value) verdict = 'paused';
+      else if (stage === 'done') verdict = 'done';
       else if (stage === 'blocked') verdict = 'blocked';
       else if (busy > 0) verdict = 'working';
       else if (open.length > 0 && ageMinutes >= 10) verdict = 'waiting_human';
       else if (stage === 'executing' && gatesPass) verdict = 'ready_to_commit';
       else if (ageMinutes >= 15) verdict = 'stalled';
       const recommended = {
+        paused: 'отдел на паузе: работу ставит и снимает только человек; новых шагов не начинай',
         done: 'задача завершена; начни следующую через dept_start',
         blocked: 'нужно решение человека: задай вопрос dept_ask и жди ответа',
         working: 'работа идёт: не создавай дублирующих задач, дождись результата',
@@ -1735,8 +1715,8 @@ function pauseTool(ctx) {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       const next = await writeState(root, setPaused(state, { paused, reason: args?.reason ?? '', by }));
-      if (paused) cancelAgents(ctx, root);
-      else wakeAgents(ctx, root, 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.');
+      // Мягкая пауза: текущий ход доделывается, таймер больше не будит, новые указания не начинаются.
+      if (!paused) wakeAgents(ctx, root, 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.');
       return { paused: Boolean(next.paused?.value), summary: paused ? `задача на паузе: ${args?.reason ?? ''}` : 'работа продолжена' };
     },
   };

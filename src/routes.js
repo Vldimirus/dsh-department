@@ -128,16 +128,6 @@ export function registerDepartmentRoutes(ctx, activity) {
       const state = await readState(root, taskId);
       if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
       const next = await writeState(root, setPaused(state, { paused, reason: reason ?? '', by }));
-      if (paused) {
-        try {
-          for (const agent of ctx.get('agents').list()) {
-            if (agent?.session?.header?.cwd !== root || typeof agent.cancel !== 'function') continue;
-            try { agent.cancel({ kind: 'user' }, { keepInbox: false }); } catch { /* уже простаивает */ }
-          }
-        } catch {
-          // сервис агентов недоступен
-        }
-      }
       if (!paused) {
         try {
           const registry = ctx.get('agents');
