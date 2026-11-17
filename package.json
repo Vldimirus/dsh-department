@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "description": "ИИ-отдел разработки для DeepSeek Harness: задачи, стадии, гейты, git, бюджет",
+  "description": "AI development department for DeepSeek Harness: tasks, stages, gates, git workflow, budgets, roles and a pixel office.",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
@@ -30,7 +30,9 @@
     "agents",
     "department",
     "workflow",
-    "git"
+    "git",
+    "i18n",
+    "pixel-office"
   ],
   "files": [
     "index.js",
@@ -38,11 +40,18 @@
     "cordis.patch.yml",
     "src",
     "assets",
+    "templates",
     "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "dependencies": {
     "playwright": "^1.65.1",
     "sharp": "^0.35.5"
+  },
+  "engines": {
+    "node": ">=24.9.0",
+    "dsh": ">=0.2.0"
   }
 }

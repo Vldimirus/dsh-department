@@ -9,6 +9,81 @@ window.__ModuleLoader__.load({
     const h = React.createElement
     const { useEffect, useState } = React
 
+
+    // --- i18n -------------------------------------------------------------
+    // Словарь интерфейса. Серверные тексты (аудит, события) пока на русском —
+    // см. docs/I18N.md: их перевод идёт отдельным этапом.
+    const LOCALES = {
+      ru: {
+        'nav.board': 'Доска',
+        'nav.projects': 'Проекты',
+        'nav.office': 'Офис',
+        'nav.blueprint': 'Схема',
+        'nav.charts': 'Графики',
+        'nav.refresh': 'Обновить',
+        'office.title': 'Офис отдела',
+        'office.staff': 'сотрудников: {n} из {m}',
+        'office.empty': 'никого нет',
+        'office.paused': 'отдел на паузе',
+        'projects.title': 'Проекты',
+        'task.pause': 'Пауза',
+        'task.resume': 'Продолжить',
+        'tabs.overview': 'Обзор',
+        'tabs.docs': 'Документы',
+        'tabs.questions': 'Вопросы',
+        'tabs.audit': 'Аудит',
+        'tabs.events': 'События',
+        'tabs.correction': 'Корректировка',
+        'tabs.roles': 'Роли',
+        'tabs.billing': 'Бюджет',
+        'tabs.git': 'Git',
+      },
+      en: {
+        'nav.board': 'Board',
+        'nav.projects': 'Projects',
+        'nav.office': 'Office',
+        'nav.blueprint': 'Blueprint',
+        'nav.charts': 'Charts',
+        'nav.refresh': 'Refresh',
+        'office.title': 'Department office',
+        'office.staff': 'staff: {n} of {m}',
+        'office.empty': 'nobody here',
+        'office.paused': 'department paused',
+        'projects.title': 'Projects',
+        'task.pause': 'Pause',
+        'task.resume': 'Resume',
+        'tabs.overview': 'Overview',
+        'tabs.docs': 'Documents',
+        'tabs.questions': 'Questions',
+        'tabs.audit': 'Audit',
+        'tabs.events': 'Events',
+        'tabs.correction': 'Corrections',
+        'tabs.roles': 'Roles',
+        'tabs.billing': 'Budget',
+        'tabs.git': 'Git',
+      },
+    }
+    let deptLang = (() => {
+      try {
+        const saved = localStorage.getItem('dept-lang')
+        if (saved === 'ru' || saved === 'en') return saved
+        const nav = (navigator.language || 'ru').toLowerCase()
+        return nav.startsWith('ru') ? 'ru' : 'en'
+      } catch {
+        return 'ru'
+      }
+    })()
+    const t = (key, vars) => {
+      const table = LOCALES[deptLang] ?? LOCALES.ru
+      let value = table[key] ?? LOCALES.ru[key] ?? key
+      for (const [name, replacement] of Object.entries(vars ?? {})) value = value.split('{' + name + '}').join(String(replacement))
+      return value
+    }
+    const setDeptLang = (lang) => {
+      deptLang = lang === 'en' ? 'en' : 'ru'
+      try { localStorage.setItem('dept-lang', deptLang) } catch { /* приватный режим */ }
+    }
+
     const PANEL_ID = 'department'
     const ROUTES = {
       tasks: '/api/department/tasks',
@@ -506,9 +581,9 @@ window.__ModuleLoader__.load({
         'div',
         { className: 'dept-root' },
         h('div', { className: 'dept-row' },
-          h('div', { className: 'dept-title' }, 'Офис отдела'),
+          h('div', { className: 'dept-title' }, t('office.title')),
           paused ? h('span', { className: 'dept-badge wait' }, '⏸ отдел на паузе' + (pauseReason ? ': ' + pauseReason : '')) : null,
-          h('div', { className: 'dept-sub' }, items.length ? 'сотрудников: ' + items.length + ' из ' + DESKS.length : 'никого нет')),
+          h('div', { className: 'dept-sub' }, items.length ? t('office.staff', { n: items.length, m: DESKS.length }) : t('office.empty'))),
         party
           ? h('div', { className: 'dept-block', style: { borderColor: '#7fdc9a', textAlign: 'center' } },
               h('div', { className: 'dept-title' }, '🎉 Вечеринка!'),
@@ -775,15 +850,15 @@ window.__ModuleLoader__.load({
 
       const kv = (label, value) => h('div', { className: 'dept-kv' }, h('span', null, label), h('span', null, String(value)))
       const tabs = [
-        ['overview', 'Обзор'],
-        ['docs', 'Документы'],
-        ['questions', `Вопросы${openQuestions.length ? ' (' + openQuestions.length + ')' : ''}`],
-        ['audit', 'Аудит'],
-        ['events', 'События'],
-        ['correction', 'Корректировка'],
-        ['roles', 'Роли'],
-        ['billing', 'Бюджет'],
-        ['git', 'Git'],
+        ['overview', t('tabs.overview')],
+        ['docs', t('tabs.docs')],
+        ['questions', `${t('tabs.questions')}${openQuestions.length ? ' (' + openQuestions.length + ')' : ''}`],
+        ['audit', t('tabs.audit')],
+        ['events', t('tabs.events')],
+        ['correction', t('tabs.correction')],
+        ['roles', t('tabs.roles')],
+        ['billing', t('tabs.billing')],
+        ['git', t('tabs.git')],
       ]
 
       const content = (() => {
@@ -1063,7 +1138,7 @@ window.__ModuleLoader__.load({
               className: 'dept-btn',
               disabled: busy,
               onClick: () => post(ROUTES.pause, { root: detail.root, taskId: detail.taskId, paused: !detail.paused, reason: 'по кнопке' }),
-            }, detail.paused ? 'Продолжить' : 'Пауза'),
+            }, detail.paused ? t('task.resume') : t('task.pause')),
             h('button', { className: 'dept-btn', onClick: onBack }, '← К доске'))),
         h('div', { className: 'dept-tabs' }, ...tabs.map(([key, label]) =>
           h('button', { key, className: 'dept-btn' + (tab === key ? ' active' : ''), onClick: () => setTab(key) }, label))),
@@ -1363,9 +1438,9 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'dept-root' },
         h('div', { className: 'dept-head' },
           h('div', null,
-            h('div', { className: 'dept-title' }, 'Проекты'),
+            h('div', { className: 'dept-title' }, t('projects.title')),
             h('div', { className: 'dept-sub' }, `проектов: ${projects.length}${loading ? ' · обновление…' : ''}`)),
-          h('button', { className: 'dept-btn', onClick: load }, 'Обновить')),
+          h('button', { className: 'dept-btn', onClick: load }, t('nav.refresh'))),
         error ? h('div', { className: 'dept-badge fail' }, error) : null,
         projects.length === 0 && !loading
           ? h('div', { className: 'dept-empty' }, 'Проектов с задачами нет.')
@@ -1513,6 +1588,7 @@ window.__ModuleLoader__.load({
       const [loading, setLoading] = useState(true)
       const [selectedSession, setSelectedSession] = useState(null)
       const [projectFilter, setProjectFilter] = useState(null)
+      const [langTick, setLangTick] = useState(0)
       const [textSize, setTextSize] = useState(() => {
         const saved = Number(localStorage.getItem('dept-text-size'))
         return saved >= 12 && saved <= 20 ? saved : 13
@@ -1562,11 +1638,11 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'dept-root' },
           h('div', { className: 'dept-head' },
             h('div', { className: 'dept-tabs' },
-              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
-              h('button', { className: 'dept-btn active' }, 'Проекты'),
-              h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
-              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
-              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики'))),
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, t('nav.board')),
+              h('button', { className: 'dept-btn active' }, t('nav.projects')),
+              h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
+              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')))),
           h(ProjectsView, { onOpen: (root) => { setProjectFilter(root); setView('board') } }))
       }
 
@@ -1574,11 +1650,11 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'dept-root' },
           h('div', { className: 'dept-head' },
             h('div', { className: 'dept-tabs' },
-              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
-              h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
-              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
-              h('button', { className: 'dept-btn active' }, 'Графики')),
-            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, t('nav.board')),
+              h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
+              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
+              h('button', { className: 'dept-btn active' }, t('nav.charts'))),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
           h(ChartsView, { tasks }))
       }
 
@@ -1586,10 +1662,10 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'dept-root' },
           h('div', { className: 'dept-head' },
             h('div', { className: 'dept-tabs' },
-              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
-              h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
-              h('button', { className: 'dept-btn active' }, 'Схема')),
-            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, t('nav.board')),
+              h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
+              h('button', { className: 'dept-btn active' }, t('nav.blueprint'))),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
           h(BlueprintView, { tasks }))
       }
 
@@ -1597,11 +1673,11 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'dept-root' },
           h('div', { className: 'dept-head' },
             h('div', { className: 'dept-tabs' },
-              h('button', { className: 'dept-btn', onClick: () => setView('board') }, 'Доска'),
-              h('button', { className: 'dept-btn active', onClick: () => setView('office') }, 'Офис'),
-              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
-              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики')),
-            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, t('nav.board')),
+              h('button', { className: 'dept-btn active', onClick: () => setView('office') }, t('nav.office')),
+              h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts'))),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
           h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) }, party, paused: tasks.some((task) => task.paused), pauseReason: (tasks.find((task) => task.paused) ?? {}).pauseReason }),
         )
       }
@@ -1615,13 +1691,21 @@ window.__ModuleLoader__.load({
             h('div', { className: 'dept-sub' }, `задач: ${tasks.length}${loading ? ' · обновление…' : ''}`),
           ),
           h('div', { className: 'dept-tabs' },
-            h('button', { className: 'dept-btn active', onClick: () => setView('board') }, 'Доска'),
-            h('button', { className: 'dept-btn', onClick: () => setView('projects') }, 'Проекты'),
-            h('button', { className: 'dept-btn', onClick: () => setView('office') }, 'Офис'),
-            h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, 'Схема'),
-            h('button', { className: 'dept-btn', onClick: () => setView('charts') }, 'Графики'),
+            h('button', { className: 'dept-btn active', onClick: () => setView('board') }, t('nav.board')),
+            h('button', { className: 'dept-btn', onClick: () => setView('projects') }, t('nav.projects')),
+            h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
+            h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
+            h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')),
+            h('button', {
+              className: 'dept-btn',
+              onClick: () => {
+                setDeptLang(deptLang === 'en' ? 'ru' : 'en')
+                setLangTick((value) => value + 1)
+              },
+              title: 'Language / Язык',
+            }, deptLang === 'en' ? 'RU' : 'EN'),
             h('button', { className: 'dept-btn', onClick: () => setTextSize(textSize >= 19 ? 12 : textSize + 2), title: 'Размер текста' }, 'A+'),
-            h('button', { className: 'dept-btn', onClick: loadTasks }, 'Обновить')),
+            h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
         ),
         attention > 0
           ? h('div', { className: 'dept-block' },
