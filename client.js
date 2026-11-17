@@ -337,6 +337,12 @@ window.__ModuleLoader__.load({
         box(x - 8, y + 3, 7, 2, '#cfe6ff'),
         box(x - 8, y + 6, 11, 2, '#cfe6ff'),
         box(x - 2, y + 15, 4, 3, '#1a2436'))
+      const monitorBack = () => h('g', null,
+        box(-17, -26, 10, 14, '#2a3448'),
+        box(-16, -25, 8, 12, '#1a2436'),
+        box(-17, -25, 1, 10, '#8fd3ff'),
+        box(-13, -12, 2, 4, '#1a2436'),
+        box(-15, -8, 6, 2, '#2a3448'))
       const plant = (x, y) => h('g', null,
         box(x - 7, y, 14, 10, '#8a5a2b'),
         box(x - 7, y, 14, 3, '#a8713a'),
@@ -372,18 +378,22 @@ window.__ModuleLoader__.load({
           onClick: () => onSelect(entry.sessionId),
           style: isSelected ? { filter: 'drop-shadow(0 0 4px #6fb2ff)' } : undefined,
         },
-          box(-12, -24, 24, 9, '#2a3448'),
-          box(-9, -34, 18, 15, '#3d7bff'),
-          box(-9, -34, 18, 3, '#5b95ff'),
-          box(-6, -45, 12, 12, '#f0c9a0'),
-          box(-7, -47, 14, 4, '#5a3a22'),
-          box(-4, -41, 2, 2, '#20304a'),
-          box(2, -41, 2, 2, '#20304a'),
-          monitorOn(0, -20),
-          h('g', { className: 'dept-typing' },
-            box(-10, -13, 5, 7, '#f0c9a0'),
-            box(5, -13, 5, 7, '#f0c9a0')),
-          h('rect', { className: 'dept-keyboard', x: -14, y: -15, width: 28, height: 4, fill: '#1a2436' }))
+          // сотрудник за столом: ноги скрыты, видно голову и туловище
+          h('defs', null,
+            h('clipPath', { id: 'work-clip-' + entry.sessionId },
+              h('rect', { x: -12, y: -48, width: 24, height: 42 }))),
+          h('g', { clipPath: 'url(#work-clip-' + entry.sessionId + ')' },
+            h('image', { href: spriteFor(entry), x: -12, y: -48, width: 24, height: 48 })),
+          // монитор тыльной стороной к нам, экран светится слева
+          h('g', { className: 'dept-monitor-back' }, monitorBack()),
+          // клавиатура на столе
+          box(-4, -10, 10, 3, '#1a2436'),
+          box(-3, -9, 8, 1, '#3a4560'),
+          // руки — светлые пятна, скользят по клавиатуре
+          h('g', { className: 'dept-hands h1' },
+            h('ellipse', { cx: -2, cy: -8, rx: 2.5, ry: 1.8, fill: '#ffe2b0' })),
+          h('g', { className: 'dept-hands h2' },
+            h('ellipse', { cx: 3, cy: -8, rx: 2.5, ry: 1.8, fill: '#ffe2b0' })))
       }
 
       const seatedPerson = (entry, desk, index) => {
@@ -411,7 +421,7 @@ window.__ModuleLoader__.load({
                 box(7, -23, 4, 2, '#7a4a24'),
                 h('rect', { className: 'dept-steam s1', x: 8, y: -29, width: 2, height: 3, fill: '#d8e6ff' }),
                 h('rect', { className: 'dept-steam s2', x: 10, y: -31, width: 2, height: 3, fill: '#d8e6ff' })),
-          h('text', { x: 0, y: 18, fill: '#5f7392', fontSize: 8, textAnchor: 'middle' },
+          h('text', { x: 0, y: 18, fill: '#4a3a26', fontSize: 8, textAnchor: 'middle' },
             entry.kind === 'менеджер' ? 'руководитель' : (DESKS.find((desk) => desk.key === (assignments.current.get(entry.sessionId) ?? 'coder'))?.label ?? 'агент')))
       }
 
@@ -543,7 +553,7 @@ window.__ModuleLoader__.load({
               ...DESKS.map((desk) => deskSprite(desk)),
               ...DESKS.map((desk) => {
                 const entry = byRole.get(desk.key)
-                if (!entry) return monitorOn(desk.x, desk.y - 20)
+                if (!entry) return h('g', { transform: 'translate(' + desk.x + ',' + desk.y + ')' }, monitorBack())
                 const actor = actors.find((item) => item.entry.sessionId === entry.sessionId)
                 return actor && actor.mode === 'desk' ? personAtDesk(entry, desk) : null
               }),
