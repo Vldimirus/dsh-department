@@ -53,5 +53,13 @@
   "engines": {
     "node": ">=24.9.0",
     "dsh": ">=0.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vldimirus/dsh-department.git"
+  },
+  "homepage": "https://github.com/Vldimirus/dsh-department#readme",
+  "bugs": {
+    "url": "https://github.com/Vldimirus/dsh-department/issues"
   }
 }
