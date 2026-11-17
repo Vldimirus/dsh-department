@@ -1,0 +1,41 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Check if version is already published
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "dsh-department@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION is already published — skipping."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "Publishing $VERSION."
+          fi
+
+      - name: Publish to npm (Trusted Publishing)
+        if: steps.check.outputs.published == 'false'
+        run: npm publish --provenance --access public
