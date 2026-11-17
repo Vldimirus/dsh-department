@@ -9,6 +9,8 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const INTERVAL_MS = 5 * 60 * 1000;
+const IDLE_MINUTES = 15;
+const WAKE_COOLDOWN_MS = 30 * 60 * 1000;
 
 /**
  * Читает состояние задачи из файла.
@@ -70,6 +72,7 @@ export function pendingHumanInput(state) {
  */
 export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
   const seenItems = new Map();
+  const lastWake = new Map();
   let timer = null;
   let running = false;
 
@@ -111,6 +114,37 @@ export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
             });
           } catch {
             // агент мог закрыться — пропускаем
+          }
+        }
+
+        // антизалипание: задача активна, но агент простаивает слишком долго
+        if (!agent.status || agent.status === 'idle') {
+          for (const taskId of ids) {
+            const state = await readTaskState(cwd, taskId);
+            if (!state || state.paused?.value) continue;
+            if (state.stage === 'done' || state.stage === 'blocked') continue;
+            const events = state.events ?? [];
+            const last = events.at(-1);
+            const idleMinutes = last ? (Date.now() - Date.parse(last.ts)) / 60000 : 999;
+            if (idleMinutes < IDLE_MINUTES) continue;
+            const key = (agent.id ?? cwd) + ':idle:' + taskId;
+            const previous = lastWake.get(key) ?? 0;
+            if (Date.now() - previous < WAKE_COOLDOWN_MS) continue;
+            lastWake.set(key, Date.now());
+            const ready = state.gates?.tests?.status === 'pass' && state.gates?.review?.status === 'pass';
+            try {
+              agent.followup({
+                role: 'user',
+                content: [{
+                  type: 'text',
+                  text: `Отдел простаивает ${Math.round(idleMinutes)} мин по задаче ${taskId} (стадия ${state.stage}).` +
+                    (ready ? ' Гейты зелёные: dept_verify и dept_commit.' : ' Проверь dept_health и продолжи следующий шаг по плану или зафиксируй blocked с причиной.'),
+                }],
+                source: { kind: 'dsh-department' },
+              });
+            } catch {
+              // агент закрылся
+            }
           }
         }
       }
