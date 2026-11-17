@@ -65,6 +65,30 @@ async function collectArtifacts(root, taskId) {
   return files;
 }
 
+
+/**
+ * Останавливает всех агентов проекта: отменяет текущий ход и очередь.
+ *
+ * @param {object} ctx Контекст плагина.
+ * @param {string} root Корень проекта.
+ */
+function cancelAgents(ctx, root) {
+  try {
+    const registry = typeof ctx?.get === 'function' ? ctx.get('agents') : null;
+    if (!registry || typeof registry.list !== 'function') return;
+    for (const agent of registry.list()) {
+      if (agent?.session?.header?.cwd !== root || typeof agent.cancel !== 'function') continue;
+      try {
+        agent.cancel({ kind: 'user' }, { keepInbox: false });
+      } catch {
+        // агент уже простаивает
+      }
+    }
+  } catch {
+    // сервис агентов недоступен
+  }
+}
+
 /**
  * Будит агентов проекта followup-сообщением.
  *
@@ -1711,7 +1735,8 @@ function pauseTool(ctx) {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       const next = await writeState(root, setPaused(state, { paused, reason: args?.reason ?? '', by }));
-      if (!paused) wakeAgents(ctx, root, 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.');
+      if (paused) cancelAgents(ctx, root);
+      else wakeAgents(ctx, root, 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.');
       return { paused: Boolean(next.paused?.value), summary: paused ? `задача на паузе: ${args?.reason ?? ''}` : 'работа продолжена' };
     },
   };
