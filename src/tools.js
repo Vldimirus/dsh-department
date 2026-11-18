@@ -45,6 +45,8 @@ import { isHumanApprover } from './roles.js';
 import { createDepartmentTask } from './create-task.js';
 import { assertDepartmentEnabled } from './settings.js';
 import { buildHandover } from './handover.js';
+import { assertApprovalReady } from './approval.js';
+import { writeDiscussion } from './discussion.js';
 import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
 import { runBrowse } from './browse.js';
@@ -55,7 +57,7 @@ import { assertRetryReady, failurePath, hasSection, writeFailureData } from './a
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
 async function collectArtifacts(root, taskId) {
-  const names = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md'];
+  const names = ['task.md', 'analysis.md', 'discussion.md', 'concept.md', 'spec.md', 'plan.md'];
   const files = {};
   for (const name of names) {
     try {
@@ -159,6 +161,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(budgetTool()));
   disposers.push(ctx.tools.register(pauseTool(ctx)));
   disposers.push(ctx.tools.register(handoverTool()));
+  disposers.push(ctx.tools.register(discussionTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -280,6 +283,12 @@ function approveTool() {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      const approvalRoot = requireString(args, 'root');
+      const approvalTask = requireString(args, 'taskId');
+      const approvalDoc = requireString(args, 'doc');
+      const approvalState = await readState(approvalRoot, approvalTask);
+      if (!approvalState) throw new Error(`task not found: ${approvalTask}`);
+      await assertApprovalReady(approvalRoot, approvalTask, approvalDoc, approvalState);
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const doc = requireString(args, 'doc');
@@ -569,7 +578,7 @@ function verifyTool() {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
 
-      const names = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md'];
+      const names = ['task.md', 'analysis.md', 'discussion.md', 'concept.md', 'spec.md', 'plan.md'];
       const files = {};
       for (const name of names) {
         try {
@@ -1774,6 +1783,41 @@ function handoverTool() {
         notes: args?.notes,
       });
       return { dir: result.dir, version: result.version, summary: `пакет готов: ${result.dir} (RUN.md, MANUAL-QA.md, CHANGELOG.md, RELEASE.md)` };
+    },
+  };
+}
+
+function discussionTool() {
+  return {
+    name: 'dept_discussion',
+    description: 'Записать обсуждение задачи в discussion.md: цели, не цели, пользователи, ограничения, риски, открытые вопросы, решения. ТЗ нельзя утвердить, пока есть открытые вопросы.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        goals: { type: 'array', items: { type: 'string' }, description: 'Цели.' },
+        nonGoals: { type: 'array', items: { type: 'string' }, description: 'Что НЕ входит в задачу.' },
+        users: { type: 'array', items: { type: 'string' }, description: 'Пользователи и сценарии.' },
+        constraints: { type: 'array', items: { type: 'string' }, description: 'Ограничения.' },
+        risks: { type: 'array', items: { type: 'string' }, description: 'Риски.' },
+        questions: { type: 'array', items: { type: 'string' }, description: 'Открытые вопросы к человеку.' },
+        decisions: { type: 'array', items: { type: 'string' }, description: 'Принятые решения.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, summary: { type: 'string' } }, required: ['path', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      await assertDepartmentEnabled('обсуждение задачи');
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const result = await writeDiscussion(root, taskId, state, args ?? {});
+      return { path: result.path, summary: `обсуждение записано: ${result.path}` };
     },
   };
 }

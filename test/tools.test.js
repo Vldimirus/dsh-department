@@ -184,7 +184,7 @@ test('dept_handover: собирает пакет и открывает путь 
   const tools = collectTools();
   await tools.get('dept_start').execute({ root, taskId: 'ship-1', testCommand: 'true', branch: 'dept/ship-1' });
   const dir = join(root, 'docs', 'department', 'ship-1');
-  for (const name of ['analysis.md', 'spec.md', 'concept.md', 'plan.md']) {
+  for (const name of ['analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'plan.md']) {
     await (await import('node:fs/promises')).writeFile(join(dir, name), '# ' + name + '\n', 'utf8');
   }
   let state = await readState(root, 'ship-1');

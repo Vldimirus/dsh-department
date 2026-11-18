@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
 import { createDepartmentTask } from './create-task.js';
 import { encodePng } from './png.js';
+import { assertApprovalReady } from './approval.js';
 import { readSettings, writeSettings } from './settings.js';
 import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
@@ -367,6 +368,7 @@ export function registerDepartmentRoutes(ctx, activity) {
       const state = await readState(root, taskId);
       if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
       try {
+        await assertApprovalReady(root, taskId, doc, state);
         const next = await writeState(root, approveDocument(state, { doc, by }));
         return Response.json({ stage: next.stage, summary: next.approvals });
       } catch (error) {
