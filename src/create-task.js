@@ -39,9 +39,20 @@ export async function createDepartmentTask(root, taskId, options = {}) {
   if (!branch.ok) throw new Error(`cannot create branch ${state.branch}: ${branch.error ?? ''}`);
   state = appendEvent(state, { actor: 'manager', action: 'branch_ready', detail: branch.branch });
 
+  const process = [
+    '## Порядок работы отдела',
+    '',
+    '1. **Обсуждение** (`analysis`): вопросы, требования, ограничения. Код не пишется.',
+    '2. **ТЗ** (`spec.md`): отдел формирует требования; человек утверждает на стадии `spec_review`.',
+    '3. **Концепция** (`concept.md`): архитектор предлагает 2–3 варианта, специалисты критикуют,',
+    '   человеку задаются вопросы; человек утверждает на стадии `concept_review`.',
+    '4. **План** (`plan.md`): первый документ исполнения; затем этапы, тесты, ревью, коммиты.',
+    '',
+    'Три главных документа — `spec.md`, `concept.md`, `plan.md` — всегда актуальны:',
+    'правки через `dept_amend`/`dept_section`, в панели они закреплены сверху.',
+  ].join('\n');
+  const fullBrief = brief !== '' ? `${brief}\n\n${process}\n` : `${process}\n`;
   await mkdir(taskDir(root, taskId), { recursive: true });
-  if (brief !== '') {
-    await writeFile(join(taskDir(root, taskId), 'task.md'), `${brief}\n`, 'utf8');
-  }
+  await writeFile(join(taskDir(root, taskId), 'task.md'), fullBrief, 'utf8');
   return writeState(root, state);
 }
