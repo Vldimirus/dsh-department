@@ -35,6 +35,6 @@ test('concept: нужно минимум два варианта', async (t) => 
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(join(dir, 'concept.md'), '# Концепция\n\n## Вариант 1\n', 'utf8');
   await assert.rejects(() => assertApprovalReady(root, taskId, 'concept', state), /минимум 2 варианта/);
-  await writeFile(join(dir, 'concept.md'), '# Концепция\n\n## Вариант 1\n\n## Вариант 2\n', 'utf8');
+  await writeFile(join(dir, 'concept.md'), '# Концепция\n\n## 3. Вариант 1 — A\n\n## 4. Вариант 2 — B\n', 'utf8');
   await assert.doesNotReject(() => assertApprovalReady(root, taskId, 'concept', state));
 });

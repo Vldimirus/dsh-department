@@ -32,7 +32,7 @@ export async function assertApprovalReady(root, taskId, doc, state) {
     const path = join(dir, 'concept.md');
     if (!(await exists(path))) throw new Error('нельзя утвердить концепцию: нет concept.md');
     const text = await readFile(path, 'utf8');
-    const variants = (text.match(/^#{2,3}\s*Вариант/gim) ?? []).length;
+    const variants = (text.match(/^#{2,3}\s*(?:\d+[.)]\s*)?Вариант/gim) ?? []).length;
     if (variants < 2) {
       throw new Error('нельзя утвердить концепцию: нужно минимум 2 варианта (## Вариант) с плюсами/минусами и выбором');
     }

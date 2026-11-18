@@ -344,9 +344,9 @@ export function summarize(state) {
 const STAGE_FLOW = Object.freeze({
   analysis: ['concept', 'spec'],
   concept: ['concept_review', 'spec'],
-  concept_review: ['concept', 'spec'],
+  concept_review: ['concept'],
   spec: ['spec_review', 'concept'],
-  spec_review: ['spec', 'concept'],
+  spec_review: ['spec'],
   executing: ['release', 'blocked', 'spec', 'concept'],
   release: ['done', 'executing'],
   done: [],
