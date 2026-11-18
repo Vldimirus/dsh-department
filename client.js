@@ -2137,6 +2137,7 @@ window.__ModuleLoader__.load({
       const [loading, setLoading] = useState(true)
       const [selectedSession, setSelectedSession] = useState(null)
       const [projectFilter, setProjectFilter] = useState(null)
+      const [name, setName] = useState(() => localStorage.getItem('dept-approver') || 'vladimir')
       const [settings, setSettings] = useState({ enabled: true })
       const [editorKey, setEditorKey] = useState('')
       const [showCreate, setShowCreate] = useState(false)
@@ -2232,7 +2233,9 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn active' }, t('nav.projects')),
               h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
-              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor')))),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor')),
+              h('button', { className: 'dept-btn', onClick: () => setShowCreate(true) }, t('dept.newTask')),
+              h('button', { className: 'dept-btn' + (settings.enabled ? '' : ' fail'), onClick: toggleDepartment }, settings.enabled ? t('dept.enabled') : t('dept.disabled')))),
           h(ProjectsView, { onOpen: (root) => { setProjectFilter(root); setView('board') } }))
       }
 
@@ -2290,7 +2293,9 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn', onClick: () => setView('board') }, t('nav.board')),
               h('button', { className: 'dept-btn active', onClick: () => setView('office') }, t('nav.office')),
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
-              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor'))),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor')),
+              h('button', { className: 'dept-btn', onClick: () => setShowCreate(true) }, t('dept.newTask')),
+              h('button', { className: 'dept-btn' + (settings.enabled ? '' : ' fail'), onClick: toggleDepartment }, settings.enabled ? t('dept.enabled') : t('dept.disabled'))),
             h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
           h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) }, party, paused: tasks.some((task) => task.paused), pauseReason: (tasks.find((task) => task.paused) ?? {}).pauseReason }),
         )
@@ -2310,6 +2315,8 @@ window.__ModuleLoader__.load({
             h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
             h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
             h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor')),
+              h('button', { className: 'dept-btn', onClick: () => setShowCreate(true) }, t('dept.newTask')),
+              h('button', { className: 'dept-btn' + (settings.enabled ? '' : ' fail'), onClick: toggleDepartment }, settings.enabled ? t('dept.enabled') : t('dept.disabled')),
             h('button', {
               className: 'dept-btn',
               onClick: () => {
@@ -2319,6 +2326,12 @@ window.__ModuleLoader__.load({
               title: 'Language / Язык',
             }, deptLang === 'en' ? 'RU' : 'EN'),
             h('button', { className: 'dept-btn', onClick: () => setTextSize(textSize >= 19 ? 12 : textSize + 2), title: t('title.textSize') }, 'A+'),
+            h('button', {
+              className: 'dept-btn' + (settings.enabled ? '' : ' fail'),
+              onClick: toggleDepartment,
+              title: settings.enabled ? 'Выключить отдел' : 'Включить отдел',
+            }, settings.enabled ? t('dept.enabled') : t('dept.disabled')),
+            h('button', { className: 'dept-btn', onClick: () => setShowCreate(true) }, t('dept.newTask')),
             h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
         ),
         settings.enabled ? null : h('div', { className: 'dept-badge fail' }, t('dept.offBanner')),
