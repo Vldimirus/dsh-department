@@ -216,15 +216,14 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
       const state = await readState(root, taskId);
       if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
-      const next = addCorrection(state, {
+      const result = addCorrection(state, {
         doc: 'interface',
         subject: `Спрайт: ${name || 'sprite'}`,
         text: note || 'Дорисовать спрайт в assets/office/editor/' + (name || 'sprite') + '.png',
         by: String(by),
       });
-      await writeState(root, next);
-      const correction = (next.corrections ?? []).at(-1);
-      return Response.json({ ok: true, correctionId: correction?.id ?? null });
+      await writeState(root, result.state);
+      return Response.json({ ok: true, correctionId: result.correction.id });
     },
   });
 
