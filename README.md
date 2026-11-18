@@ -91,7 +91,9 @@ The sidebar shows “Department”, the main window shows the board, office and 
 
 ## Process rules
 
-1. Stages: `analysis (discussion) → spec → spec_review → concept → concept_review → executing → done`.
+1. Stages: `analysis (discussion) → spec → spec_review → concept → concept_review → executing → release → done`.
+   `release` is production preparation: `dept_handover` builds `delivery/` with RUN.md,
+   MANUAL-QA.md, CHANGELOG.md and copies of the key documents; `done` is blocked without it.
 2. First comes the **task discussion**: the department asks questions and gathers requirements.
    Then **spec and concept in any order** (iteratively): start from the spec (`spec.md`) or from
    the concept (`concept.md`) with the architect's options; after the first document is approved

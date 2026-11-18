@@ -18,6 +18,7 @@ export const STAGES = Object.freeze([
   'concept',
   'concept_review',
   'executing',
+  'release',
   'done',
   'blocked',
 ]);
@@ -346,7 +347,8 @@ const STAGE_FLOW = Object.freeze({
   concept_review: ['concept', 'spec'],
   spec: ['spec_review', 'concept'],
   spec_review: ['spec', 'concept'],
-  executing: ['done', 'blocked', 'spec', 'concept'],
+  executing: ['release', 'blocked', 'spec', 'concept'],
+  release: ['done', 'executing'],
   done: [],
   blocked: ['analysis', 'executing'],
 });

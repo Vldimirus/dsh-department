@@ -89,7 +89,9 @@ dsh plugin add link:/path/to/dsh-department
 
 ## Правила процесса
 
-1. Этапы: `analysis (обсуждение) → spec → spec_review → concept → concept_review → executing → done`.
+1. Этапы: `analysis (обсуждение) → spec → spec_review → concept → concept_review → executing → release → done`.
+   `release` — подготовка к продакшену: `dept_handover` собирает `delivery/` с RUN.md,
+   MANUAL-QA.md, CHANGELOG.md и копиями главных документов; без пакета `done` недоступен.
 2. Утверждения — только человеком (`dept_approve`), стадия двигается только через них.
 4. Каждый этап закрывается коммитом с тегом `stage-N`; тег пушится вместе с веткой.
 5. Гейты сбрасываются после коммита: pass предыдущего этапа не переезжает.

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { registerTools } from '../src/tools.js';
 import { runGit } from '../src/git.js';
-import { readState } from '../src/store.js';
+import { readState, writeState } from '../src/store.js';
 import { writeSettings } from '../src/settings.js';
 
 async function tempRepo(t) {
@@ -176,4 +176,24 @@ test('dept_start блокируется, когда отдел выключен'
   await writeSettings({ enabled: true });
   const state = await tools.get('dept_start').execute({ root, taskId: 'off-2', testCommand: 'true', branch: 'dept/off-2' });
   assert.equal(state.state.stage, 'analysis');
+});
+
+
+test('dept_handover: собирает пакет и открывает путь к done', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'ship-1', testCommand: 'true', branch: 'dept/ship-1' });
+  const dir = join(root, 'docs', 'department', 'ship-1');
+  for (const name of ['analysis.md', 'spec.md', 'concept.md', 'plan.md']) {
+    await (await import('node:fs/promises')).writeFile(join(dir, name), '# ' + name + '\n', 'utf8');
+  }
+  let state = await readState(root, 'ship-1');
+  state = await writeState(root, { ...state, stage: 'release' });
+  await assert.rejects(() => tools.get('dept_stage').execute({ root, taskId: 'ship-1', stage: 'done' }), /dept_handover/);
+  const result = await tools.get('dept_handover').execute({ root, taskId: 'ship-1', version: '1.0.0', run: 'python3 -m http.server 8000' });
+  assert.equal(result.version, '1.0.0');
+  const task = await readFile(join(root, 'docs', 'department', 'ship-1', 'delivery', 'RUN.md'), 'utf8');
+  assert.match(task, /http.server/);
+  const done = await tools.get('dept_stage').execute({ root, taskId: 'ship-1', stage: 'done' });
+  assert.equal(done.state.stage, 'done');
 });

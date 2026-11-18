@@ -11,7 +11,8 @@ const REQUIRED_ARTIFACTS = Object.freeze({
   concept: ['task.md', 'analysis.md', 'spec.md'],
   concept_review: ['task.md', 'analysis.md', 'concept.md'],
   executing: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md', 'README.md'],
-  done: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md'],
+  release: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md', 'delivery/RUN.md', 'delivery/MANUAL-QA.md', 'delivery/CHANGELOG.md'],
+  done: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md', 'delivery/RUN.md', 'delivery/MANUAL-QA.md', 'delivery/CHANGELOG.md'],
   blocked: ['task.md'],
 });
 

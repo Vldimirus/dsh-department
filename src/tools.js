@@ -44,6 +44,7 @@ import { addWorktree, amendCommit, currentBranch, ensureBranch, commitAll, isRep
 import { isHumanApprover } from './roles.js';
 import { createDepartmentTask } from './create-task.js';
 import { assertDepartmentEnabled } from './settings.js';
+import { buildHandover } from './handover.js';
 import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
 import { runBrowse } from './browse.js';
@@ -63,6 +64,20 @@ async function collectArtifacts(root, taskId) {
     } catch {
       files[name] = false;
     }
+  }
+  for (const name of ['RUN.md', 'MANUAL-QA.md', 'CHANGELOG.md']) {
+    try {
+      await access(join(taskDir(root, taskId), 'delivery', name));
+      files['delivery/' + name] = true;
+    } catch {
+      files['delivery/' + name] = false;
+    }
+  }
+  try {
+    await access(join(root, 'README.md'));
+    files['README.md'] = true;
+  } catch {
+    files['README.md'] = false;
   }
   return files;
 }
@@ -143,6 +158,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(correctionTool()));
   disposers.push(ctx.tools.register(budgetTool()));
   disposers.push(ctx.tools.register(pauseTool(ctx)));
+  disposers.push(ctx.tools.register(handoverTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -481,7 +497,7 @@ function stageTool() {
       properties: {
         root: { type: 'string', description: 'Корень проекта.' },
         taskId: { type: 'string', description: 'Идентификатор задачи.' },
-        stage: { type: 'string', enum: ['analysis', 'spec', 'spec_review', 'concept', 'concept_review', 'executing', 'done', 'blocked'], description: 'Целевая стадия.' },
+        stage: { type: 'string', enum: ['analysis', 'spec', 'spec_review', 'concept', 'concept_review', 'executing', 'release', 'done', 'blocked'], description: 'Целевая стадия.' },
         reason: { type: 'string', description: 'Причина перехода.' },
       },
       required: ['root', 'taskId', 'stage'],
@@ -503,6 +519,15 @@ function stageTool() {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       assertActive(state, 'переход стадии');
+      if (target === 'done' && state.stage === 'release') {
+        for (const name of ['RUN.md', 'MANUAL-QA.md', 'CHANGELOG.md']) {
+          try {
+            await access(join(taskDir(root, taskId), 'delivery', name));
+          } catch {
+            throw new Error(`нельзя завершить: нет delivery/${name}. Собери пакет через dept_handover`);
+          }
+        }
+      }
 
       // Переход разрешён только когда артефакты целевой стадии на месте.
       const files = await collectArtifacts(root, taskId);
@@ -1714,6 +1739,41 @@ function pauseTool(ctx) {
       // Мягкая пауза: текущий ход доделывается, таймер больше не будит, новые указания не начинаются.
       if (!paused) wakeAgents(ctx, root, 'Пауза снята. Продолжай: dept_health, dept_status, следующий шаг по плану.');
       return { paused: Boolean(next.paused?.value), summary: paused ? `задача на паузе: ${args?.reason ?? ''}` : 'работа продолжена' };
+    },
+  };
+}
+
+function handoverTool() {
+  return {
+    name: 'dept_handover',
+    description: 'Подготовка к продакшену: собирает delivery/ с RUN.md (как запустить), MANUAL-QA.md (ручное тестирование), CHANGELOG.md, RELEASE.md и копиями ТЗ/концепции/плана. Вызывай на стадии release перед done.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        version: { type: 'string', description: 'Версия продукта, например 1.0.0.' },
+        run: { type: 'string', description: 'Команда запуска, например "python3 -m http.server 8000".' },
+        port: { type: 'string', description: 'Адрес/порт после запуска.' },
+        notes: { type: 'string', description: 'Дополнительные заметки для передачи.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { dir: { type: 'string' }, version: { type: 'string' }, summary: { type: 'string' } }, required: ['dir', 'version', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      await assertDepartmentEnabled('подготовка к продакшену');
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const result = await buildHandover(root, taskId, {
+        version: args?.version,
+        run: args?.run,
+        port: args?.port,
+        notes: args?.notes,
+      });
+      return { dir: result.dir, version: result.version, summary: `пакет готов: ${result.dir} (RUN.md, MANUAL-QA.md, CHANGELOG.md, RELEASE.md)` };
     },
   };
 }

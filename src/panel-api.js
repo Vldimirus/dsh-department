@@ -16,6 +16,7 @@ export const STAGE_ORDER = [
   'concept',
   'concept_review',
   'executing',
+  'release',
   'done',
 ];
 
@@ -134,6 +135,9 @@ export async function taskPayload(root, taskId) {
     files[name] = await fileExists(join(root, DEPARTMENT_DIR, taskId, name));
   }
   files['README.md'] = await fileExists(join(root, 'README.md'));
+  for (const name of ['RUN.md', 'MANUAL-QA.md', 'CHANGELOG.md']) {
+    files['delivery/' + name] = await fileExists(join(root, DEPARTMENT_DIR, taskId, 'delivery', name));
+  }
   const stageNo = String((state.stageIndex ?? 0) + 1).padStart(2, '0');
   for (const name of ['review.md', 'report.md']) {
     files['stage:' + name.replace('.md', '')] = await fileExists(join(root, DEPARTMENT_DIR, taskId, 'stages', stageNo, name));
