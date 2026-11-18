@@ -22,10 +22,10 @@ export const STAGES = Object.freeze([
   'blocked',
 ]);
 
-/** Документы, которые человек утверждает. */
-const APPROVAL_TRANSITIONS = Object.freeze({
-  spec: { from: ['spec_review'], to: 'concept' },
-  concept: { from: ['concept_review'], to: 'executing' },
+/** Документы, которые человек утверждает, и стадии, где это разрешено. */
+const APPROVAL_STAGE = Object.freeze({
+  spec: 'spec_review',
+  concept: 'concept_review',
 });
 
 /**
@@ -196,25 +196,26 @@ export function appendEvent(state, event) {
  * @returns {object} Новое состояние.
  */
 export function approveDocument(state, input) {
-  const transition = APPROVAL_TRANSITIONS[input.doc];
-  if (!transition) throw new Error(`unknown document: ${input.doc}`);
-  if (!transition.from.includes(state.stage)) {
-    throw new Error(`cannot approve ${input.doc} in stage ${state.stage}`);
+  const stage = APPROVAL_STAGE[input.doc];
+  if (!stage) throw new Error(`unknown document: ${input.doc}`);
+  if (state.stage !== stage) {
+    throw new Error(`cannot approve ${input.doc} in stage ${state.stage}; move to ${stage} first`);
   }
   const now = new Date().toISOString();
-  const approved = {
-    ...state,
-    stage: transition.to,
-    updatedAt: now,
-    approvals: [
-      ...state.approvals,
-      { doc: input.doc, by: input.by, via: input.via ?? 'chat', ts: now },
-    ],
-  };
+  const approvals = [
+    ...(state.approvals ?? []),
+    { doc: input.doc, by: input.by, via: input.via ?? 'chat', ts: now },
+  ];
+  const approvedDocs = new Set(approvals.map((item) => item.doc));
+  // Оба документа утверждены → проект запускается. Иначе — переходим к другому документу.
+  const nextStage = approvedDocs.has('spec') && approvedDocs.has('concept')
+    ? 'executing'
+    : input.doc === 'spec' ? 'concept' : 'spec';
+  const approved = { ...state, stage: nextStage, updatedAt: now, approvals };
   return appendEvent(approved, {
     actor: input.by,
     action: `approved_${input.doc}`,
-    detail: `stage=${transition.to}`,
+    detail: `stage=${nextStage}`,
   });
 }
 
@@ -340,11 +341,11 @@ export function summarize(state) {
 
 /** Разрешённые переходы стадий без утверждения человеком. */
 const STAGE_FLOW = Object.freeze({
-  analysis: ['spec'],
-  spec: ['spec_review', 'analysis'],
-  spec_review: ['spec', 'concept'],
+  analysis: ['concept', 'spec'],
   concept: ['concept_review', 'spec'],
-  concept_review: ['concept', 'executing'],
+  concept_review: ['concept', 'spec'],
+  spec: ['spec_review', 'concept'],
+  spec_review: ['spec', 'concept'],
   executing: ['done', 'blocked', 'spec', 'concept'],
   done: [],
   blocked: ['analysis', 'executing'],
@@ -352,7 +353,7 @@ const STAGE_FLOW = Object.freeze({
 
 /**
  * Переводит задачу на следующую стадию с проверкой допустимости перехода.
- * Утверждения (spec→concept, concept→executing) выполняются только через
+ * Запуск проекта (executing) — только после утверждения и ТЗ, и концепции, через
  * `approveDocument`, чтобы нельзя было проскочить человеческий гейт.
  *
  * @param {object} state Состояние.
@@ -365,7 +366,7 @@ export function advanceStage(state, target, reason = '') {
   if (!allowed.includes(target)) {
     throw new Error(`cannot move ${state.stage} -> ${target}; allowed: ${allowed.join(', ') || 'none'}`);
   }
-  if (target === 'concept' || target === 'executing') {
+  if (target === 'executing') {
     throw new Error(`${target} requires a human approval, use dept_approve`);
   }
   return appendEvent({ ...state, stage: target }, { actor: 'manager', action: `stage_${target}`, detail: reason });

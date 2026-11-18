@@ -228,3 +228,13 @@ test('pendingHumanInput: собирает новые корректировки 
   assert.equal(result.items.length, 2);
   assert.match(result.signature, /corr-1/);
 });
+
+
+test('approveDocument: порядок концепция → ТЗ тоже работает', () => {
+  let state = createState({ root: '/tmp/x', taskId: 't3' });
+  state = { ...state, stage: 'concept_review' };
+  const afterConcept = approveDocument(state, { doc: 'concept', by: 'human' });
+  assert.equal(afterConcept.stage, 'spec');
+  const afterSpec = approveDocument({ ...afterConcept, stage: 'spec_review' }, { doc: 'spec', by: 'human' });
+  assert.equal(afterSpec.stage, 'executing');
+});

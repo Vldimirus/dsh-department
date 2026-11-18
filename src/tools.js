@@ -475,7 +475,7 @@ function commitTool(activity) {
 function stageTool() {
   return {
     name: 'dept_stage',
-    description: 'Перевести задачу на следующую стадию: analysis → spec → spec_review → concept → concept_review. Утверждения spec→concept и concept→executing — только через dept_approve.',
+    description: 'Перевести задачу на следующую стадию. Порядок гибкий: можно сначала концепцию или сначала ТЗ; проект запускается только после утверждения обоих через dept_approve.',
     parameters: {
       type: 'object',
       properties: {

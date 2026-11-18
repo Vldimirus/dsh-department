@@ -92,10 +92,11 @@ The sidebar shows “Department”, the main window shows the board, office and 
 ## Process rules
 
 1. Stages: `analysis (discussion) → spec → spec_review → concept → concept_review → executing → done`.
-2. First comes the **task discussion**: the department asks questions, gathers requirements and
-   writes the spec (`spec.md`). Only then comes the concept (`concept.md`) with the architect's
-   options. Approvals of spec and concept are human-only (`dept_approve`); the project starts
-   (`executing`) only after the concept is approved.
+2. First comes the **task discussion**: the department asks questions and gathers requirements.
+   Then **spec and concept in any order** (iteratively): start from the spec (`spec.md`) or from
+   the concept (`concept.md`) with the architect's options; after the first document is approved
+   the department moves to the other and refines it. Approvals are human-only (`dept_approve`);
+   the project starts (`executing`) only when **both** are approved.
 3. The first execution step is the **plan** (`plan.md`), then stage-by-stage work.
    The three key documents — **spec, concept, plan** — are always current: changes go through
    `dept_amend`/`dept_section`; the Documents tab pins them at the top.

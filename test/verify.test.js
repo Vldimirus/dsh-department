@@ -60,7 +60,7 @@ test('formatReport: содержит PASS/FAIL и проверки', () => {
 test('requiredArtifacts: стадии требуют свои документы', () => {
   assert.deepEqual(requiredArtifacts('spec'), ['task.md', 'analysis.md']);
   assert.deepEqual(requiredArtifacts('spec_review'), ['task.md', 'analysis.md', 'spec.md']);
-  assert.deepEqual(requiredArtifacts('concept_review'), ['task.md', 'analysis.md', 'spec.md', 'concept.md']);
+  assert.deepEqual(requiredArtifacts('concept_review'), ['task.md', 'analysis.md', 'concept.md']);
   assert.deepEqual(requiredArtifacts('executing'), ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md', 'README.md']);
 });
 

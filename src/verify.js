@@ -9,7 +9,7 @@ const REQUIRED_ARTIFACTS = Object.freeze({
   spec: ['task.md', 'analysis.md'],
   spec_review: ['task.md', 'analysis.md', 'spec.md'],
   concept: ['task.md', 'analysis.md', 'spec.md'],
-  concept_review: ['task.md', 'analysis.md', 'spec.md', 'concept.md'],
+  concept_review: ['task.md', 'analysis.md', 'concept.md'],
   executing: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md', 'README.md'],
   done: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md'],
   blocked: ['task.md'],
@@ -38,10 +38,8 @@ export function verifyChecklist({ state, files, currentBranch }) {
   }
 
   const approved = new Set((state.approvals ?? []).map((item) => item.doc));
-  if (['concept', 'concept_review', 'executing', 'done'].includes(state.stage)) {
-    check('approval:spec', approved.has('spec'), approved.has('spec') ? 'approved' : 'not approved');
-  }
   if (['executing', 'done'].includes(state.stage)) {
+    check('approval:spec', approved.has('spec'), approved.has('spec') ? 'approved' : 'not approved');
     check('approval:concept', approved.has('concept'), approved.has('concept') ? 'approved' : 'not approved');
   }
 
