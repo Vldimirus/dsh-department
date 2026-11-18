@@ -20,6 +20,7 @@ window.__ModuleLoader__.load({
         'nav.office': 'Офис',
         'nav.blueprint': 'Схема',
         'nav.charts': 'Графики',
+        'nav.editor': 'Редактор',
         'nav.refresh': 'Обновить',
         'office.title': 'Офис отдела',
         'office.staff': 'сотрудников: {n} из {m}',
@@ -287,6 +288,7 @@ window.__ModuleLoader__.load({
         'nav.office': 'Office',
         'nav.blueprint': 'Blueprint',
         'nav.charts': 'Charts',
+        'nav.editor': 'Editor',
         'nav.refresh': 'Refresh',
         'office.title': 'Department office',
         'office.staff': 'staff: {n} of {m}',
@@ -635,6 +637,7 @@ window.__ModuleLoader__.load({
       pause: '/api/department/pause',
       settings: '/api/department/settings',
       createTask: '/api/department/task/create',
+      editor: '/api/department/editor',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -2134,6 +2137,7 @@ window.__ModuleLoader__.load({
       const [selectedSession, setSelectedSession] = useState(null)
       const [projectFilter, setProjectFilter] = useState(null)
       const [settings, setSettings] = useState({ enabled: true })
+      const [editorKey, setEditorKey] = useState('')
       const [showCreate, setShowCreate] = useState(false)
       const [form, setForm] = useState({ root: '', taskId: '', title: '', brief: '', testCommand: '' })
       const [creating, setCreating] = useState(false)
@@ -2241,6 +2245,30 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn active' }, t('nav.charts'))),
             h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
           h(ChartsView, { tasks }))
+      }
+
+      if (view === 'editor') {
+        const editorTasks = projectFilter ? tasks.filter((task) => task.root === projectFilter) : tasks
+        const current = editorTasks.find((task) => `${task.root}:${task.taskId}` === editorKey) ?? editorTasks[0] ?? null
+        return h('div', { className: 'dept-root' },
+          h('div', { className: 'dept-head' },
+            h('div', null,
+              h('div', { className: 'dept-title' }, t('nav.editor')),
+              h('div', { className: 'dept-sub' }, 'Рисуйте спрайты и отправляйте художнику; трафарет помогает обводить контуры.')),
+            h('div', { className: 'dept-row' },
+              h('select', {
+                className: 'dept-input',
+                value: current ? `${current.root}:${current.taskId}` : '',
+                onChange: (event) => setEditorKey(event.target.value),
+              }, ...editorTasks.map((task) => h('option', { key: `${task.root}:${task.taskId}`, value: `${task.root}:${task.taskId}` }, `${task.root.split('/').pop()} · ${task.taskId}`))),
+              h('button', { className: 'dept-btn', onClick: () => setView('board') }, '← ' + t('nav.board')))),
+          current
+            ? h('iframe', {
+                src: `${ROUTES.editor}?root=${encodeURIComponent(current.root)}&taskId=${encodeURIComponent(current.taskId)}`,
+                style: { width: '100%', height: 'calc(100vh - 150px)', border: '0', borderRadius: '12px', background: '#0b0f18' },
+                title: 'Пиксель-редактор',
+              })
+            : h('div', { className: 'dept-empty' }, t('empty.noTasksHint')))
       }
 
       if (view === 'blueprint') {

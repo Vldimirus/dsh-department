@@ -2,11 +2,12 @@
  * HTTP-маршруты Web-панели отдела на общем канале `/api`.
  * Только чтение: доска и карточка задачи.
  */
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
 import { createDepartmentTask } from './create-task.js';
+import { encodePng } from './png.js';
 import { readSettings, writeSettings } from './settings.js';
 import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
@@ -30,6 +31,9 @@ export const DEPARTMENT_ROUTES = {
   pause: '/api/department/pause',
   settings: '/api/department/settings',
   createTask: '/api/department/task/create',
+  editor: '/api/department/editor',
+  editorSave: '/api/department/editor/save',
+  editorHandoff: '/api/department/editor/handoff',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -151,6 +155,76 @@ export function registerDepartmentRoutes(ctx, activity) {
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
       }
+    },
+  });
+
+
+  add({
+    path: DEPARTMENT_ROUTES.editor,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async () => {
+      const html = await readFile(join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'editor.html'), 'utf8');
+      return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.editorSave,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, name, rows, palette } = body ?? {};
+      if (!root || !taskId || !Array.isArray(rows) || !palette) return Response.json({ error: 'root, taskId, rows, palette required' }, { status: 400 });
+      const safe = String(name ?? 'sprite').replace(/[^a-z0-9._-]/gi, '_').slice(0, 60) || 'sprite';
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const height = rows.length;
+      const width = rows[0]?.length ?? 0;
+      const rgba = new Uint8Array(width * height * 4);
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const symbol = rows[y][x];
+          if (!symbol || symbol === '.') continue;
+          const hex = palette[symbol];
+          if (!hex) continue;
+          const value = parseInt(String(hex).replace('#', ''), 16);
+          const i = (y * width + x) * 4;
+          rgba[i] = (value >> 16) & 255;
+          rgba[i + 1] = (value >> 8) & 255;
+          rgba[i + 2] = value & 255;
+          rgba[i + 3] = 255;
+        }
+      }
+      const dir = join(root, 'assets', 'office', 'editor');
+      await mkdir(dir, { recursive: true });
+      const png = join(dir, `${safe}.png`);
+      await writeFile(png, encodePng(width, height, rgba));
+      await writeFile(join(dir, `${safe}.json`), JSON.stringify({ rows, palette }, null, 2) + '\n', 'utf8');
+      return Response.json({ ok: true, path: `assets/office/editor/${safe}.png`, width, height });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.editorHandoff,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, name, note, by } = body ?? {};
+      if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const next = addCorrection(state, {
+        doc: 'interface',
+        subject: `Спрайт: ${name || 'sprite'}`,
+        text: note || 'Дорисовать спрайт в assets/office/editor/' + (name || 'sprite') + '.png',
+        by: String(by),
+      });
+      await writeState(root, next);
+      const correction = (next.corrections ?? []).at(-1);
+      return Response.json({ ok: true, correctionId: correction?.id ?? null });
     },
   });
 
