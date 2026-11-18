@@ -11,10 +11,10 @@ import { currentBranch, runGit } from './git.js';
 /** Стадии в порядке конвейера — для прогресса. */
 export const STAGE_ORDER = [
   'analysis',
-  'concept',
-  'concept_review',
   'spec',
   'spec_review',
+  'concept',
+  'concept_review',
   'executing',
   'done',
 ];

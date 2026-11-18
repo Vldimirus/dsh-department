@@ -91,13 +91,19 @@ The sidebar shows “Department”, the main window shows the board, office and 
 
 ## Process rules
 
-1. Stages: `analysis → concept → concept_review → spec → spec_review → executing → done`.
-2. Approvals are human-only (`dept_approve`); the stage moves only through them.
-3. Each stage is closed by a commit tagged `stage-N`; the tag is pushed with the branch.
-4. Gates reset after a commit: a previous stage's pass does not carry over.
-5. A test failure writes `stages/NN/failure.md`; retry is forbidden until “Analysis” and
+1. Stages: `analysis (discussion) → spec → spec_review → concept → concept_review → executing → done`.
+2. First comes the **task discussion**: the department asks questions, gathers requirements and
+   writes the spec (`spec.md`). Only then comes the concept (`concept.md`) with the architect's
+   options. Approvals of spec and concept are human-only (`dept_approve`); the project starts
+   (`executing`) only after the concept is approved.
+3. The first execution step is the **plan** (`plan.md`), then stage-by-stage work.
+   The three key documents — **spec, concept, plan** — are always current: changes go through
+   `dept_amend`/`dept_section`; the Documents tab pins them at the top.
+4. Each stage is closed by a commit tagged `stage-N`; the tag is pushed with the branch.
+5. Gates reset after a commit: a previous stage's pass does not carry over.
+6. A test failure writes `stages/NN/failure.md`; retry is forbidden until “Analysis” and
    “Plan” are filled in.
-6. Autonomous amendments — at most 5 per task, then escalate to the human.
+7. Autonomous amendments — at most 5 per task, then escalate to the human.
 
 ## Working together on concept and spec
 

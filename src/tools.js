@@ -475,13 +475,13 @@ function commitTool(activity) {
 function stageTool() {
   return {
     name: 'dept_stage',
-    description: 'Перевести задачу на следующую стадию (analysis → concept → concept_review; spec → spec_review). Утверждения concept→spec и spec→executing делаются только через dept_approve.',
+    description: 'Перевести задачу на следующую стадию: analysis → spec → spec_review → concept → concept_review. Утверждения spec→concept и concept→executing — только через dept_approve.',
     parameters: {
       type: 'object',
       properties: {
         root: { type: 'string', description: 'Корень проекта.' },
         taskId: { type: 'string', description: 'Идентификатор задачи.' },
-        stage: { type: 'string', enum: ['analysis', 'concept', 'concept_review', 'spec', 'spec_review', 'executing', 'done', 'blocked'], description: 'Целевая стадия.' },
+        stage: { type: 'string', enum: ['analysis', 'spec', 'spec_review', 'concept', 'concept_review', 'executing', 'done', 'blocked'], description: 'Целевая стадия.' },
         reason: { type: 'string', description: 'Причина перехода.' },
       },
       required: ['root', 'taskId', 'stage'],

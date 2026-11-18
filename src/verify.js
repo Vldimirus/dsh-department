@@ -6,12 +6,12 @@
 /** Артефакты, обязательные для стадии. */
 const REQUIRED_ARTIFACTS = Object.freeze({
   analysis: ['task.md'],
-  concept: ['task.md', 'analysis.md'],
-  concept_review: ['task.md', 'analysis.md', 'concept.md'],
-  spec: ['task.md', 'concept.md'],
-  spec_review: ['task.md', 'concept.md', 'spec.md'],
-  executing: ['task.md', 'concept.md', 'spec.md', 'plan.md', 'README.md'],
-  done: ['task.md', 'concept.md', 'spec.md', 'plan.md'],
+  spec: ['task.md', 'analysis.md'],
+  spec_review: ['task.md', 'analysis.md', 'spec.md'],
+  concept: ['task.md', 'analysis.md', 'spec.md'],
+  concept_review: ['task.md', 'analysis.md', 'spec.md', 'concept.md'],
+  executing: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md', 'README.md'],
+  done: ['task.md', 'analysis.md', 'spec.md', 'concept.md', 'plan.md'],
   blocked: ['task.md'],
 });
 
@@ -38,11 +38,11 @@ export function verifyChecklist({ state, files, currentBranch }) {
   }
 
   const approved = new Set((state.approvals ?? []).map((item) => item.doc));
-  if (['spec', 'spec_review', 'executing', 'done'].includes(state.stage)) {
-    check('approval:concept', approved.has('concept'), approved.has('concept') ? 'approved' : 'not approved');
+  if (['concept', 'concept_review', 'executing', 'done'].includes(state.stage)) {
+    check('approval:spec', approved.has('spec'), approved.has('spec') ? 'approved' : 'not approved');
   }
   if (['executing', 'done'].includes(state.stage)) {
-    check('approval:spec', approved.has('spec'), approved.has('spec') ? 'approved' : 'not approved');
+    check('approval:concept', approved.has('concept'), approved.has('concept') ? 'approved' : 'not approved');
   }
 
   if (state.stage === 'executing') {

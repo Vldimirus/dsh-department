@@ -6,7 +6,7 @@ import { createState } from '../src/store.js';
 test('progressOf: стадии дают монотонный прогресс', () => {
   assert.equal(progressOf('analysis'), 0);
   assert.equal(progressOf('done'), 100);
-  assert.ok(progressOf('spec_review') > progressOf('concept'));
+  assert.ok(progressOf('concept') > progressOf('spec_review'));
   assert.equal(progressOf('blocked'), 0);
   assert.equal(progressOf('unknown'), 0);
 });
@@ -26,5 +26,5 @@ test('progressOf: executing растёт по этапам плана, а не �
   assert.equal(progressOf('executing', 5, 10), 73);
   assert.equal(progressOf('executing', 10, 10), 95);
   assert.equal(progressOf('done'), 100);
-  assert.equal(progressOf('spec'), 25);
+  assert.equal(progressOf('spec'), 8);
 });

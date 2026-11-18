@@ -13,10 +13,10 @@ export const DEPARTMENT_DIR = 'docs/department';
 /** Допустимые стадии задачи. */
 export const STAGES = Object.freeze([
   'analysis',
-  'concept',
-  'concept_review',
   'spec',
   'spec_review',
+  'concept',
+  'concept_review',
   'executing',
   'done',
   'blocked',
@@ -24,8 +24,8 @@ export const STAGES = Object.freeze([
 
 /** Документы, которые человек утверждает. */
 const APPROVAL_TRANSITIONS = Object.freeze({
-  concept: { from: ['concept_review'], to: 'spec' },
-  spec: { from: ['spec_review'], to: 'executing' },
+  spec: { from: ['spec_review'], to: 'concept' },
+  concept: { from: ['concept_review'], to: 'executing' },
 });
 
 /**
@@ -340,19 +340,19 @@ export function summarize(state) {
 
 /** Разрешённые переходы стадий без утверждения человеком. */
 const STAGE_FLOW = Object.freeze({
-  analysis: ['concept'],
-  concept: ['concept_review', 'analysis'],
-  concept_review: ['concept', 'spec'],
-  spec: ['spec_review', 'concept'],
-  spec_review: ['spec', 'executing'],
-  executing: ['done', 'blocked', 'spec'],
+  analysis: ['spec'],
+  spec: ['spec_review', 'analysis'],
+  spec_review: ['spec', 'concept'],
+  concept: ['concept_review', 'spec'],
+  concept_review: ['concept', 'executing'],
+  executing: ['done', 'blocked', 'spec', 'concept'],
   done: [],
   blocked: ['analysis', 'executing'],
 });
 
 /**
  * Переводит задачу на следующую стадию с проверкой допустимости перехода.
- * Утверждения (concept→spec, spec→executing) выполняются только через
+ * Утверждения (spec→concept, concept→executing) выполняются только через
  * `approveDocument`, чтобы нельзя было проскочить человеческий гейт.
  *
  * @param {object} state Состояние.
@@ -365,7 +365,7 @@ export function advanceStage(state, target, reason = '') {
   if (!allowed.includes(target)) {
     throw new Error(`cannot move ${state.stage} -> ${target}; allowed: ${allowed.join(', ') || 'none'}`);
   }
-  if (target === 'spec' || target === 'executing') {
+  if (target === 'concept' || target === 'executing') {
     throw new Error(`${target} requires a human approval, use dept_approve`);
   }
   return appendEvent({ ...state, stage: target }, { actor: 'manager', action: `stage_${target}`, detail: reason });

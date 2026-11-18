@@ -38,7 +38,7 @@ window.__ModuleLoader__.load({
         'tabs.billing': 'Бюджет',
         'tabs.git': 'Git',
 
-        'stage.analysis': 'Анализ',
+        'stage.analysis': 'Обсуждение',
         'stage.concept': 'Концепция',
         'stage.concept_review': 'Проверка концепции',
         'stage.spec': 'ТЗ',
@@ -77,6 +77,9 @@ window.__ModuleLoader__.load({
         'block.cost': 'Стоимость',
         'block.calls': 'Вызовов модели',
         'block.approval': 'Утверждение',
+        'approve.spec': 'Утвердить ТЗ',
+        'approve.concept': 'Утвердить концепцию',
+        'doc.main': 'главный документ',
         'block.openQuestions': 'Открытые вопросы',
         'block.documents': 'Документы',
         'block.recentEvents': 'Последние события',
@@ -301,7 +304,7 @@ window.__ModuleLoader__.load({
         'tabs.billing': 'Budget',
         'tabs.git': 'Git',
 
-        'stage.analysis': 'Analysis',
+        'stage.analysis': 'Discussion',
         'stage.concept': 'Concept',
         'stage.concept_review': 'Concept review',
         'stage.spec': 'Spec',
@@ -340,6 +343,9 @@ window.__ModuleLoader__.load({
         'block.cost': 'Cost',
         'block.calls': 'Model calls',
         'block.approval': 'Approval',
+        'approve.spec': 'Approve spec',
+        'approve.concept': 'Approve concept',
+        'doc.main': 'key document',
         'block.openQuestions': 'Open questions',
         'block.documents': 'Documents',
         'block.recentEvents': 'Recent events',
@@ -1252,6 +1258,11 @@ window.__ModuleLoader__.load({
           .catch((problem) => setContent(t('doc.error') + problem.message))
       }, [selected, root, taskId])
 
+      const MAIN_DOCS = ['spec.md', 'concept.md', 'plan.md']
+      const mainRank = (item) => {
+        const index = MAIN_DOCS.indexOf(String(item.path).split('/').pop())
+        return index === -1 ? 9 : index
+      }
       const types = ['all', ...new Set(documents.map((item) => item.type))]
       const memoPaths = memos ?? []
       const isMemo = (item) => item.type === 'служебная записка' && memoPaths.some((path) => String(path).endsWith(item.path))
@@ -1262,7 +1273,7 @@ window.__ModuleLoader__.load({
           const haystack = (item.title + ' ' + item.path + ' ' + item.type).toLowerCase()
           return haystack.includes(query.trim().toLowerCase())
         })
-        .sort((a, b) => Number(isMemo(b)) - Number(isMemo(a)) || String(b.ts).localeCompare(String(a.ts)))
+        .sort((a, b) => mainRank(a) - mainRank(b) || Number(isMemo(b)) - Number(isMemo(a)) || String(b.ts).localeCompare(String(a.ts)))
 
       return h('div', { style: { display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '12px', alignItems: 'start' } },
         h('div', { className: 'dept-block', style: { maxHeight: '560px', overflow: 'auto' } },
@@ -1686,12 +1697,12 @@ window.__ModuleLoader__.load({
               kv(t('block.cost'), `${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`),
               kv(t('block.calls'), usage?.calls ?? 0),
               h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } }))),
-            (detail.stage === 'concept' && !approved.has('concept')) || (detail.stage === 'spec' && !approved.has('spec'))
+            (detail.stage === 'spec_review' && !approved.has('spec')) || (detail.stage === 'concept_review' && !approved.has('concept'))
               ? h('div', { className: 'dept-block' },
                   h('div', { className: 'dept-block-title' }, t('block.approval')),
-                  detail.stage === 'concept'
-                    ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, 'Утвердить концепцию')
-                    : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, 'Утвердить ТЗ'))
+                  detail.stage === 'spec_review'
+                    ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, t('approve.spec'))
+                    : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, t('approve.concept')))
               : null),
           content,
         ),

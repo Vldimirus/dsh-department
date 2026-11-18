@@ -57,15 +57,15 @@ test('readState: отсутствующая задача — null', async (t) =>
   assert.equal(await readState(root, 'nope'), null);
 });
 
-test('approveDocument: concept переводит в spec, spec — в executing', () => {
+test('approveDocument: spec переводит в concept, concept — в executing', () => {
   let state = createState({ root: '/tmp/x', taskId: 't2' });
-  state = { ...state, stage: 'concept_review' };
-  const afterConcept = approveDocument(state, { doc: 'concept', by: 'human' });
-  assert.equal(afterConcept.stage, 'spec');
-  assert.equal(afterConcept.approvals.length, 1);
+  state = { ...state, stage: 'spec_review' };
+  const afterSpec = approveDocument(state, { doc: 'spec', by: 'human' });
+  assert.equal(afterSpec.stage, 'concept');
+  assert.equal(afterSpec.approvals.length, 1);
 
-  const afterSpec = approveDocument({ ...afterConcept, stage: 'spec_review' }, { doc: 'spec', by: 'human' });
-  assert.equal(afterSpec.stage, 'executing');
+  const afterConcept = approveDocument({ ...afterSpec, stage: 'concept_review' }, { doc: 'concept', by: 'human' });
+  assert.equal(afterConcept.stage, 'executing');
 });
 
 test('approveDocument: неверная стадия — ошибка', () => {
