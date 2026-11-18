@@ -8,6 +8,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { readSettings } from './settings.js';
+
 const INTERVAL_MS = 5 * 60 * 1000;
 const IDLE_MINUTES = 15;
 const WAKE_COOLDOWN_MS = 30 * 60 * 1000;
@@ -80,6 +82,8 @@ export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
     if (running) return;
     running = true;
     try {
+      const settings = await readSettings();
+      if (!settings.enabled) return;
       const registry = typeof ctx?.get === 'function' ? ctx.get('agents') : null;
       if (!registry || typeof registry.list !== 'function') return;
       const agents = registry.list();

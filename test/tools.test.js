@@ -6,6 +6,7 @@ import test from 'node:test';
 import { registerTools } from '../src/tools.js';
 import { runGit } from '../src/git.js';
 import { readState } from '../src/store.js';
+import { writeSettings } from '../src/settings.js';
 
 async function tempRepo(t) {
   const root = await mkdtemp(join(tmpdir(), 'dept-tools-'));
@@ -160,4 +161,19 @@ test('dept_start release=true добавляет шаблон релиза в б
   const task = await readFile(join(root, 'docs', 'department', 'rel-1', 'task.md'), 'utf8');
   assert.match(task, /Подготовка к релизу/);
   assert.match(task, /MANUAL-QA/);
+});
+
+
+test('dept_start блокируется, когда отдел выключен', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await writeSettings({ enabled: false });
+  t.after(() => writeSettings({ enabled: true }));
+  await assert.rejects(
+    () => tools.get('dept_start').execute({ root, taskId: 'off-1', testCommand: 'true', branch: 'dept/off-1' }),
+    /выключен/,
+  );
+  await writeSettings({ enabled: true });
+  const state = await tools.get('dept_start').execute({ root, taskId: 'off-2', testCommand: 'true', branch: 'dept/off-2' });
+  assert.equal(state.state.stage, 'analysis');
 });

@@ -109,6 +109,18 @@ window.__ModuleLoader__.load({
         'branch.prefix': 'ветка',
 
 
+        'dept.enabled': 'Отдел: вкл',
+        'dept.disabled': 'Отдел: выкл',
+        'dept.newTask': '＋ Задача',
+        'dept.createTitle': 'Новая задача отдела',
+        'dept.root': 'Проект',
+        'dept.taskId': 'ID задачи',
+        'dept.title': 'Название',
+        'dept.brief': 'Бриф',
+        'dept.test': 'Команда тестов',
+        'dept.create': 'Создать',
+        'dept.cancel': 'Отмена',
+        'dept.offBanner': 'Отдел выключен — новые задачи не запускаются, инструменты заблокированы.',
         'activity.title': 'Сейчас работают',
         'activity.none': 'активности нет',
         'office.lounge': 'КОМНАТА ОТДЫХА',
@@ -360,6 +372,18 @@ window.__ModuleLoader__.load({
         'branch.prefix': 'branch',
 
 
+        'dept.enabled': 'Department: on',
+        'dept.disabled': 'Department: off',
+        'dept.newTask': '+ Task',
+        'dept.createTitle': 'New department task',
+        'dept.root': 'Project',
+        'dept.taskId': 'Task ID',
+        'dept.title': 'Title',
+        'dept.brief': 'Brief',
+        'dept.test': 'Test command',
+        'dept.create': 'Create',
+        'dept.cancel': 'Cancel',
+        'dept.offBanner': 'Department is off — new tasks are not started, tools are blocked.',
         'activity.title': 'Working now',
         'activity.none': 'no activity',
         'office.lounge': 'LOUNGE',
@@ -601,6 +625,8 @@ window.__ModuleLoader__.load({
       document: '/api/department/document',
       correction: '/api/department/correction',
       pause: '/api/department/pause',
+      settings: '/api/department/settings',
+      createTask: '/api/department/task/create',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -665,7 +691,11 @@ window.__ModuleLoader__.load({
         .dept-table th { background: #182235; color: #c9d6ea; }
         .dept-table tr:nth-child(even) td { background: #121a28; }
         .dept-pre { white-space: pre-wrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: calc(var(--dept-text, 13px) - 1px); color: var(--dsw-alias-label-secondary, #b8c4d6); }
-        .dept-empty { padding: 24px; text-align: center; color: var(--dsw-alias-label-tertiary, #8b98ad); }
+        .dept-modal { position: fixed; inset: 0; background: #0008; display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .dept-modal-card { background: var(--dsw-alias-bg-secondary, #141a28); border: 1px solid var(--dsw-alias-border-secondary, #2a3446); border-radius: 12px; padding: 16px; width: min(560px, 92vw); display: flex; flex-direction: column; gap: 10px; }
+  .dept-form-row { display: grid; grid-template-columns: 140px 1fr; gap: 8px; align-items: center; }
+  .dept-form-row textarea { resize: vertical; }
+  .dept-empty { padding: 24px; text-align: center; color: var(--dsw-alias-label-tertiary, #8b98ad); }
         .dept-office-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
         .dept-office { min-width: 0; }
         .dept-office-side { width: 340px; border: 1px solid var(--dsw-alias-border-secondary, #232c3d); border-radius: 12px; padding: 10px; background: var(--dsw-alias-bg-secondary, #10151f); display: flex; flex-direction: column; gap: 6px; }
@@ -2090,6 +2120,11 @@ window.__ModuleLoader__.load({
       const [loading, setLoading] = useState(true)
       const [selectedSession, setSelectedSession] = useState(null)
       const [projectFilter, setProjectFilter] = useState(null)
+      const [settings, setSettings] = useState({ enabled: true })
+      const [showCreate, setShowCreate] = useState(false)
+      const [form, setForm] = useState({ root: '', taskId: '', title: '', brief: '', testCommand: '' })
+      const [creating, setCreating] = useState(false)
+      const [createError, setCreateError] = useState(null)
       const [langTick, setLangTick] = useState(0)
       const [textSize, setTextSize] = useState(() => {
         const saved = Number(localStorage.getItem('dept-text-size'))
@@ -2109,6 +2144,41 @@ window.__ModuleLoader__.load({
           setError(problem.message)
         } finally {
           setLoading(false)
+        }
+      }
+
+      useEffect(() => {
+        api(ROUTES.settings).then(setSettings).catch(() => {})
+      }, [])
+
+      async function postJson(path, body) {
+        const response = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || response.statusText)
+        return data
+      }
+
+      async function toggleDepartment() {
+        try {
+          const next = await postJson(ROUTES.settings, { enabled: !settings.enabled, by: name })
+          setSettings(next)
+        } catch (problem) {
+          setError(problem.message)
+        }
+      }
+
+      async function createTask() {
+        setCreating(true)
+        setCreateError(null)
+        try {
+          await postJson(ROUTES.createTask, { ...form, by: name })
+          setShowCreate(false)
+          setForm({ root: '', taskId: '', title: '', brief: '', testCommand: '' })
+          await loadTasks()
+        } catch (problem) {
+          setCreateError(problem.message)
+        } finally {
+          setCreating(false)
         }
       }
 
@@ -2209,6 +2279,7 @@ window.__ModuleLoader__.load({
             h('button', { className: 'dept-btn', onClick: () => setTextSize(textSize >= 19 ? 12 : textSize + 2), title: t('title.textSize') }, 'A+'),
             h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
         ),
+        settings.enabled ? null : h('div', { className: 'dept-badge fail' }, t('dept.offBanner')),
         attention > 0
           ? h('div', { className: 'dept-block' },
               h('div', { className: 'dept-block-title' }, 'Требует внимания'),
@@ -2220,6 +2291,25 @@ window.__ModuleLoader__.load({
         (projectFilter ? tasks.filter((task) => task.root === projectFilter) : tasks).length === 0 && !loading
           ? h('div', { className: 'dept-empty' }, t('empty.noTasksHint'))
           : h('div', { className: 'dept-list' }, ...tasks.map((task) => h(TaskCard, { key: `${task.root}:${task.taskId}`, task, onOpen: openTask }))),
+        showCreate
+          ? h('div', { className: 'dept-modal' },
+              h('div', { className: 'dept-modal-card' },
+                h('div', { className: 'dept-title' }, t('dept.createTitle')),
+                h('div', { className: 'dept-form-row' }, h('label', null, t('dept.root')),
+                  h('input', { className: 'dept-input', value: form.root, placeholder: '/home/agent/work/projects/my-app', onChange: (event) => setForm({ ...form, root: event.target.value }) })),
+                h('div', { className: 'dept-form-row' }, h('label', null, t('dept.taskId')),
+                  h('input', { className: 'dept-input', value: form.taskId, placeholder: 'feature-01', onChange: (event) => setForm({ ...form, taskId: event.target.value }) })),
+                h('div', { className: 'dept-form-row' }, h('label', null, t('dept.title')),
+                  h('input', { className: 'dept-input', value: form.title, onChange: (event) => setForm({ ...form, title: event.target.value }) })),
+                h('div', { className: 'dept-form-row' }, h('label', null, t('dept.test')),
+                  h('input', { className: 'dept-input', value: form.testCommand, placeholder: 'npm test', onChange: (event) => setForm({ ...form, testCommand: event.target.value }) })),
+                h('div', { className: 'dept-form-row' }, h('label', null, t('dept.brief')),
+                  h('textarea', { className: 'dept-input', rows: 5, value: form.brief, onChange: (event) => setForm({ ...form, brief: event.target.value }) })),
+                createError ? h('div', { className: 'dept-badge fail' }, createError) : null,
+                h('div', { className: 'dept-row' },
+                  h('button', { className: 'dept-btn', disabled: creating || !form.root || !form.taskId, onClick: createTask }, t('dept.create')),
+                  h('button', { className: 'dept-btn', onClick: () => { setShowCreate(false); setCreateError(null) } }, t('dept.cancel')))))
+          : null,
       )
     }
 

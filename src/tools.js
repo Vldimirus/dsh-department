@@ -42,6 +42,8 @@ import {
 } from './store.js';
 import { addWorktree, amendCommit, currentBranch, ensureBranch, commitAll, isRepo, listWorktrees, push, removeWorktree, runGit, tag } from './git.js';
 import { isHumanApprover } from './roles.js';
+import { createDepartmentTask } from './create-task.js';
+import { assertDepartmentEnabled } from './settings.js';
 import { runTestGate } from './gates.js';
 import { encodePng } from './png.js';
 import { runBrowse } from './browse.js';
@@ -187,36 +189,19 @@ function startTool() {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      await assertDepartmentEnabled('создание задачи');
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
-      if (!(await isRepo(root))) throw new Error(`not a git repository: ${root}`);
-      const existing = await readState(root, taskId);
-      if (existing) throw new Error(`task already exists: ${taskId}`);
-      let brief = typeof args?.brief === 'string' ? args.brief.trim() : '';
-      if (args?.release === true) {
-        const template = await readFile(new URL('../templates/release.md', import.meta.url), 'utf8');
-        brief = (brief ? brief + '\n\n' : '') + 'Подготовка к релизу (шаблон):\n\n' + template;
-      }
-
-      let state = createState({
-        root,
-        taskId,
+      const state = await createDepartmentTask(root, taskId, {
         title: args?.title,
+        brief: args?.brief,
         branch: args?.branch,
-        origin: args?.origin ?? null,
-        testCommand: args?.testCommand ?? null,
+        origin: args?.origin,
+        testCommand: args?.testCommand,
         maxAttempts: args?.maxAttempts,
         budgetTokens: args?.budgetTokens,
+        release: args?.release === true,
       });
-      const branch = await ensureBranch(root, state.branch);
-      if (!branch.ok) throw new Error(`cannot create branch ${state.branch}: ${branch.error ?? ''}`);
-      state = appendEvent(state, { actor: 'manager', action: 'branch_ready', detail: branch.branch });
-
-      await mkdir(taskDir(root, taskId), { recursive: true });
-      if (brief !== '') {
-        await writeFile(join(taskDir(root, taskId), 'task.md'), `${brief}\n`, 'utf8');
-      }
-      state = await writeState(root, state);
       return summaryOutput(state);
     },
   };
@@ -326,6 +311,7 @@ function gateTool() {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      await assertDepartmentEnabled('гейт');
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const kind = requireString(args, 'kind');
@@ -394,6 +380,7 @@ function commitTool(activity) {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      await assertDepartmentEnabled('коммит этапа');
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const state = await readState(root, taskId);
@@ -509,6 +496,7 @@ function stageTool() {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      await assertDepartmentEnabled('переход стадии');
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const target = requireString(args, 'stage');
@@ -615,6 +603,7 @@ function amendTool() {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      await assertDepartmentEnabled('поправка документа');
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const by = requireString(args, 'by');
@@ -1711,6 +1700,7 @@ function pauseTool(ctx) {
       render: (_args, value) => text(value.summary),
     },
     async execute(args) {
+      await assertDepartmentEnabled('пауза');
       const root = requireString(args, 'root');
       const taskId = requireString(args, 'taskId');
       const paused = Boolean(args?.paused);

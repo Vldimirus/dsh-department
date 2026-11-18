@@ -6,6 +6,8 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
+import { createDepartmentTask } from './create-task.js';
+import { readSettings, writeSettings } from './settings.js';
 import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
@@ -26,6 +28,8 @@ export const DEPARTMENT_ROUTES = {
   review: '/api/department/review',
   correction: '/api/department/correction',
   pause: '/api/department/pause',
+  settings: '/api/department/settings',
+  createTask: '/api/department/task/create',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -110,6 +114,40 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!root || !taskId || !path) return Response.json({ error: 'root, taskId, path required' }, { status: 400 });
       try {
         return Response.json({ path, content: await readDocument(root, taskId, path) });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.settings,
+    methods: ['GET', 'POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      if (request.method === 'GET') return Response.json(await readSettings());
+      const body = await request.json().catch(() => ({}));
+      const { enabled, by } = body ?? {};
+      if (typeof enabled !== 'boolean' || !isHumanApprover(by)) {
+        return Response.json({ error: 'enabled boolean and human signature required' }, { status: 400 });
+      }
+      const next = await writeSettings({ enabled });
+      return Response.json(next);
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.createTask,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, title, brief, testCommand, branch, by } = body ?? {};
+      if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+      if (!isHumanApprover(by)) return Response.json({ error: 'task must be created by the human' }, { status: 403 });
+      try {
+        const state = await createDepartmentTask(root, taskId, { title, brief, testCommand, branch });
+        return Response.json({ ok: true, taskId: state.taskId, stage: state.stage });
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
       }
