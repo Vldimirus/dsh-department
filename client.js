@@ -1306,7 +1306,7 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'dept-sub' }, t('doc.choose'))))
     }
 
-    function TaskDetail({ detail, onBack, onReload }) {
+    function TaskDetail({ detail, onBack, onReload, onEditor }) {
       const docs = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md', 'backlog.md']
       const [tab, setTab] = useState('overview')
       const [name, setName] = useState(() => localStorage.getItem('dept-approver') || 'vladimir')
@@ -1682,6 +1682,7 @@ window.__ModuleLoader__.load({
               : null),
           h('div', { className: 'dept-row' },
             h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: t('form.name'), title: t('form.nameTitle') }),
+            h('button', { className: 'dept-btn', onClick: () => onEditor && onEditor() }, t('nav.editor')),
             h('button', {
               className: 'dept-btn',
               disabled: busy,
@@ -2219,7 +2220,7 @@ window.__ModuleLoader__.load({
 
       if (selected) {
         return detail
-          ? h(TaskDetail, { detail, onBack: () => { setSelected(null); setDetail(null) }, onReload: () => { if (selected) openTask(selected) } })
+          ? h(TaskDetail, { detail, onEditor: () => { setEditorKey(detail.root + ':' + detail.taskId); setView('editor'); setSelected(null); setDetail(null) }, onBack: () => { setSelected(null); setDetail(null) }, onReload: () => { if (selected) openTask(selected) } })
           : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, t('loading.task')))
       }
 
@@ -2231,7 +2232,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn active' }, t('nav.projects')),
               h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
-              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')))),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor')))),
           h(ProjectsView, { onOpen: (root) => { setProjectFilter(root); setView('board') } }))
       }
 
@@ -2289,7 +2290,7 @@ window.__ModuleLoader__.load({
               h('button', { className: 'dept-btn', onClick: () => setView('board') }, t('nav.board')),
               h('button', { className: 'dept-btn active', onClick: () => setView('office') }, t('nav.office')),
               h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
-              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts'))),
+              h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor'))),
             h('button', { className: 'dept-btn', onClick: loadTasks }, t('nav.refresh'))),
           h(OfficeView, { items: activity.items, selected: selectedSession, onSelect: setSelectedSession, tasks, attention, onOpenTask: (root) => { const task = tasks.find((candidate) => candidate.root === root); if (task) openTask(task) }, party, paused: tasks.some((task) => task.paused), pauseReason: (tasks.find((task) => task.paused) ?? {}).pauseReason }),
         )
@@ -2308,7 +2309,7 @@ window.__ModuleLoader__.load({
             h('button', { className: 'dept-btn', onClick: () => setView('projects') }, t('nav.projects')),
             h('button', { className: 'dept-btn', onClick: () => setView('office') }, t('nav.office')),
             h('button', { className: 'dept-btn', onClick: () => setView('blueprint') }, t('nav.blueprint')),
-            h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')),
+            h('button', { className: 'dept-btn', onClick: () => setView('charts') }, t('nav.charts')), h('button', { className: 'dept-btn', onClick: () => setView('editor') }, t('nav.editor')),
             h('button', {
               className: 'dept-btn',
               onClick: () => {
