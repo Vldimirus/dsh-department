@@ -11,8 +11,8 @@ import { join } from 'node:path';
 import { readSettings } from './settings.js';
 
 const INTERVAL_MS = 5 * 60 * 1000;
-const IDLE_MINUTES = 15;
-const WAKE_COOLDOWN_MS = 30 * 60 * 1000;
+const IDLE_MINUTES = 5;
+const WAKE_COOLDOWN_MS = 10 * 60 * 1000;
 
 /**
  * Читает состояние задачи из файла.

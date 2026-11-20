@@ -197,3 +197,19 @@ test('dept_handover: собирает пакет и открывает путь 
   const done = await tools.get('dept_stage').execute({ root, taskId: 'ship-1', stage: 'done' });
   assert.equal(done.state.stage, 'done');
 });
+
+test('dept_health: не считает руководителя активной работой', async (t) => {
+  const root = await tempRepo(t);
+  const tools = new Map();
+  const activity = {
+    list: () => [{ sessionId: 'm1', kind: 'менеджер', busy: true }],
+  };
+  const ctx = {
+    tools: { register: (tool) => { tools.set(tool.name, tool); return () => {}; } },
+    logger: { warn: () => {} },
+  };
+  registerTools(ctx, activity);
+  await tools.get('dept_start').execute({ root, taskId: 'h1', testCommand: 'true', branch: 'dept/h1' });
+  const health = await tools.get('dept_health').execute({ root, taskId: 'h1' });
+  assert.notEqual(health.verdict, 'working');
+});

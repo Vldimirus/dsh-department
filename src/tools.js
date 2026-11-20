@@ -844,7 +844,9 @@ function healthTool(activity) {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
       const agents = activity ? activity.list([root]) : [];
-      const busy = agents.filter((agent) => agent.busy).length;
+      // Сам руководитель не считается «работой»: иначе health всегда говорит working.
+      const workers = agents.filter((agent) => agent.kind !== 'менеджер');
+      const busy = workers.filter((agent) => agent.busy).length;
       const open = listQuestions(state, { status: 'open' });
       const events = state.events ?? [];
       const last = events.at(-1);
