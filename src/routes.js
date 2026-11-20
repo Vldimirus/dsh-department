@@ -71,6 +71,7 @@ export const DEPARTMENT_ROUTES = {
   editorHandoff: '/api/department/editor/handoff',
   browseDirs: '/api/department/browse-dirs',
   taskDelete: '/api/department/task/delete',
+  taskStart: '/api/department/task/start',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -266,6 +267,22 @@ export function registerDepartmentRoutes(ctx, activity) {
   });
 
 
+
+
+  add({
+    path: DEPARTMENT_ROUTES.taskStart,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, by } = body ?? {};
+      if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const sessionId = await startManager(ctx, root, taskId, state.title ?? taskId);
+      return Response.json({ ok: true, sessionId });
+    },
+  });
 
   add({
     path: DEPARTMENT_ROUTES.taskDelete,
