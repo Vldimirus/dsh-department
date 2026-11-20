@@ -2207,14 +2207,28 @@ window.__ModuleLoader__.load({
         }
       }
 
+      function applyRoot(path) {
+        const base = String(path).split('/').filter(Boolean).pop() ?? 'project'
+        const id = base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) + '-01'
+        setForm((current) => ({
+          ...current,
+          root: path,
+          taskId: current.taskId || id,
+          title: current.title || base,
+        }))
+      }
+
       async function createTask() {
         setCreating(true)
         setCreateError(null)
         try {
           await postJson(ROUTES.createTask, { ...form, by: name })
+          const created = { root: form.root, taskId: form.taskId, title: form.title }
           setShowCreate(false)
           setForm({ root: '', taskId: '', title: '', brief: '', testCommand: '' })
+          setBrowse(null)
           await loadTasks()
+          await openTask(created)
         } catch (problem) {
           setCreateError(problem.message)
         } finally {
@@ -2384,7 +2398,7 @@ window.__ModuleLoader__.load({
                             h('div', { className: 'dept-sub' }, browse.path),
                             h('div', { className: 'dept-row' },
                               browse.parent ? h('button', { className: 'dept-btn', type: 'button', onClick: () => openBrowse(browse.parent) }, t('dept.up')) : null,
-                              h('button', { className: 'dept-btn', type: 'button', onClick: () => { setForm({ ...form, root: browse.path }); setBrowse(null) } }, t('dept.chooseThis'))),
+                              h('button', { className: 'dept-btn', type: 'button', onClick: () => { applyRoot(browse.path); setBrowse(null) } }, t('dept.chooseThis'))),
                             ...browse.dirs.map((dir) => h('button', {
                               key: dir,
                               className: 'dept-btn',
@@ -2398,7 +2412,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'dept-form-row' }, h('label', null, t('dept.title')),
                   h('input', { className: 'dept-input', value: form.title, onChange: (event) => setForm({ ...form, title: event.target.value }) })),
                 h('div', { className: 'dept-form-row' }, h('label', null, t('dept.test')),
-                  h('input', { className: 'dept-input', value: form.testCommand, placeholder: 'npm test', onChange: (event) => setForm({ ...form, testCommand: event.target.value }) })),
+                  h('input', { className: 'dept-input', value: form.testCommand, placeholder: 'авто: npm test, если есть package.json', onChange: (event) => setForm({ ...form, testCommand: event.target.value }) })),
                 h('div', { className: 'dept-form-row' }, h('label', null, t('dept.brief')),
                   h('textarea', { className: 'dept-input', rows: 5, value: form.brief, onChange: (event) => setForm({ ...form, brief: event.target.value }) })),
                 createError ? h('div', { className: 'dept-badge fail' }, createError) : null,

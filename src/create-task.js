@@ -4,7 +4,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { appendEvent, createState, readState, taskDir, writeState } from './store.js';
-import { ensureBranch, isRepo } from './git.js';
+import { ensureBranch, isRepo, runGit } from './git.js';
 
 /**
  * Создаёт задачу: состояние, ветка, task.md.
@@ -15,11 +15,29 @@ import { ensureBranch, isRepo } from './git.js';
  * @returns {Promise<object>} Состояние.
  */
 export async function createDepartmentTask(root, taskId, options = {}) {
-  if (!(await isRepo(root))) throw new Error(`not a git repository: ${root}`);
+  if (!(await isRepo(root))) {
+    // Удобство: пустая папка автоматически становится git-репозиторием.
+    const init = await runGit(root, ['init', '-q']);
+    if (init.code !== 0) throw new Error(`cannot init git repository: ${init.stderr ?? ''}`);
+    await runGit(root, ['config', 'user.name', 'Department Bot']);
+    await runGit(root, ['config', 'user.email', 'dept@pilot.local']);
+    await runGit(root, ['add', '-A']);
+    const commit = await runGit(root, ['commit', '--allow-empty', '-qm', 'init: project created by department']);
+    if (commit.code !== 0) throw new Error(`cannot create initial commit: ${commit.stderr ?? ''}`);
+  }
   const existing = await readState(root, taskId);
   if (existing) throw new Error(`task already exists: ${taskId}`);
 
   let brief = typeof options.brief === 'string' ? options.brief.trim() : '';
+  let testCommand = options.testCommand ?? null;
+  if (!testCommand) {
+    try {
+      const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+      if (pkg?.scripts?.test) testCommand = 'npm test';
+    } catch {
+      // package.json может отсутствовать
+    }
+  }
   if (options.release === true) {
     const template = await readFile(new URL('../templates/release.md', import.meta.url), 'utf8');
     brief = (brief ? brief + '\n\n' : '') + 'Подготовка к релизу (шаблон):\n\n' + template;
@@ -31,7 +49,7 @@ export async function createDepartmentTask(root, taskId, options = {}) {
     title: options.title,
     branch: options.branch,
     origin: options.origin ?? null,
-    testCommand: options.testCommand ?? null,
+    testCommand,
     maxAttempts: options.maxAttempts,
     budgetTokens: options.budgetTokens,
   });
