@@ -30,8 +30,8 @@ const assetsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
  * @param {string} title Название.
  * @returns {Promise<string|null>} id сессии.
  */
-async function startManager(ctx, root, taskId, title) {
-  const kickoff = `Ты — руководитель ИИ-отдела. Задача ${taskId} («${title}») в ${root}.
+async function startManager(ctx, root, taskId, title, text) {
+  const kickoff = text || `Ты — руководитель ИИ-отдела. Задача ${taskId} («${title}») в ${root}.
 Прочитай docs/department/${taskId}/task.md и начни с ОБСУЖДЕНИЯ:
 задай 4–6 вопросов через dept_ask, запиши dept_discussion, затем подготовь ТЗ и концепцию
 (2–3 варианта). Не утверждай документы и не пиши код — утверждает человек в панели.`;
@@ -48,6 +48,37 @@ async function startManager(ctx, root, taskId, title) {
     return sessionId;
   } catch {
     return null;
+  }
+}
+
+
+/**
+ * Промт руководителю по текущей стадии.
+ *
+ * @param {object} state Состояние.
+ * @param {string} root Корень.
+ * @param {string} taskId Задача.
+ * @returns {string}
+ */
+function promptFor(state, root, taskId) {
+  const base = `Задача ${taskId} в ${root}. Стадия: ${state.stage}.`;
+  switch (state.stage) {
+    case 'analysis':
+      return `${base}\nПрочитай docs/department/${taskId}/task.md и начни с ОБСУЖДЕНИЯ: 4–6 вопросов через dept_ask, discussion.md, затем ТЗ и концепция. Не утверждай и не пиши код.`;
+    case 'spec':
+      return `${base}\nПодготовь ТЗ (spec.md): требования, НФТ, критерии приёмки, границы. Затем dept_stage spec_review и жди утверждения человеком.`;
+    case 'spec_review':
+      return `${base}\nТЗ готово к утверждению человеком. Дождись решения; после утверждения — концепция (2–3 варианта).`;
+    case 'concept':
+      return `${base}\nСделай концепцию (concept.md): 2–3 варианта, плюсы/минусы, выбор, архитектура. Затем dept_stage concept_review и жди утверждения.`;
+    case 'concept_review':
+      return `${base}\nКонцепция готова к утверждению человеком. Дождись решения.`;
+    case 'executing':
+      return `${base}\nСоставь план (plan.md), если его нет, затем веди этапы: реализация → тесты → ревью → dept_commit. Проверяй dept_health.`;
+    case 'release':
+      return `${base}\nСобери пакет передачи: dept_handover (RUN.md, MANUAL-QA.md, CHANGELOG.md), dept_verify, затем dept_stage done.`;
+    default:
+      return `${base}\nПродолжай по процессу отдела.`;
   }
 }
 
@@ -189,7 +220,7 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!isHumanApprover(by)) return Response.json({ error: 'task must be created by the human' }, { status: 403 });
       try {
         const state = await createDepartmentTask(root, taskId, { title, brief, testCommand, branch });
-        const sessionId = await startManager(ctx, root, taskId, title || taskId);
+        const sessionId = await startManager(ctx, root, taskId, title || taskId, promptFor(state, root, taskId));
         return Response.json({ ok: true, taskId: state.taskId, stage: state.stage, sessionId });
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
@@ -279,7 +310,7 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
       const state = await readState(root, taskId);
       if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
-      const sessionId = await startManager(ctx, root, taskId, state.title ?? taskId);
+      const sessionId = await startManager(ctx, root, taskId, state.title ?? taskId, promptFor(state, root, taskId));
       return Response.json({ ok: true, sessionId });
     },
   });
@@ -467,6 +498,7 @@ export function registerDepartmentRoutes(ctx, activity) {
       try {
         await assertApprovalReady(root, taskId, doc, state);
         const next = await writeState(root, approveDocument(state, { doc, by }));
+        await startManager(ctx, root, taskId, state.title ?? taskId, promptFor(next, root, taskId));
         return Response.json({ stage: next.stage, summary: next.approvals });
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
