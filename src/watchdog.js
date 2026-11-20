@@ -12,7 +12,7 @@ import { readSettings } from './settings.js';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 const IDLE_MINUTES = 5;
-const WAKE_COOLDOWN_MS = 10 * 60 * 1000;
+const WAKE_COOLDOWN_MS = 5 * 60 * 1000;
 
 /**
  * Читает состояние задачи из файла.
@@ -75,6 +75,7 @@ export function pendingHumanInput(state) {
 export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
   const seenItems = new Map();
   const lastWake = new Map();
+  const idleStreak = new Map();
   let timer = null;
   let running = false;
 
@@ -135,14 +136,19 @@ export function createWatchdog({ ctx, intervalMs = INTERVAL_MS }) {
             const previous = lastWake.get(key) ?? 0;
             if (Date.now() - previous < WAKE_COOLDOWN_MS) continue;
             lastWake.set(key, Date.now());
+            const streakPrev = idleStreak.get(key);
+            const count = streakPrev && streakPrev.events === (state.events ?? []).length ? streakPrev.count + 1 : 1;
+            idleStreak.set(key, { events: (state.events ?? []).length, count });
             const ready = state.gates?.tests?.status === 'pass' && state.gates?.review?.status === 'pass';
             try {
               agent.followup({
                 role: 'user',
                 content: [{
                   type: 'text',
-                  text: `Отдел простаивает ${Math.round(idleMinutes)} мин по задаче ${taskId} (стадия ${state.stage}).` +
-                    (ready ? ' Гейты зелёные: dept_verify и dept_commit.' : ' Проверь dept_health и продолжи следующий шаг по плану или зафиксируй blocked с причиной.'),
+                  text: `${count > 1 ? `Повторный простой (${count}-й раз без новых событий). ` : ''}Отдел простаивает ${Math.round(idleMinutes)} мин по задаче ${taskId} (стадия ${state.stage}).` +
+                    (ready
+                      ? ' Гейты зелёные: dept_verify и dept_commit.'
+                      : ' НЕ спрашивай человека: выполни следующий шаг по plan.md (реализация → тесты → ревью → dept_commit). Если шаг невозможен — зафиксируй blocked с причиной в dept_ask.'),
                 }],
                 source: { kind: 'dsh-department' },
               });
