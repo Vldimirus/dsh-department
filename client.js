@@ -649,6 +649,7 @@ window.__ModuleLoader__.load({
       createTask: '/api/department/task/create',
       editor: '/api/department/editor',
       browseDirs: '/api/department/browse-dirs',
+      taskDelete: '/api/department/task/delete',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -1317,7 +1318,7 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'dept-sub' }, t('doc.choose'))))
     }
 
-    function TaskDetail({ detail, onBack, onReload, onEditor }) {
+    function TaskDetail({ detail, onBack, onReload, onEditor, onDeleted }) {
       const docs = ['task.md', 'analysis.md', 'concept.md', 'spec.md', 'plan.md', 'backlog.md']
       const [tab, setTab] = useState('overview')
       const [name, setName] = useState(() => localStorage.getItem('dept-approver') || 'vladimir')
@@ -1379,6 +1380,18 @@ window.__ModuleLoader__.load({
           setMessage(response.ok ? t('msg.pricesSaved') : (data.error || t('msg.error')))
         } finally {
           setSavingBudget(false)
+        }
+      }
+
+      async function deleteTask() {
+        if (!window.confirm('Удалить задачу ' + detail.taskId + '? Папка будет перемещена в docs/department/.trash.')) return
+        try {
+          const response = await fetch(`${ROUTES.taskDelete}?root=${encodeURIComponent(detail.root)}&taskId=${encodeURIComponent(detail.taskId)}&by=${encodeURIComponent(name)}`, { method: 'DELETE' })
+          const data = await response.json().catch(() => ({}))
+          if (!response.ok) throw new Error(data.error || response.statusText)
+          if (onDeleted) onDeleted()
+        } catch (problem) {
+          setMessage(problem.message)
         }
       }
 
@@ -1694,6 +1707,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-row' },
             h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: t('form.name'), title: t('form.nameTitle') }),
             h('button', { className: 'dept-btn', onClick: () => onEditor && onEditor() }, t('nav.editor')),
+            h('button', { className: 'dept-btn fail', disabled: busy, onClick: deleteTask }, 'Удалить'),
             h('button', {
               className: 'dept-btn',
               disabled: busy,
@@ -2256,7 +2270,7 @@ window.__ModuleLoader__.load({
 
       if (selected) {
         return detail
-          ? h(TaskDetail, { detail, onEditor: () => { setEditorKey(detail.root + ':' + detail.taskId); setView('editor'); setSelected(null); setDetail(null) }, onBack: () => { setSelected(null); setDetail(null) }, onReload: () => { if (selected) openTask(selected) } })
+          ? h(TaskDetail, { detail, onDeleted: () => { setSelected(null); setDetail(null); loadTasks() }, onEditor: () => { setEditorKey(detail.root + ':' + detail.taskId); setView('editor'); setSelected(null); setDetail(null) }, onBack: () => { setSelected(null); setDetail(null) }, onReload: () => { if (selected) openTask(selected) } })
           : h('div', { className: 'dept-root' }, h('div', { className: 'dept-empty' }, t('loading.task')))
       }
 

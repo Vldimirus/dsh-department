@@ -11,12 +11,45 @@ import { encodePng } from './png.js';
 import { assertApprovalReady } from './approval.js';
 import { isGitProject, listDirectories } from './browse-dirs.js';
 import { readSettings, writeSettings } from './settings.js';
+import { randomUUID } from 'node:crypto';
+import { rename } from 'node:fs/promises';
 import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 import { listDocuments, readDocument } from './documents.js';
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
+
+
+/**
+ * Будит руководителя в проекте или создаёт для него чат.
+ *
+ * @param {object} ctx Контекст плагина.
+ * @param {string} root Корень.
+ * @param {string} taskId Задача.
+ * @param {string} title Название.
+ * @returns {Promise<string|null>} id сессии.
+ */
+async function startManager(ctx, root, taskId, title) {
+  const kickoff = `Ты — руководитель ИИ-отдела. Задача ${taskId} («${title}») в ${root}.
+Прочитай docs/department/${taskId}/task.md и начни с ОБСУЖДЕНИЯ:
+задай 4–6 вопросов через dept_ask, запиши dept_discussion, затем подготовь ТЗ и концепцию
+(2–3 варианта). Не утверждай документы и не пиши код — утверждает человек в панели.`;
+  try {
+    const registry = ctx.get('agents');
+    const existing = registry.list().find((agent) => agent?.session?.header?.cwd === root && typeof agent.followup === 'function');
+    if (existing) {
+      existing.followup({ role: 'user', content: [{ type: 'text', text: kickoff }], source: { kind: 'dsh-department' } });
+      return existing.id ?? null;
+    }
+    const sessionId = `session-${randomUUID()}`;
+    const handle = await registry.create({ sessionId, meta: { cwd: root, agentPreset: 'standard' } });
+    handle.agent.followup({ role: 'user', content: [{ type: 'text', text: kickoff }], source: { kind: 'dsh-department' } });
+    return sessionId;
+  } catch {
+    return null;
+  }
+}
 
 /** Точные маршруты панели. */
 export const DEPARTMENT_ROUTES = {
@@ -37,6 +70,7 @@ export const DEPARTMENT_ROUTES = {
   editorSave: '/api/department/editor/save',
   editorHandoff: '/api/department/editor/handoff',
   browseDirs: '/api/department/browse-dirs',
+  taskDelete: '/api/department/task/delete',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -154,7 +188,8 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!isHumanApprover(by)) return Response.json({ error: 'task must be created by the human' }, { status: 403 });
       try {
         const state = await createDepartmentTask(root, taskId, { title, brief, testCommand, branch });
-        return Response.json({ ok: true, taskId: state.taskId, stage: state.stage });
+        const sessionId = await startManager(ctx, root, taskId, title || taskId);
+        return Response.json({ ok: true, taskId: state.taskId, stage: state.stage, sessionId });
       } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
       }
@@ -230,6 +265,28 @@ export function registerDepartmentRoutes(ctx, activity) {
     },
   });
 
+
+
+  add({
+    path: DEPARTMENT_ROUTES.taskDelete,
+    methods: ['DELETE'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      const by = url.searchParams.get('by');
+      if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const dir = join(root, 'docs', 'department', taskId);
+      const trash = join(root, 'docs', 'department', '.trash');
+      await mkdir(trash, { recursive: true });
+      const target = join(trash, `${taskId}-${Date.now()}`);
+      await rename(dir, target);
+      return Response.json({ ok: true, movedTo: target });
+    },
+  });
 
   add({
     path: DEPARTMENT_ROUTES.browseDirs,
