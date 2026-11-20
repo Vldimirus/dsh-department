@@ -1,6 +1,6 @@
 {
   "name": "dsh-department",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "type": "module",
   "description": "AI development department for DeepSeek Harness: tasks, stages, gates, git workflow, budgets, roles and a pixel office.",
