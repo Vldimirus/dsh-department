@@ -124,6 +124,11 @@ window.__ModuleLoader__.load({
         'dept.brief': 'Бриф',
         'dept.test': 'Команда тестов',
         'dept.create': 'Создать',
+        'dept.pick': 'Выбрать…',
+        'dept.up': '↑ Наверх',
+        'dept.chooseThis': 'Выбрать эту папку',
+        'dept.git': 'git-проекты',
+        'dept.dirError': 'Не удалось прочитать каталог',
         'dept.cancel': 'Отмена',
         'dept.offBanner': 'Отдел выключен — новые задачи не запускаются, инструменты заблокированы.',
         'activity.title': 'Сейчас работают',
@@ -392,6 +397,11 @@ window.__ModuleLoader__.load({
         'dept.brief': 'Brief',
         'dept.test': 'Test command',
         'dept.create': 'Create',
+        'dept.pick': 'Choose…',
+        'dept.up': '↑ Up',
+        'dept.chooseThis': 'Choose this folder',
+        'dept.git': 'git projects',
+        'dept.dirError': 'Cannot read directory',
         'dept.cancel': 'Cancel',
         'dept.offBanner': 'Department is off — new tasks are not started, tools are blocked.',
         'activity.title': 'Working now',
@@ -638,6 +648,7 @@ window.__ModuleLoader__.load({
       settings: '/api/department/settings',
       createTask: '/api/department/task/create',
       editor: '/api/department/editor',
+      browseDirs: '/api/department/browse-dirs',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -2144,6 +2155,7 @@ window.__ModuleLoader__.load({
       const [form, setForm] = useState({ root: '', taskId: '', title: '', brief: '', testCommand: '' })
       const [creating, setCreating] = useState(false)
       const [createError, setCreateError] = useState(null)
+      const [browse, setBrowse] = useState(null)
       const [langTick, setLangTick] = useState(0)
       const [textSize, setTextSize] = useState(() => {
         const saved = Number(localStorage.getItem('dept-text-size'))
@@ -2175,6 +2187,15 @@ window.__ModuleLoader__.load({
         const data = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(data.error || response.statusText)
         return data
+      }
+
+      async function openBrowse(target) {
+        try {
+          const payload = await api(`${ROUTES.browseDirs}?path=${encodeURIComponent(target || form.root || '')}`)
+          setBrowse(payload)
+        } catch (problem) {
+          setBrowse({ error: problem.message })
+        }
       }
 
       async function toggleDepartment() {
@@ -2351,7 +2372,27 @@ window.__ModuleLoader__.load({
               h('div', { className: 'dept-modal-card' },
                 h('div', { className: 'dept-title' }, t('dept.createTitle')),
                 h('div', { className: 'dept-form-row' }, h('label', null, t('dept.root')),
-                  h('input', { className: 'dept-input', value: form.root, placeholder: '/home/agent/work/projects/my-app', onChange: (event) => setForm({ ...form, root: event.target.value }) })),
+                  h('div', { className: 'dept-row', style: { flexWrap: 'nowrap' } },
+                    h('input', { className: 'dept-input', list: 'dept-roots', value: form.root, placeholder: '/home/agent/work/projects/my-app', onChange: (event) => setForm({ ...form, root: event.target.value }), style: { flex: 1 } }),
+                    h('button', { className: 'dept-btn', type: 'button', onClick: () => openBrowse(form.root) }, t('dept.pick'))),
+                  h('datalist', { id: 'dept-roots' }, ...[...new Set(tasks.map((task) => task.root))].map((root) => h('option', { key: root, value: root })))),
+                browse
+                  ? h('div', { className: 'dept-block', style: { maxHeight: '220px', overflow: 'auto', gap: '6px' } },
+                      browse.error
+                        ? h('div', { className: 'dept-badge fail' }, t('dept.dirError') + ': ' + browse.error)
+                        : h('div', null,
+                            h('div', { className: 'dept-sub' }, browse.path),
+                            h('div', { className: 'dept-row' },
+                              browse.parent ? h('button', { className: 'dept-btn', type: 'button', onClick: () => openBrowse(browse.parent) }, t('dept.up')) : null,
+                              h('button', { className: 'dept-btn', type: 'button', onClick: () => { setForm({ ...form, root: browse.path }); setBrowse(null) } }, t('dept.chooseThis'))),
+                            ...browse.dirs.map((dir) => h('button', {
+                              key: dir,
+                              className: 'dept-btn',
+                              type: 'button',
+                              style: { textAlign: 'left' },
+                              onClick: () => openBrowse(browse.path + '/' + dir),
+                            }, dir + (browse.projects?.includes(dir) ? ' · ' + t('dept.git') : '')))))
+                  : null,
                 h('div', { className: 'dept-form-row' }, h('label', null, t('dept.taskId')),
                   h('input', { className: 'dept-input', value: form.taskId, placeholder: 'feature-01', onChange: (event) => setForm({ ...form, taskId: event.target.value }) })),
                 h('div', { className: 'dept-form-row' }, h('label', null, t('dept.title')),

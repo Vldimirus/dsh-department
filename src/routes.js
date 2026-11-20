@@ -9,6 +9,7 @@ import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } fr
 import { createDepartmentTask } from './create-task.js';
 import { encodePng } from './png.js';
 import { assertApprovalReady } from './approval.js';
+import { isGitProject, listDirectories } from './browse-dirs.js';
 import { readSettings, writeSettings } from './settings.js';
 import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
@@ -35,6 +36,7 @@ export const DEPARTMENT_ROUTES = {
   editor: '/api/department/editor',
   editorSave: '/api/department/editor/save',
   editorHandoff: '/api/department/editor/handoff',
+  browseDirs: '/api/department/browse-dirs',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -225,6 +227,27 @@ export function registerDepartmentRoutes(ctx, activity) {
       });
       await writeState(root, result.state);
       return Response.json({ ok: true, correctionId: result.correction.id });
+    },
+  });
+
+
+  add({
+    path: DEPARTMENT_ROUTES.browseDirs,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      try {
+        const listing = await listDirectories(url.searchParams.get('path'));
+        const projects = [];
+        for (const name of listing.dirs) {
+          const full = join(listing.path, name);
+          if (await isGitProject(full)) projects.push(name);
+        }
+        return Response.json({ ...listing, projects });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
     },
   });
 
