@@ -13,7 +13,7 @@ import { isGitProject, listDirectories } from './browse-dirs.js';
 import { readSettings, writeSettings } from './settings.js';
 import { randomUUID } from 'node:crypto';
 import { rename } from 'node:fs/promises';
-import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
+import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reopenTask, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 import { listDocuments, readDocument } from './documents.js';
@@ -103,6 +103,7 @@ export const DEPARTMENT_ROUTES = {
   browseDirs: '/api/department/browse-dirs',
   taskDelete: '/api/department/task/delete',
   taskStart: '/api/department/task/start',
+  reopen: '/api/department/task/reopen',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -219,7 +220,7 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
       if (!isHumanApprover(by)) return Response.json({ error: 'task must be created by the human' }, { status: 403 });
       try {
-        const state = await createDepartmentTask(root, taskId, { title, brief, testCommand, branch });
+        const state = await createDepartmentTask(root, taskId, { title, brief, testCommand, branch, force: true });
         const sessionId = await startManager(ctx, root, taskId, title || taskId, promptFor(state, root, taskId));
         return Response.json({ ok: true, taskId: state.taskId, stage: state.stage, sessionId });
       } catch (error) {
@@ -312,6 +313,27 @@ export function registerDepartmentRoutes(ctx, activity) {
       if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
       const sessionId = await startManager(ctx, root, taskId, state.title ?? taskId, promptFor(state, root, taskId));
       return Response.json({ ok: true, sessionId });
+    },
+  });
+
+
+  add({
+    path: DEPARTMENT_ROUTES.reopen,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, by, reason } = body ?? {};
+      if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      try {
+        const next = await writeState(root, reopenTask(state, { by: String(by), reason: reason ?? '' }));
+        await startManager(ctx, root, taskId, state.title ?? taskId, promptFor(next, root, taskId));
+        return Response.json({ ok: true, stage: next.stage });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
     },
   });
 

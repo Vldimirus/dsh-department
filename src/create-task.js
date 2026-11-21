@@ -1,7 +1,7 @@
 /**
  * Создание задачи отдела — общая логика для инструмента и HTTP-маршрута.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { appendEvent, createState, readState, taskDir, writeState } from './store.js';
 import { ensureBranch, isRepo, runGit } from './git.js';
@@ -27,6 +27,22 @@ export async function createDepartmentTask(root, taskId, options = {}) {
   }
   const existing = await readState(root, taskId);
   if (existing) throw new Error(`task already exists: ${taskId}`);
+  if (options.force !== true) {
+    try {
+      const entries = await readdir(join(root, 'docs', 'department'), { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+        const other = await readState(root, entry.name);
+        if (other && ['done', 'release'].includes(other.stage)) {
+          throw new Error(`в проекте уже есть завершённая задача ${entry.name} (${other.stage}). ` +
+            'Для замечаний используй dept_reopen — не создавай новую задачу. ' +
+            'Если нужна действительно новая версия — dept_start с force=true');
+        }
+      }
+    } catch (error) {
+      if (String(error.message).includes('завершённая задача')) throw error;
+    }
+  }
 
   let brief = typeof options.brief === 'string' ? options.brief.trim() : '';
   let testCommand = options.testCommand ?? null;
@@ -68,6 +84,9 @@ export async function createDepartmentTask(root, taskId, options = {}) {
     '   - после утверждения первого документа отдел переходит к другому и уточняет его.',
     '3. Проект запускается (`executing`) только когда утверждены **оба**: ТЗ и концепция.',
     '4. **План** (`plan.md`): первый документ исполнения; затем этапы, тесты, ревью, коммиты.',
+    '',
+    'Если по готовому проекту пришли замечания — НЕ создавай новую задачу (v2):',
+    'используй `dept_reopen` для этой же задачи. Новая версия — только с force=true.',
     '',
     'Три главных документа — `spec.md`, `concept.md`, `plan.md` — всегда актуальны:',
     'правки через `dept_amend`/`dept_section`, в панели они закреплены сверху.',

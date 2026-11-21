@@ -932,3 +932,33 @@ export function setPaused(state, input) {
 export function isPaused(state) {
   return Boolean(state.paused?.value);
 }
+
+/**
+ * Переоткрывает завершённую задачу для доработок (замечания после тестирования).
+ * Новая задача не создаётся: продолжаем ту же.
+ *
+ * @param {object} state Состояние.
+ * @param {{ by?: string, reason?: string }} input Причина.
+ * @returns {object} Новое состояние.
+ */
+export function reopenTask(state, input = {}) {
+  if (!['done', 'release', 'blocked'].includes(state.stage)) {
+    throw new Error(`cannot reopen task in stage ${state.stage}`);
+  }
+  const now = new Date().toISOString();
+  const next = {
+    ...state,
+    stage: 'executing',
+    gates: {
+      ...state.gates,
+      tests: { status: 'pending' },
+      review: { status: 'pending' },
+    },
+    updatedAt: now,
+  };
+  return appendEvent(next, {
+    actor: String(input.by ?? 'manager'),
+    action: 'task_reopened',
+    detail: String(input.reason ?? '').slice(0, 200),
+  });
+}

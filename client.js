@@ -651,6 +651,7 @@ window.__ModuleLoader__.load({
       browseDirs: '/api/department/browse-dirs',
       taskDelete: '/api/department/task/delete',
       taskStart: '/api/department/task/start',
+      reopen: '/api/department/task/reopen',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -1384,6 +1385,10 @@ window.__ModuleLoader__.load({
         }
       }
 
+      async function reopenTaskAction() {
+        await post(ROUTES.reopen, { root: detail.root, taskId: detail.taskId, reason: 'Доработки по замечаниям человека' })
+      }
+
       async function startDepartment() {
         try {
           const response = await fetch(ROUTES.taskStart, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ root: detail.root, taskId: detail.taskId, by: name }) })
@@ -1719,6 +1724,9 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dept-row' },
             h('input', { className: 'dept-input', value: name, onChange: (event) => setName(event.target.value), placeholder: t('form.name'), title: t('form.nameTitle') }),
             h('button', { className: 'dept-btn', onClick: startDepartment }, 'Запустить отдел'),
+            ['done', 'release', 'blocked'].includes(detail.stage)
+              ? h('button', { className: 'dept-btn', onClick: reopenTaskAction }, 'Переоткрыть')
+              : null,
             h('button', { className: 'dept-btn', onClick: () => onEditor && onEditor() }, t('nav.editor')),
             h('button', { className: 'dept-btn fail', disabled: busy, onClick: deleteTask }, 'Удалить'),
             h('button', {

@@ -14,6 +14,7 @@ import {
   addRework,
   reviewMemo,
   advanceStage,
+  reopenTask,
   amendDocument,
   answerQuestion,
   closeTask,
@@ -162,6 +163,7 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(pauseTool(ctx)));
   disposers.push(ctx.tools.register(handoverTool()));
   disposers.push(ctx.tools.register(discussionTool()));
+  disposers.push(ctx.tools.register(reopenTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
   disposers.push(ctx.tools.register(critiqueTool()));
@@ -195,6 +197,7 @@ function startTool() {
         maxAttempts: { type: 'integer', description: 'Максимум попыток на этап (по умолчанию 4).' },
         budgetTokens: { type: 'integer', description: 'Лимит токенов на задачу (по умолчанию 60000).' },
         release: { type: 'boolean', description: 'Задача подготовки к релизу: в бриф добавляется шаблон релиза (пакет, документация, QA, тег).' },
+        force: { type: 'boolean', description: 'Разрешить новую задачу, даже если в проекте есть завершённая (иначе — dept_reopen).' },
       },
       required: ['root', 'taskId'],
     },
@@ -220,6 +223,7 @@ function startTool() {
         maxAttempts: args?.maxAttempts,
         budgetTokens: args?.budgetTokens,
         release: args?.release === true,
+        force: args?.force === true,
       });
       return summaryOutput(state);
     },
@@ -1820,6 +1824,35 @@ function discussionTool() {
       if (!state) throw new Error(`task not found: ${taskId}`);
       const result = await writeDiscussion(root, taskId, state, args ?? {});
       return { path: result.path, summary: `обсуждение записано: ${result.path}` };
+    },
+  };
+}
+
+function reopenTool() {
+  return {
+    name: 'dept_reopen',
+    description: 'Переоткрыть завершённую задачу для доработок по замечаниям. Используй ВМЕСТО создания новой задачи (v2): та же задача, та же ветка, без мусорных проектов.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        reason: { type: 'string', description: 'Что доработать.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { stage: { type: 'string' }, summary: { type: 'string' } }, required: ['stage', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      await assertDepartmentEnabled('переоткрытие задачи');
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const next = await writeState(root, reopenTask(state, { by: 'manager', reason: args?.reason }));
+      return { stage: next.stage, summary: `задача ${taskId} переоткрыта: стадия ${next.stage}` };
     },
   };
 }

@@ -16,6 +16,7 @@ import {
   reviewMemo,
   listRoles,
   setRole,
+  reopenTask,
   setBudget,
   listQuestions,
   resetGatesForNextStage,
@@ -237,4 +238,13 @@ test('approveDocument: порядок концепция → ТЗ тоже ра�
   assert.equal(afterConcept.stage, 'spec');
   const afterSpec = approveDocument({ ...afterConcept, stage: 'spec_review' }, { doc: 'spec', by: 'human' });
   assert.equal(afterSpec.stage, 'executing');
+});
+
+
+test('reopenTask: завершённая задача возвращается в executing', () => {
+  const state = { ...createState({ root: '/tmp/x', taskId: 'r1' }), stage: 'done' };
+  const next = reopenTask(state, { by: 'human', reason: 'замечания' });
+  assert.equal(next.stage, 'executing');
+  assert.equal(next.gates.tests.status, 'pending');
+  assert.equal(next.events.at(-1).action, 'task_reopened');
 });

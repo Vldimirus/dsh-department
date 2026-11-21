@@ -242,6 +242,14 @@ Roadmap — `docs/I18N.md`.
   specialists for analysis and closes it (`done`) with a summary.
 - Corrections are used to update the concept, spec and plan (`dept_amend`, `dept_section`).
 
+## Post-release remarks
+
+- remarks on a finished project go into the **same task**: `dept_reopen` (the “Reopen”
+  button in the card) returns it to `executing` without creating a v2;
+- `dept_start` **refuses** to create a new task when the project already has `done`/`release`
+  — it returns an error with a hint; a deliberate new version needs `force=true`;
+- deleting a task — the “Delete” button moves the folder to `docs/department/.trash`.
+
 ## Questions and memos
 
 A question to the human does not stop the work:

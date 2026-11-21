@@ -213,3 +213,18 @@ test('dept_health: не считает руководителя активной
   const health = await tools.get('dept_health').execute({ root, taskId: 'h1' });
   assert.notEqual(health.verdict, 'working');
 });
+
+
+test('dept_start не создаёт v2, если в проекте есть done (нужен force)', async (t) => {
+  const root = await tempRepo(t);
+  const tools = collectTools();
+  await tools.get('dept_start').execute({ root, taskId: 'done-1', testCommand: 'true', branch: 'dept/done-1' });
+  const state = await readState(root, 'done-1');
+  await writeState(root, { ...state, stage: 'done' });
+  await assert.rejects(
+    () => tools.get('dept_start').execute({ root, taskId: 'done-2', testCommand: 'true', branch: 'dept/done-2' }),
+    /dept_reopen/,
+  );
+  const forced = await tools.get('dept_start').execute({ root, taskId: 'done-3', testCommand: 'true', branch: 'dept/done-3', force: true });
+  assert.equal(forced.stage, 'analysis');
+});
