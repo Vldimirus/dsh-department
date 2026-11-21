@@ -1,7 +1,7 @@
 /**
  * Гейты утверждения документов: нельзя утвердить ТЗ/концепцию, если обсуждение не закрыто.
  */
-import { access, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { listQuestions, taskDir } from './store.js';
 
@@ -36,6 +36,12 @@ export async function assertApprovalReady(root, taskId, doc, state) {
     if (urls.length < 3) throw new Error('нельзя утвердить дизайн: нужно минимум 3 референса со ссылками');
     if (!/^#{2,3}\s*Референс/im.test(text)) throw new Error('в design.md нужен раздел «Референсы»');
     if (!/^#{2,3}\s*(Макет|Палитра|Типографика)/im.test(text)) throw new Error('в design.md нужны разделы макета/палитры/типографики');
+    let files = [];
+    try {
+      const entries = await readdir(join(dir, 'references'), { withFileTypes: true });
+      files = entries.filter((entry) => entry.isFile() && /\.(png|jpe?g|webp|gif)$/i.test(entry.name));
+    } catch { files = []; }
+    if (files.length === 0) throw new Error('нельзя утвердить дизайн: в references/ нет ни одного скриншота/эскиза');
   }
   if (doc === 'concept') {
     const path = join(dir, 'concept.md');

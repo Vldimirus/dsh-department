@@ -2,7 +2,7 @@
  * HTTP-маршруты Web-панели отдела на общем канале `/api`.
  * Только чтение: доска и карточка задачи.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { listProjects, listTasks, resolveRoots, rootsWithTasks, taskPayload } from './panel-api.js';
@@ -10,6 +10,7 @@ import { createDepartmentTask } from './create-task.js';
 import { encodePng } from './png.js';
 import { assertApprovalReady } from './approval.js';
 import { isGitProject, listDirectories } from './browse-dirs.js';
+import { addDesignFeedback } from './store.js';
 import { readSettings, writeSettings } from './settings.js';
 import { randomUUID } from 'node:crypto';
 import { rename } from 'node:fs/promises';
@@ -108,6 +109,9 @@ export const DEPARTMENT_ROUTES = {
   taskDelete: '/api/department/task/delete',
   taskStart: '/api/department/task/start',
   reopen: '/api/department/task/reopen',
+  design: '/api/department/design',
+  designImage: '/api/department/design/image',
+  designFeedback: '/api/department/design/feedback',
   documents: '/api/department/documents',
   document: '/api/department/document',
   answer: '/api/department/answer',
@@ -359,6 +363,63 @@ export function registerDepartmentRoutes(ctx, activity) {
       const target = join(trash, `${taskId}-${Date.now()}`);
       await rename(dir, target);
       return Response.json({ ok: true, movedTo: target });
+    },
+  });
+
+
+  add({
+    path: DEPARTMENT_ROUTES.design,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      if (!root || !taskId) return Response.json({ error: 'root, taskId required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      let design = '';
+      try { design = await readFile(join(root, 'docs', 'department', taskId, 'design.md'), 'utf8'); } catch { design = ''; }
+      let references = [];
+      try {
+        const entries = await readdir(join(root, 'docs', 'department', taskId, 'references'), { withFileTypes: true });
+        references = entries.filter((entry) => entry.isFile() && /\.(png|jpe?g|webp|gif)$/i.test(entry.name)).map((entry) => entry.name).sort();
+      } catch { references = []; }
+      return Response.json({ design, references, feedback: state.designFeedback ?? [] });
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.designImage,
+    methods: ['GET'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const url = new URL(request.url);
+      const root = url.searchParams.get('root');
+      const taskId = url.searchParams.get('taskId');
+      const name = String(url.searchParams.get('name') ?? '');
+      if (!root || !taskId || !/^[a-z0-9._-]+$/i.test(name)) return new Response('bad request', { status: 400 });
+      try {
+        const bytes = await readFile(join(root, 'docs', 'department', taskId, 'references', name));
+        return new Response(bytes, { headers: { 'content-type': name.endsWith('.jpg') || name.endsWith('.jpeg') ? 'image/jpeg' : name.endsWith('.webp') ? 'image/webp' : 'image/png', 'cache-control': 'public, max-age=3600' } });
+      } catch {
+        return new Response('not found', { status: 404 });
+      }
+    },
+  });
+
+  add({
+    path: DEPARTMENT_ROUTES.designFeedback,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, path, verdict, note, by } = body ?? {};
+      if (!root || !taskId || !path || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, path, human signature required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const next = await writeState(root, addDesignFeedback(state, { path: String(path), verdict: verdict === 'like' ? 'like' : 'dislike', note, by: String(by) }));
+      return Response.json({ ok: true, feedback: next.designFeedback ?? [] });
     },
   });
 

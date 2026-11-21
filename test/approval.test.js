@@ -42,6 +42,8 @@ test('concept: нужно минимум два варианта', async (t) => 
 test('design: нужны 3 референса и разделы макета', async (t) => {
   const { root, taskId, dir, state } = await setup();
   t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(dir, 'references'), { recursive: true });
+  await writeFile(join(dir, 'references', 'ref.png'), Buffer.from([137, 80, 78, 71]));
   await writeFile(join(dir, 'design.md'), '# Дизайн\n\n## Референсы\n- https://a.example\n- https://b.example\n', 'utf8');
   await assert.rejects(() => assertApprovalReady(root, taskId, 'design', state), /3 референса/);
   await writeFile(join(dir, 'design.md'), [

@@ -968,3 +968,27 @@ export function reopenTask(state, input = {}) {
     detail: String(input.reason ?? '').slice(0, 200),
   });
 }
+
+/**
+ * Отметка человека по референсу/эскизу дизайнера.
+ *
+ * @param {object} state Состояние.
+ * @param {{ path: string, verdict: 'like'|'dislike', note?: string, by: string }} input Отметка.
+ * @returns {object} Новое состояние.
+ */
+export function addDesignFeedback(state, input) {
+  const now = new Date().toISOString();
+  const item = {
+    path: String(input.path ?? ''),
+    verdict: input.verdict === 'like' ? 'like' : 'dislike',
+    note: String(input.note ?? '').slice(0, 500),
+    by: String(input.by ?? 'human'),
+    ts: now,
+  };
+  const next = { ...state, designFeedback: [...(state.designFeedback ?? []), item], updatedAt: now };
+  return appendEvent(next, {
+    actor: item.by,
+    action: 'design_feedback',
+    detail: `${item.verdict}: ${item.path}${item.note ? ' — ' + item.note : ''}`,
+  });
+}

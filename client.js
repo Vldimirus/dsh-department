@@ -36,6 +36,7 @@ window.__ModuleLoader__.load({
         'tabs.events': 'События',
         'tabs.correction': 'Корректировка',
         'tabs.roles': 'Роли',
+        'tabs.design': 'Дизайн',
         'tabs.billing': 'Бюджет',
         'tabs.git': 'Git',
 
@@ -312,6 +313,7 @@ window.__ModuleLoader__.load({
         'tabs.events': 'Events',
         'tabs.correction': 'Corrections',
         'tabs.roles': 'Roles',
+        'tabs.design': 'Design',
         'tabs.billing': 'Budget',
         'tabs.git': 'Git',
 
@@ -658,6 +660,9 @@ window.__ModuleLoader__.load({
       taskDelete: '/api/department/task/delete',
       taskStart: '/api/department/task/start',
       reopen: '/api/department/task/reopen',
+      design: '/api/department/design',
+      designImage: '/api/department/design/image',
+      designFeedback: '/api/department/design/feedback',
       projects: '/api/department/projects',
       review: '/api/department/review',
     }
@@ -1451,6 +1456,7 @@ window.__ModuleLoader__.load({
         ['audit', t('tabs.audit')],
         ['events', t('tabs.events')],
         ['correction', t('tabs.correction')],
+        ['design', t('tabs.design')],
         ['roles', t('tabs.roles')],
         ['billing', t('tabs.billing')],
         ['git', t('tabs.git')],
@@ -1585,6 +1591,9 @@ window.__ModuleLoader__.load({
                         h('span', { className: 'dept-sub' }, item.id + ' · ' + item.doc)),
                       h('div', null, item.subject || item.text.slice(0, 80)),
                       h('div', { className: 'dept-sub' }, String(item.ts).replace('T', ' ').slice(0, 16) + (item.summary ? ' · ' + item.summary : '')))))))
+        }
+        if (tab === 'design') {
+          return h(DesignTab, { root: detail.root, taskId: detail.taskId })
         }
         if (tab === 'roles') {
           return h('div', { className: 'dept-block' },
@@ -2182,6 +2191,78 @@ window.__ModuleLoader__.load({
     }
 
     /* ---------------- Панель ---------------- */
+
+
+    function DesignTab({ root, taskId }) {
+      const [data, setData] = useState(null)
+      const [error, setError] = useState(null)
+      const [notes, setNotes] = useState({})
+      const [busy, setBusy] = useState(false)
+
+      async function load() {
+        try {
+          const payload = await api(ROUTES.design + '?root=' + encodeURIComponent(root) + '&taskId=' + encodeURIComponent(taskId))
+          setData(payload)
+        } catch (problem) {
+          setError(problem.message)
+        }
+      }
+
+      useEffect(() => { load() }, [root, taskId])
+
+      async function mark(path, verdict) {
+        setBusy(true)
+        try {
+          const by = localStorage.getItem('dept-approver') || 'vladimir'
+          await fetch(ROUTES.designFeedback, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ root, taskId, path, verdict, note: notes[path] ?? '', by }),
+          })
+          await load()
+        } catch (problem) {
+          setError(problem.message)
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      if (error) return h('div', { className: 'dept-badge fail' }, error)
+      if (!data) return h('div', { className: 'dept-sub' }, t('doc.loading'))
+
+      return h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: '12px', alignItems: 'start' } },
+        h('div', { className: 'dept-block', style: { maxHeight: '620px', overflow: 'auto' } },
+          h('div', { className: 'dept-block-title' }, 'design.md'),
+          data.design ? h(Markdown, { text: data.design }) : h('div', { className: 'dept-sub' }, 'Дизайн ещё не написан.')),
+        h('div', { className: 'dept-block', style: { maxHeight: '620px', overflow: 'auto' } },
+          h('div', { className: 'dept-block-title' }, 'Референсы и эскизы'),
+          data.references.length === 0
+            ? h('div', { className: 'dept-sub' }, 'Пока нет файлов в references/.')
+            : h('div', null, ...data.references.map((name) =>
+                h('div', { key: name, className: 'dept-block', style: { gap: '6px' } },
+                  h('img', {
+                    src: ROUTES.designImage + '?root=' + encodeURIComponent(root) + '&taskId=' + encodeURIComponent(taskId) + '&name=' + encodeURIComponent(name),
+                    alt: name,
+                    style: { width: '100%', borderRadius: '8px', imageRendering: 'auto' },
+                  }),
+                  h('div', { className: 'dept-sub' }, name),
+                  h('div', { className: 'dept-row' },
+                    h('button', { className: 'dept-btn', disabled: busy, onClick: () => mark(name, 'like') }, '♥ Нравится'),
+                    h('button', { className: 'dept-btn', disabled: busy, onClick: () => mark(name, 'dislike') }, '✗ Не то')),
+                  h('input', {
+                    className: 'dept-input',
+                    placeholder: 'комментарий (что нравится/не нравится)',
+                    value: notes[name] ?? '',
+                    onChange: (event) => setNotes({ ...notes, [name]: event.target.value }),
+                  })))),
+          h('div', { className: 'dept-block-title' }, 'Отметки человека'),
+          (data.feedback ?? []).length === 0
+            ? h('div', { className: 'dept-sub' }, 'пока нет')
+            : h('div', { className: 'dept-events' }, ...(data.feedback ?? []).slice().reverse().map((item, index) =>
+                h('div', { key: index, className: 'dept-event' },
+                  h('span', { className: 'dept-badge ' + (item.verdict === 'like' ? 'ok' : 'fail') }, item.verdict === 'like' ? '♥' : '✗'),
+                  h('span', null, item.path + (item.note ? ' — ' + item.note : '')))))))
+    }
 
     function DepartmentPanel() {
       styleOnce()

@@ -276,6 +276,17 @@ A question to the human does not stop the work:
   (isolated directories per module), merging — senior-coder.
 - The limit of concurrent coders is the role's `maxInstances`.
 
+## Design and references
+
+- `dept_reference` — the designer saves a reference: an image by URL or a **page screenshot**
+  into `docs/department/<task>/references/`, then views it via `read_image`.
+- `dept_design` — the designer reads `design.md`, the reference list and **human marks**
+  (like/dislike + comments).
+- The **Design** tab in the card: `design.md`, a gallery of references/mockups and
+  “♥ Like” / “✗ Not this” buttons with a comment. Marks are stored in the task.
+- Design approval (`design_review`) requires 3+ links, mockup sections and at least one
+  screenshot/mockup in `references/`.
+
 ## Artist and references
 
 - `dept_art` draws on a character grid: input — `rows` (character = pixel) and `palette`

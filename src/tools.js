@@ -1,7 +1,7 @@
 /**
  * Инструменты модели `dept_*`: запуск задачи, статус, утверждение, гейты, фиксация.
  */
-import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import {
   addQuestion,
@@ -46,6 +46,7 @@ import { isHumanApprover } from './roles.js';
 import { createDepartmentTask } from './create-task.js';
 import { assertDepartmentEnabled } from './settings.js';
 import { buildHandover } from './handover.js';
+import { captureReference } from './reference.js';
 import { assertApprovalReady } from './approval.js';
 import { writeDiscussion } from './discussion.js';
 import { runTestGate } from './gates.js';
@@ -163,6 +164,8 @@ export function registerTools(ctx, activity) {
   disposers.push(ctx.tools.register(pauseTool(ctx)));
   disposers.push(ctx.tools.register(handoverTool()));
   disposers.push(ctx.tools.register(discussionTool()));
+  disposers.push(ctx.tools.register(referenceTool()));
+  disposers.push(ctx.tools.register(designTool()));
   disposers.push(ctx.tools.register(reopenTool()));
   disposers.push(ctx.tools.register(sectionTool()));
   disposers.push(ctx.tools.register(ideasTool()));
@@ -1853,6 +1856,69 @@ function reopenTool() {
       if (!state) throw new Error(`task not found: ${taskId}`);
       const next = await writeState(root, reopenTask(state, { by: 'manager', reason: args?.reason }));
       return { stage: next.stage, summary: `задача ${taskId} переоткрыта: стадия ${next.stage}` };
+    },
+  };
+}
+
+function referenceTool() {
+  return {
+    name: 'dept_reference',
+    description: 'Скачать референс дизайнеру: картинку по URL или скриншот страницы в docs/department/<task>/references/. Затем открой файл через read_image.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+        url: { type: 'string', description: 'http(s) ссылка на страницу или изображение.' },
+      },
+      required: ['root', 'taskId', 'url'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { path: { type: 'string' }, kind: { type: 'string' }, summary: { type: 'string' } }, required: ['path', 'kind', 'summary'] },
+      render: (_args, value) => text(value.summary),
+    },
+    async execute(args) {
+      await assertDepartmentEnabled('референс');
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const url = requireString(args, 'url');
+      const result = await captureReference(root, taskId, url);
+      return { path: result.path, kind: result.kind, summary: `референс сохранён: ${result.path} (${result.kind})` };
+    },
+  };
+}
+
+function designTool() {
+  return {
+    name: 'dept_design',
+    description: 'Дизайнеру: посмотреть design.md, файлы references/ и отметки человека (нравится/не нравится). Учти отметки в следующей итерации.',
+    parameters: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Корень проекта.' },
+        taskId: { type: 'string', description: 'Идентификатор задачи.' },
+      },
+      required: ['root', 'taskId'],
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { design: { type: 'string' }, references: { type: 'array', items: { type: 'string' } }, feedback: { type: 'array', items: { type: 'object' } }, summary: { type: 'string' } }, required: ['design', 'references', 'feedback', 'summary'] },
+      render: (_args, value) => text(value.summary + '\n' + value.feedback.map((item) => `${item.verdict}: ${item.path} ${item.note}`).join('\n')),
+    },
+    async execute(args) {
+      const root = requireString(args, 'root');
+      const taskId = requireString(args, 'taskId');
+      const state = await readState(root, taskId);
+      if (!state) throw new Error(`task not found: ${taskId}`);
+      const dir = taskDir(root, taskId);
+      let design = '';
+      try { design = await readFile(join(dir, 'design.md'), 'utf8'); } catch { design = ''; }
+      let references = [];
+      try {
+        const entries = await readdir(join(dir, 'references'), { withFileTypes: true });
+        references = entries.filter((entry) => entry.isFile()).map((entry) => 'references/' + entry.name).sort();
+      } catch { references = []; }
+      const feedback = state.designFeedback ?? [];
+      return { design, references, feedback, summary: `design.md ${design ? design.length + ' симв.' : 'нет'}, референсов ${references.length}, отметок ${feedback.length}` };
     },
   };
 }

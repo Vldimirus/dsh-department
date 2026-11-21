@@ -70,7 +70,7 @@ export const DEFAULT_ROLES = Object.freeze({
     title: 'Дизайнер',
     model: null,
     reasoning: 'high',
-    tools: ['web_search', 'web_fetch', 'dept_pixelize', 'read', 'write', 'bash'],
+    tools: ['web_search', 'web_fetch', 'dept_reference', 'dept_design', 'dept_pixelize', 'read', 'write', 'bash'],
     maxAttempts: 2,
   }),
   artist: Object.freeze({
