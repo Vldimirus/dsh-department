@@ -58,7 +58,7 @@ import { assertRetryReady, failurePath, hasSection, writeFailureData } from './a
 import { formatReport, missingArtifacts, verifyChecklist } from './verify.js';
 
 async function collectArtifacts(root, taskId) {
-  const names = ['task.md', 'analysis.md', 'discussion.md', 'concept.md', 'spec.md', 'plan.md'];
+  const names = ['task.md', 'analysis.md', 'discussion.md', 'concept.md', 'spec.md', 'design.md', 'plan.md'];
   const files = {};
   for (const name of names) {
     try {
@@ -510,7 +510,7 @@ function stageTool() {
       properties: {
         root: { type: 'string', description: 'Корень проекта.' },
         taskId: { type: 'string', description: 'Идентификатор задачи.' },
-        stage: { type: 'string', enum: ['analysis', 'spec', 'spec_review', 'concept', 'concept_review', 'executing', 'release', 'done', 'blocked'], description: 'Целевая стадия.' },
+        stage: { type: 'string', enum: ['analysis', 'spec', 'spec_review', 'concept', 'concept_review', 'design', 'design_review', 'executing', 'release', 'done', 'blocked'], description: 'Целевая стадия.' },
         reason: { type: 'string', description: 'Причина перехода.' },
       },
       required: ['root', 'taskId', 'stage'],
@@ -582,7 +582,7 @@ function verifyTool() {
       const state = await readState(root, taskId);
       if (!state) throw new Error(`task not found: ${taskId}`);
 
-      const names = ['task.md', 'analysis.md', 'discussion.md', 'concept.md', 'spec.md', 'plan.md'];
+      const names = ['task.md', 'analysis.md', 'discussion.md', 'concept.md', 'spec.md', 'design.md', 'plan.md'];
       const files = {};
       for (const name of names) {
         try {

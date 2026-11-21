@@ -73,6 +73,10 @@ function promptFor(state, root, taskId) {
       return `${base}\nСделай концепцию (concept.md): 2–3 варианта, плюсы/минусы, выбор, архитектура. Затем dept_stage concept_review и жди утверждения.`;
     case 'concept_review':
       return `${base}\nКонцепция готова к утверждению человеком. Дождись решения.`;
+    case 'design':
+      return `${base}\nСобери design.md: 3+ референса со ссылками (web_search/web_fetch), палитра, типографика, сетка, макет главного экрана, антипаттерны. Сложи references/ и переведи в design_review. Код не пиши.`;
+    case 'design_review':
+      return `${base}\nДизайн готов к утверждению человеком. Дождись решения; после утверждения — plan.md и этапы.`;
     case 'executing':
       return `${base}\nСоставь план (plan.md), если его нет, затем веди этапы: реализация → тесты → ревью → dept_commit. Проверяй dept_health.`;
     case 'release':

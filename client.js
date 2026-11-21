@@ -42,6 +42,8 @@ window.__ModuleLoader__.load({
         'stage.analysis': 'Обсуждение',
         'stage.concept': 'Концепция',
         'stage.concept_review': 'Проверка концепции',
+        'stage.design': 'Дизайн',
+        'stage.design_review': 'Проверка дизайна',
         'stage.spec': 'ТЗ',
         'stage.spec_review': 'Проверка ТЗ',
         'stage.executing': 'Исполнение',
@@ -81,6 +83,7 @@ window.__ModuleLoader__.load({
         'block.approval': 'Утверждение',
         'approve.spec': 'Утвердить ТЗ',
         'approve.concept': 'Утвердить концепцию',
+        'approve.design': 'Утвердить дизайн',
         'doc.main': 'главный документ',
         'block.openQuestions': 'Открытые вопросы',
         'block.documents': 'Документы',
@@ -315,6 +318,8 @@ window.__ModuleLoader__.load({
         'stage.analysis': 'Discussion',
         'stage.concept': 'Concept',
         'stage.concept_review': 'Concept review',
+        'stage.design': 'Design',
+        'stage.design_review': 'Design review',
         'stage.spec': 'Spec',
         'stage.spec_review': 'Spec review',
         'stage.executing': 'Execution',
@@ -354,6 +359,7 @@ window.__ModuleLoader__.load({
         'block.approval': 'Approval',
         'approve.spec': 'Approve spec',
         'approve.concept': 'Approve concept',
+        'approve.design': 'Approve design',
         'doc.main': 'key document',
         'block.openQuestions': 'Open questions',
         'block.documents': 'Documents',
@@ -1277,7 +1283,7 @@ window.__ModuleLoader__.load({
           .catch((problem) => setContent(t('doc.error') + problem.message))
       }, [selected, root, taskId])
 
-      const MAIN_DOCS = ['spec.md', 'concept.md', 'plan.md']
+      const MAIN_DOCS = ['spec.md', 'concept.md', 'design.md', 'plan.md']
       const mainRank = (item) => {
         const index = MAIN_DOCS.indexOf(String(item.path).split('/').pop())
         return index === -1 ? 9 : index
@@ -1749,12 +1755,16 @@ window.__ModuleLoader__.load({
               kv(t('block.cost'), `${budget?.costUSD ? '$' + budget.costUSD.toFixed(2) : '—'}${costRub ? ' ≈ ' + costRub.toFixed(0) + ' ₽' : ''}`),
               kv(t('block.calls'), usage?.calls ?? 0),
               h('div', { className: 'dept-bar' }, h('i', { style: { width: `${detail.progress}%` } }))),
-            (detail.stage === 'spec_review' && !approved.has('spec')) || (detail.stage === 'concept_review' && !approved.has('concept'))
+            (detail.stage === 'spec_review' && !approved.has('spec'))
+              || (detail.stage === 'concept_review' && !approved.has('concept'))
+              || (detail.stage === 'design_review' && !approved.has('design'))
               ? h('div', { className: 'dept-block' },
                   h('div', { className: 'dept-block-title' }, t('block.approval')),
                   detail.stage === 'spec_review'
                     ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'spec' }) }, t('approve.spec'))
-                    : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, t('approve.concept')))
+                    : detail.stage === 'concept_review'
+                      ? h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'concept' }) }, t('approve.concept'))
+                      : h('button', { className: 'dept-btn', disabled: busy, onClick: () => post(ROUTES.approve, { root: detail.root, taskId: detail.taskId, doc: 'design' }) }, t('approve.design')))
               : null),
           content,
         ),

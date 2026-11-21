@@ -66,7 +66,9 @@ test('approveDocument: spec переводит в concept, concept — в execut
   assert.equal(afterSpec.approvals.length, 1);
 
   const afterConcept = approveDocument({ ...afterSpec, stage: 'concept_review' }, { doc: 'concept', by: 'human' });
-  assert.equal(afterConcept.stage, 'executing');
+  assert.equal(afterConcept.stage, 'design');
+  const afterDesign = approveDocument({ ...afterConcept, stage: 'design_review' }, { doc: 'design', by: 'human' });
+  assert.equal(afterDesign.stage, 'executing');
 });
 
 test('approveDocument: неверная стадия — ошибка', () => {
@@ -237,7 +239,9 @@ test('approveDocument: порядок концепция → ТЗ тоже ра�
   const afterConcept = approveDocument(state, { doc: 'concept', by: 'human' });
   assert.equal(afterConcept.stage, 'spec');
   const afterSpec = approveDocument({ ...afterConcept, stage: 'spec_review' }, { doc: 'spec', by: 'human' });
-  assert.equal(afterSpec.stage, 'executing');
+  assert.equal(afterSpec.stage, 'design');
+  const afterDesign = approveDocument({ ...afterSpec, stage: 'design_review' }, { doc: 'design', by: 'human' });
+  assert.equal(afterDesign.stage, 'executing');
 });
 
 

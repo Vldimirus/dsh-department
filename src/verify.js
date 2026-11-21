@@ -10,9 +10,11 @@ const REQUIRED_ARTIFACTS = Object.freeze({
   spec_review: ['task.md', 'analysis.md', 'discussion.md', 'spec.md'],
   concept: ['task.md', 'analysis.md', 'discussion.md', 'spec.md'],
   concept_review: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md'],
-  executing: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'plan.md', 'README.md'],
-  release: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'plan.md', 'delivery/RUN.md', 'delivery/MANUAL-QA.md', 'delivery/CHANGELOG.md'],
-  done: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'plan.md', 'delivery/RUN.md', 'delivery/MANUAL-QA.md', 'delivery/CHANGELOG.md'],
+  design: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md'],
+  design_review: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'design.md'],
+  executing: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'design.md', 'plan.md', 'README.md'],
+  release: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'design.md', 'plan.md', 'delivery/RUN.md', 'delivery/MANUAL-QA.md', 'delivery/CHANGELOG.md'],
+  done: ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'design.md', 'plan.md', 'delivery/RUN.md', 'delivery/MANUAL-QA.md', 'delivery/CHANGELOG.md'],
   blocked: ['task.md'],
 });
 
@@ -42,6 +44,7 @@ export function verifyChecklist({ state, files, currentBranch }) {
   if (['executing', 'done'].includes(state.stage)) {
     check('approval:spec', approved.has('spec'), approved.has('spec') ? 'approved' : 'not approved');
     check('approval:concept', approved.has('concept'), approved.has('concept') ? 'approved' : 'not approved');
+    check('approval:design', approved.has('design'), approved.has('design') ? 'approved' : 'not approved');
   }
 
   if (state.stage === 'executing') {

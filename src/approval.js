@@ -28,6 +28,15 @@ export async function assertApprovalReady(root, taskId, doc, state) {
       throw new Error(`нельзя утвердить ТЗ: открытых вопросов ${open.length}; получите ответы или закройте их`);
     }
   }
+  if (doc === 'design') {
+    const path = join(dir, 'design.md');
+    if (!(await exists(path))) throw new Error('нельзя утвердить дизайн: нет design.md');
+    const text = await readFile(path, 'utf8');
+    const urls = [...new Set(text.match(/https?:\/\/[^\s)]+/g) ?? [])];
+    if (urls.length < 3) throw new Error('нельзя утвердить дизайн: нужно минимум 3 референса со ссылками');
+    if (!/^#{2,3}\s*Референс/im.test(text)) throw new Error('в design.md нужен раздел «Референсы»');
+    if (!/^#{2,3}\s*(Макет|Палитра|Типографика)/im.test(text)) throw new Error('в design.md нужны разделы макета/палитры/типографики');
+  }
   if (doc === 'concept') {
     const path = join(dir, 'concept.md');
     if (!(await exists(path))) throw new Error('нельзя утвердить концепцию: нет concept.md');

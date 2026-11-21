@@ -17,6 +17,8 @@ export const STAGES = Object.freeze([
   'spec_review',
   'concept',
   'concept_review',
+  'design',
+  'design_review',
   'executing',
   'release',
   'done',
@@ -27,6 +29,7 @@ export const STAGES = Object.freeze([
 const APPROVAL_STAGE = Object.freeze({
   spec: 'spec_review',
   concept: 'concept_review',
+  design: 'design_review',
 });
 
 /**
@@ -208,10 +211,11 @@ export function approveDocument(state, input) {
     { doc: input.doc, by: input.by, via: input.via ?? 'chat', ts: now },
   ];
   const approvedDocs = new Set(approvals.map((item) => item.doc));
-  // Оба документа утверждены → проект запускается. Иначе — переходим к другому документу.
-  const nextStage = approvedDocs.has('spec') && approvedDocs.has('concept')
-    ? 'executing'
-    : input.doc === 'spec' ? 'concept' : 'spec';
+  // ТЗ и концепция утверждены → дизайн. Дизайн утверждён → исполнение.
+  let nextStage;
+  if (input.doc === 'design') nextStage = 'executing';
+  else if (approvedDocs.has('spec') && approvedDocs.has('concept')) nextStage = 'design';
+  else nextStage = input.doc === 'spec' ? 'concept' : 'spec';
   const approved = { ...state, stage: nextStage, updatedAt: now, approvals };
   return appendEvent(approved, {
     actor: input.by,
@@ -345,6 +349,8 @@ const STAGE_FLOW = Object.freeze({
   analysis: ['concept', 'spec'],
   concept: ['concept_review', 'spec'],
   concept_review: ['concept'],
+  design: ['design_review', 'concept'],
+  design_review: ['design'],
   spec: ['spec_review', 'concept'],
   spec_review: ['spec'],
   executing: ['release', 'blocked', 'spec', 'concept'],
@@ -355,7 +361,7 @@ const STAGE_FLOW = Object.freeze({
 
 /**
  * Переводит задачу на следующую стадию с проверкой допустимости перехода.
- * Запуск проекта (executing) — только после утверждения и ТЗ, и концепции, через
+ * Запуск проекта (executing) — только после утверждения ТЗ, концепции и дизайна, через
  * `approveDocument`, чтобы нельзя было проскочить человеческий гейт.
  *
  * @param {object} state Состояние.

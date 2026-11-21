@@ -31,7 +31,7 @@ test('verify: executing требует approvals и pass-гейт', () => {
   const base = stateAt('executing');
   const state = {
     ...base,
-    approvals: [{ doc: 'concept', by: 'h' }, { doc: 'spec', by: 'h' }],
+    approvals: [{ doc: 'concept', by: 'h' }, { doc: 'spec', by: 'h' }, { doc: 'design', by: 'h' }],
     gates: { ...base.gates, tests: { status: 'pass', last: { ok: true, exitCode: 0 } }, review: { status: 'pass' } },
     events: [
       { action: 'task_created', ts: '2026-11-15T10:00:00.000Z' },
@@ -40,7 +40,7 @@ test('verify: executing требует approvals и pass-гейт', () => {
       { action: 'review_passed', ts: '2026-11-15T10:07:00.000Z' },
     ],
   };
-  const files = { 'task.md': true, 'analysis.md': true, 'discussion.md': true, 'concept.md': true, 'spec.md': true, 'plan.md': true, 'README.md': true, 'stage:review': true, 'stage:report': true };
+  const files = { 'task.md': true, 'analysis.md': true, 'discussion.md': true, 'concept.md': true, 'spec.md': true, 'design.md': true, 'plan.md': true, 'README.md': true, 'stage:review': true, 'stage:report': true };
   assert.equal(verifyChecklist({ state, files, currentBranch: 'dept/v1' }).ok, true);
   const noTests = { ...state, gates: { ...state.gates, tests: { status: 'pending' } } };
   assert.equal(verifyChecklist({ state: noTests, files, currentBranch: 'dept/v1' }).ok, false);
@@ -61,7 +61,8 @@ test('requiredArtifacts: стадии требуют свои документы
   assert.deepEqual(requiredArtifacts('spec'), ['task.md', 'analysis.md', 'discussion.md']);
   assert.deepEqual(requiredArtifacts('spec_review'), ['task.md', 'analysis.md', 'discussion.md', 'spec.md']);
   assert.deepEqual(requiredArtifacts('concept_review'), ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md']);
-  assert.deepEqual(requiredArtifacts('executing'), ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'plan.md', 'README.md']);
+  assert.deepEqual(requiredArtifacts('design_review'), ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'design.md']);
+  assert.deepEqual(requiredArtifacts('executing'), ['task.md', 'analysis.md', 'discussion.md', 'spec.md', 'concept.md', 'design.md', 'plan.md', 'README.md']);
 });
 
 test('missingArtifacts: перехват отсутствующего analysis.md', () => {

@@ -15,6 +15,8 @@ export const STAGE_ORDER = [
   'spec_review',
   'concept',
   'concept_review',
+  'design',
+  'design_review',
   'executing',
   'release',
   'done',

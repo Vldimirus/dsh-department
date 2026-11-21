@@ -91,7 +91,7 @@ The sidebar shows “Department”, the main window shows the board, office and 
 
 ## Process rules
 
-1. Stages: `analysis (discussion) → spec → spec_review → concept → concept_review → executing → release → done`.
+1. Stages: `analysis (discussion) → spec → spec_review → concept → concept_review → design → design_review → executing → release → done`.
    `release` is production preparation: `dept_handover` builds `delivery/` with RUN.md,
    MANUAL-QA.md, CHANGELOG.md and copies of the key documents; `done` is blocked without it.
 2. First comes the **task discussion**: the department asks questions and gathers requirements.
@@ -99,7 +99,10 @@ The sidebar shows “Department”, the main window shows the board, office and 
    the concept (`concept.md`) with the architect's options; after the first document is approved
    the department moves to the other and refines it. Approvals are human-only (`dept_approve`);
    the project starts (`executing`) only when **both** are approved.
-3. The first execution step is the **plan** (`plan.md`), then stage-by-stage work.
+3. **Design** (`design.md`) is a mandatory stage: the designer gathers 3+ references with links,
+   a palette, typography, grid and a main-screen mockup; the human approves at `design_review`.
+   No execution without an approved design.
+4. The first execution step is the **plan** (`plan.md`), then stage-by-stage work.
    The three key documents — **spec, concept, plan** — are always current: changes go through
    `dept_amend`/`dept_section`; the Documents tab pins them at the top.
 4. Each stage is closed by a commit tagged `stage-N`; the tag is pushed with the branch.
@@ -110,6 +113,7 @@ The sidebar shows “Department”, the main window shows the board, office and 
 
 ## Working together on concept and spec
 
+- **The designer is mandatory**: `design.md` with references and a mockup, otherwise `executing` is blocked.
 - Each specialist writes their section via `dept_section` (designer — style, artist — what
   to draw, researcher — data and statistics, tester — verification strategy, architect —
   decisions, analyst — requirements).
