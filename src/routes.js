@@ -510,6 +510,10 @@ export function registerDepartmentRoutes(ctx, activity) {
         if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
         const result = addCorrection(state, { doc, subject: subject ?? '', text, by, priority });
         await writeState(root, result.state);
+        const notice = `Новая корректировка ${result.correction.id} (${doc}): ${subject || ''}\n${String(text).slice(0, 800)}\n` +
+          'Возьми её в работу (dept_correction status=in_progress), оцени влияние на design.md/spec.md/plan.md, ' +
+          'обнови документы. Без утверждённого дизайна код не начинай. Закрой корректировку done с итогом.';
+        await startManager(ctx, root, taskId, state.title ?? taskId, notice);
         return Response.json({ correction: result.correction });
       }
       const root = url.searchParams.get('root');
