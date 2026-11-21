@@ -353,7 +353,7 @@ const STAGE_FLOW = Object.freeze({
   design_review: ['design'],
   spec: ['spec_review', 'concept'],
   spec_review: ['spec'],
-  executing: ['release', 'blocked', 'spec', 'concept'],
+  executing: ['release', 'blocked', 'spec', 'concept', 'design'],
   release: ['done', 'executing'],
   done: [],
   blocked: ['analysis', 'executing'],

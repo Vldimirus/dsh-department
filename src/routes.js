@@ -14,7 +14,7 @@ import { addDesignFeedback } from './store.js';
 import { readSettings, writeSettings } from './settings.js';
 import { randomUUID } from 'node:crypto';
 import { rename } from 'node:fs/promises';
-import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, readState, reopenTask, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
+import { addCorrection, amendDocument, answerQuestion, approveDocument, listRoles, advanceStage, readState, reopenTask, reviewMemo, setBudget, setPaused, setRole, writeState } from './store.js';
 import { isHumanApprover } from './roles.js';
 import { buildBlueprint } from './blueprint.js';
 import { listDocuments, readDocument } from './documents.js';
@@ -109,6 +109,7 @@ export const DEPARTMENT_ROUTES = {
   taskDelete: '/api/department/task/delete',
   taskStart: '/api/department/task/start',
   reopen: '/api/department/task/reopen',
+  toDesign: '/api/department/task/to-design',
   design: '/api/department/design',
   designImage: '/api/department/design/image',
   designFeedback: '/api/department/design/feedback',
@@ -324,6 +325,30 @@ export function registerDepartmentRoutes(ctx, activity) {
     },
   });
 
+
+
+  add({
+    path: DEPARTMENT_ROUTES.toDesign,
+    methods: ['POST'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const body = await request.json().catch(() => ({}));
+      const { root, taskId, by, reason } = body ?? {};
+      if (!root || !taskId || !isHumanApprover(by)) return Response.json({ error: 'root, taskId, human signature required' }, { status: 400 });
+      const state = await readState(root, taskId);
+      if (!state) return Response.json({ error: 'task not found' }, { status: 404 });
+      const approved = new Set((state.approvals ?? []).map((item) => item.doc));
+      if (approved.has('design')) return Response.json({ error: 'дизайн уже утверждён' }, { status: 400 });
+      if (state.stage !== 'executing') return Response.json({ error: 'вернуть в дизайн можно только из executing' }, { status: 400 });
+      try {
+        const next = await writeState(root, advanceStage(state, 'design', reason ?? 'возврат в дизайн: не был утверждён'));
+        await startManager(ctx, root, taskId, state.title ?? taskId, promptFor(next, root, taskId));
+        return Response.json({ ok: true, stage: next.stage });
+      } catch (error) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+    },
+  });
 
   add({
     path: DEPARTMENT_ROUTES.reopen,

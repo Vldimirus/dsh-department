@@ -660,6 +660,7 @@ window.__ModuleLoader__.load({
       taskDelete: '/api/department/task/delete',
       taskStart: '/api/department/task/start',
       reopen: '/api/department/task/reopen',
+      toDesign: '/api/department/task/to-design',
       design: '/api/department/design',
       designImage: '/api/department/design/image',
       designFeedback: '/api/department/design/feedback',
@@ -1741,6 +1742,9 @@ window.__ModuleLoader__.load({
             h('button', { className: 'dept-btn', onClick: startDepartment }, 'Запустить отдел'),
             ['done', 'release', 'blocked'].includes(detail.stage)
               ? h('button', { className: 'dept-btn', onClick: reopenTaskAction }, 'Переоткрыть')
+              : null,
+            detail.stage === 'executing' && !approved.has('design')
+              ? h('button', { className: 'dept-btn', onClick: () => post(ROUTES.toDesign, { root: detail.root, taskId: detail.taskId, reason: 'возврат в дизайн: не был утверждён' }) }, 'Вернуть в дизайн')
               : null,
             h('button', { className: 'dept-btn', onClick: () => onEditor && onEditor() }, t('nav.editor')),
             h('button', { className: 'dept-btn fail', disabled: busy, onClick: deleteTask }, 'Удалить'),
